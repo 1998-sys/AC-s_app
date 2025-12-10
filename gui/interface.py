@@ -18,9 +18,7 @@ from data.utils_db import (
     buscar_por_sn_sensor,
     atualizar_tag
 )
-
 from form.utils_print import gerar_ac
-#from xml_model.xml_extractor import gerar_xml
 
 def extrair_tag_base(tag: str) -> str:
     """
@@ -33,8 +31,6 @@ def extrair_tag_base(tag: str) -> str:
     partes = tag.split("-")
     return "-".join(partes[:-1])
 
-
-
 class App:
     def __init__(self, root):
         self.root = root
@@ -42,7 +38,7 @@ class App:
         self.root.geometry("600x400")
         self.root.resizable(False, False)
 
-        # Botão selecionar PDF
+        
         self.btn_selecionar = tk.Button(
             root,
             text="Selecionar Certificado PDF",
@@ -102,7 +98,7 @@ class App:
         mvs=False
         # Tag não encontrada, mas o SN existe -> verifica se é MVS (NS mesmo, Tag mesma base)
         if registro is None and reg_sn is not None:
-            # Verifica se é MVS
+        
             if tag_base_pdf == tag_base_sn:
                 registro = reg_sn
                 messagebox.showinfo(
@@ -116,7 +112,7 @@ class App:
                 inserir_instrumento(tag_pdf, sn_pdf, sns_pdf, range_min, range_max)
                 mvs = True
             else:
-                # Divergência real → perguntar se deve atualizar
+                
                 resposta = messagebox.askyesno(
                     "TAG divergente",
                     f"O NS '{sn_pdf}' já está cadastrado com outra TAG:\n"
@@ -161,11 +157,9 @@ class App:
 
             # Se for MVS recém-criado → não comparar com registro antigo
             if mvs and not sn_banco:
-                # Apenas salvar porque é novo (já foi salvo no inserir_instrumento)
                 registro["sn_sensor"] = sns_pdf
-                # Não exibe divergência
+                
             else:
-                # Comparação normal
                 if sns_pdf != sn_banco:
                     resposta = messagebox.askyesno(
                         "Divergência no SN do Sensor",
@@ -292,9 +286,3 @@ class App:
                 dados_pdf["sn_sensor"] == registro["sn_sensor"])
 
 
-
-#Execução principal
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
