@@ -2,13 +2,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import sys
-
-
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos
-
 from data.utils_db import (
     buscar_instrumento_por_tag,
     inserir_instrumento,
@@ -16,7 +12,8 @@ from data.utils_db import (
     atualizar_sn_sensor,
     buscar_por_sn_instrumento,
     buscar_por_sn_sensor,
-    atualizar_tag
+    atualizar_tag,
+    atualizar_range
 )
 from form.utils_print import gerar_ac
 
@@ -160,11 +157,11 @@ class App:
                 registro["sn_sensor"] = sns_pdf
                 
             else:
-                if sns_pdf != sn_banco:
+                if sns_pdf != sns_banco:
                     resposta = messagebox.askyesno(
                         "Divergência no SN do Sensor",
                         f"O SN do sensor da TAG {tag_pdf} difere:\n"
-                        f"PDF: {sns_pdf}\nBanco: {sn_banco}\n\n"
+                        f"PDF: {sns_pdf}\nBanco: {sns_banco}\n\n"
                         "Deseja atualizar o banco?"
                     )
 
@@ -208,7 +205,6 @@ class App:
                 )
                 if resposta:
                     try:
-                        from data.utils_db import atualizar_range
                         atualizar_range(tag_banco, min_pdf, max_pdf)
 
                         # Atualiza registro em memória
