@@ -3,6 +3,5 @@ venv/
 .venv/
 
 instrumentos.db
-TemplateAc.xlsx
 build/
 dist/
