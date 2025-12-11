@@ -66,7 +66,7 @@ class App:
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
-            print(dados_pdf)
+            
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao ler PDF:\n{e}")
             return
@@ -82,16 +82,13 @@ class App:
         sns_pdf = dados_pdf.get("sn_sensor")
         range_min = dados_pdf.get("min_range")
         range_max = dados_pdf.get("max_range")
-
         dados_ok = True
-
         registro = buscar_instrumento_por_tag(tag_pdf)
         reg_sn = buscar_por_sn_instrumento(sn_pdf) if sn_pdf else None
-
         tag_base_pdf = extrair_tag_base(tag_pdf)
         tag_base_sn = extrair_tag_base(reg_sn["tag"]) if reg_sn else None
 
-
+        
         mvs=False
         # Tag não encontrada, mas o SN existe -> verifica se é MVS (NS mesmo, Tag mesma base)
         if registro is None and reg_sn is not None:
@@ -146,12 +143,31 @@ class App:
                 return
 
         # Caso 3 - SN do instrumento divergente
+
         sn_banco = registro["sn_instrumento"]
         sns_banco = registro["sn_sensor"]
         tag_banco = registro["tag"]
 
-        if sns_pdf:
+        # --- SN DO INSTRUMENTO ---
+        if sn_pdf and sn_pdf != sn_banco:
 
+            resposta = messagebox.askyesno(
+                "Divergência no SN do Instrumento",
+                f"O SN do INSTRUMENTO da TAG {tag_pdf} difere:\n\n"
+                f"PDF: {sn_pdf}\nBanco: {sn_banco}\n\n"
+                "Deseja atualizar o banco?"
+            )
+
+            if resposta:
+                dados_pdf["sn_atualizado"] = True
+                atualizar_sn(tag_pdf, sn_pdf)
+                registro["sn_instrumento"] = sn_pdf
+                
+            else:
+                dados_ok = False
+
+
+        if sns_pdf:
             # Se for MVS recém-criado → não comparar com registro antigo
             if mvs and not sn_banco:
                 registro["sn_sensor"] = sns_pdf
@@ -166,9 +182,10 @@ class App:
                     )
 
                     if resposta:
+                        dados_pdf["sn_atualizado"] = True
                         atualizar_sn_sensor(tag_pdf, sns_pdf)
                         registro["sn_sensor"] = sns_pdf
-                        dados_pdf["sn_atualizado"] = True
+                        
                     else:
                         dados_ok = False
         
@@ -178,7 +195,7 @@ class App:
 
         min_banco = registro.get("min_range")
         max_banco = registro.get("max_range")
-
+        
         try:
             min_pdf_f = float(min_pdf)
             max_pdf_f = float(max_pdf)
@@ -191,43 +208,36 @@ class App:
             min_banco_f = min_banco
             max_banco_f = max_banco
 
-        print(min_banco_f, min_banco_f)
+        
         if not mvs and min_pdf is not None and max_pdf is not None:
             range_diferente = ((min_pdf_f) != (min_banco_f)) or ((max_pdf_f) != (max_banco_f))
-            
+
             if range_diferente:
                 resposta = messagebox.askyesno(
                     "Divergência no RANGE do Instrumento",
                     f"O RANGE do instrumento {tag_pdf} difere do registrado no banco.\n\n"
                     f"PDF: {min_pdf} → {max_pdf}\n"
                     f"Banco: {min_banco} → {max_banco}\n\n"
-                    f"Deseja atualizar o banco e continuar?"
+                    "Deseja atualizar o banco e continuar?"
                 )
+
                 if resposta:
-                    try:
-                        atualizar_range(tag_banco, min_pdf, max_pdf)
+                    dados_pdf["range_atualizado"] = True
+                    atualizar_range(tag_banco, min_pdf, max_pdf)
 
-                        # Atualiza registro em memória
-                        registro["min_range"] = min_pdf
-                        registro["max_range"] = max_pdf
-
-                        dados_pdf["range_atualizado"] = True
-
-                        messagebox.showinfo(
-                            "Range atualizado",
-                            f"O range do instrumento {tag_pdf} foi atualizado com sucesso."
-                        )
-
-                    except Exception as e:
-                        messagebox.showerror("Erro ao atualizar RANGE", str(e))
-                        dados_ok = False
+                    registro["min_range"] = min_pdf
+                    registro["max_range"] = max_pdf
+                    
+                    messagebox.showinfo(
+                        "Range atualizado",
+                        f"O range do instrumento {tag_pdf} foi atualizado com sucesso."
+                    )
 
                 else:
                     messagebox.showwarning(
                         "AC NÃO GERADA",
                         "O usuário optou por não atualizar o RANGE.\n"
-                        "A Análise Crítica não será gerada.",
-                        "XML não gerado"
+                        "A Análise Crítica não será gerada."
                     )
                     return
 
@@ -237,12 +247,14 @@ class App:
         
         # Exibir resultados
         self.exibir_resultado(dados_pdf, registro)
+        print(dados_pdf)
 
 
         
         #Gerar AC e XML
         if dados_ok:
             caminho_pdf_final, tipo = gerar_ac(dados_pdf, caminho_pdf_original)
+            print(dados_pdf)
             #gerar_xml(dados_pdf, tipo, caminho_pdf_final)
 
             messagebox.showinfo(

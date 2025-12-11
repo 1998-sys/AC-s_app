@@ -48,9 +48,9 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
     ws.column_dimensions["C"].width = 22
     ws.row_dimensions[7].height = 15 * max(1, local.count("\n") + 1)
 
-    # Campo Descrição do equipamento baseado na TAG
+    
     tag = (dados.get("tag") or "").upper()
-    print(tag)
+   
 
     if "-TT" in tag:
         ws["B2"] = "Análise Crítica de Calibração dos sensores de Temperatura"
@@ -75,7 +75,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         dt_util = adicionar_dia_util(dt)
         ws["H40"] = dt_util.strftime("%d/%m/%Y")
     
-    # informação range - atualizado
+    # informação range e ns- atualizado
     range_atualizado = dados.get("range_atualizado", False)
     ns_atualizado = dados.get("sn_atualizado", False)
 
@@ -85,7 +85,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         blocos.append(
             TextBlock(
                 text="( X ) Sim (  ) Não\nOBSERVAÇÕES:\n",
-                font=InlineFont()  
+                font=InlineFont()
             )
         )
         blocos.append(
@@ -98,8 +98,8 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
     elif ns_atualizado:
         blocos.append(
             TextBlock(
-                text="( X ) Sim (  )Não\nOBSERVAÇÕES:\n",
-                font=InlineFont()  
+                text="( X ) Sim (  ) Não\nOBSERVAÇÕES:\n",
+                font=InlineFont()
             )
         )
         blocos.append(
@@ -108,13 +108,23 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
                 font=InlineFont(b=True)
             )
         )
-    
-    # Se nenhum dos dois for verdadeiro → deixa a célula limpa
+        
+
+    # Nenhum dos dois → marcar (X) no NÃO e sem observações
     else:
-        rich = CellRichText(*blocos)
-        ws["B35"].value = rich
-        ws["B35"].alignment = Alignment(wrap_text=True, vertical="top")
-        ws["B35"].value = "(  ) Sim ( X )Não\nOBSERVAÇÕES:"
+        blocos.append(
+            TextBlock(
+                text="(  ) Sim ( X ) Não\nOBSERVAÇÕES:\n",
+                font=InlineFont()
+            )
+        )
+
+    # montar rich text final
+    rich = CellRichText(*blocos)
+
+    # escrever na célula B35
+    ws["B35"].value = rich
+    ws["B35"].alignment = Alignment(wrap_text=True, vertical="top")
 
    
     wb.save(caminho_template)

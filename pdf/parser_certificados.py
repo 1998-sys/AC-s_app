@@ -76,12 +76,17 @@ def extrair_campos(texto: str) -> dict:
     else:
         descricao_sistema = None
     
-    padrao_range = r"Calibration Range.*?Min[: ]*([0-9.,]+)\s*[°º]?[A-Za-z]*\s*[-–]\s*Max[: ]*([0-9.,]+)"
-    m_range = re.search(padrao_range, texto, flags=re.IGNORECASE | re.DOTALL)
+    padrao_range = r"""
+    Calibration\s*Range.*?           # captura trecho 'Calibration Range'
+    Min[: ]*([-+]?[0-9.,]+)          # captura APENAS o número do Min
+    .*?                              # ignora unidade e qualquer outra coisa
+    Max[: ]*([-+]?[0-9.,]+)          # captura APENAS o número do Max
+    """
+    m_range = re.search(padrao_range, texto, flags=re.IGNORECASE | re.DOTALL | re.VERBOSE)
 
     if m_range:
-        min_kpa = m_range.group(1).replace(",", ".")
-        max_kpa = m_range.group(2).replace(",", ".")
+        min_kpa = m_range.group(1)
+        max_kpa = m_range.group(2)
     else:
         min_kpa = None
         max_kpa = None
