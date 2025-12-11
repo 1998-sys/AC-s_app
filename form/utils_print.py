@@ -75,7 +75,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         dt_util = adicionar_dia_util(dt)
         ws["H40"] = dt_util.strftime("%d/%m/%Y")
     
-    # informação range e ns- atualizado
+    
     range_atualizado = dados.get("range_atualizado", False)
     ns_atualizado = dados.get("sn_atualizado", False)
 
@@ -110,7 +110,6 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         )
         
 
-    # Nenhum dos dois → marcar (X) no NÃO e sem observações
     else:
         blocos.append(
             TextBlock(
@@ -143,9 +142,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
                 f"⚠ O arquivo PDF está aberto e não pode ser sobrescrito:\n{caminho_pdf_final}"
             )
 
-    # ==========================================================
-    # 5) Exportar para PDF usando Excel sem fechar janelas abertas
-    # ==========================================================
+  
     excel = win32.DispatchEx("Excel.Application") 
     excel.Visible = False
     excel.DisplayAlerts = False
