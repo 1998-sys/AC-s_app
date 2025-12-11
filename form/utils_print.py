@@ -95,7 +95,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
             )
         )
 
-    if ns_atualizado:
+    elif ns_atualizado:
         blocos.append(
             TextBlock(
                 text="( X ) Sim (  )Não\nOBSERVAÇÕES:\n",
@@ -110,11 +110,10 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         )
     
     # Se nenhum dos dois for verdadeiro → deixa a célula limpa
-    if blocos:
+    else:
         rich = CellRichText(*blocos)
         ws["B35"].value = rich
         ws["B35"].alignment = Alignment(wrap_text=True, vertical="top")
-    else:
         ws["B35"].value = "(  ) Sim ( X )Não\nOBSERVAÇÕES:"
 
    
@@ -137,7 +136,7 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
     # ==========================================================
     # 5) Exportar para PDF usando Excel sem fechar janelas abertas
     # ==========================================================
-    excel = win32.DispatchEx("Excel.Application")  # INSTÂNCIA 100% ISOLADA
+    excel = win32.DispatchEx("Excel.Application") 
     excel.Visible = False
     excel.DisplayAlerts = False
     excel.ScreenUpdating = False
