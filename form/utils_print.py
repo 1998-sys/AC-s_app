@@ -53,19 +53,19 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
    
 
     if "-TT" in tag:
-        ws["B2"] = "Análise Crítica de Calibração dos sensores de Temperatura"
+        ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
         tipo="TT"
 
     elif any(x in tag for x in ["-DPT", "DPT-","-DPT-" "-PDT", "PDT-", "-PDT-" "-PDIT","PDIT-","-PDIT-", "-FT","-FT-", 'FT-', "-FIT", "-FIT"]):
-        ws["B2"] = "Análise Crítica de Calibração dos Transmisores de Pressão diferencial"
+        ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão diferencial"
         tipo="DPT"
 
     elif any(x in tag for x in ["PT", "PIT","-PT"]) and "-TT" not in tag:
-        ws["B2"] = "Análise Crítica de Calibração dos Transmisores de Pressão"
+        ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão"
         tipo="PT"
 
     else:
-        ws["B2"] = "Análise Crítica de Calibração dos sensores de Temperatura"
+        ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
         tipo="TE"
 
 
