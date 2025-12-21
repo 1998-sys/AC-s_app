@@ -82,6 +82,8 @@ class App:
         sns_pdf = dados_pdf.get("sn_sensor")
         range_min = dados_pdf.get("min_range")
         range_max = dados_pdf.get("max_range")
+        rod_length = dados_pdf.get("rod_length")
+        probe_diameter = dados_pdf.get("probe_diameter")
         dados_ok = True
         registro = buscar_instrumento_por_tag(tag_pdf)
         reg_sn = buscar_por_sn_instrumento(sn_pdf) if sn_pdf else None
@@ -210,7 +212,7 @@ class App:
 
         
         if not mvs and min_pdf is not None and max_pdf is not None:
-            range_diferente = ((min_pdf_f) != (min_banco_f)) or ((max_pdf_f) != (max_banco_f))
+            range_diferente = (min_pdf_f != min_banco_f) or (max_pdf_f != max_banco_f)
 
             if range_diferente:
                 resposta = messagebox.askyesno(
@@ -240,6 +242,22 @@ class App:
                         "A Análise Crítica não será gerada."
                     )
                     return
+            
+            # Divergência haste ou valor none(vazio)
+            haste = (rod_length == None or probe_diameter == None) or (float(probe_diameter) > float(rod_length))
+            if haste:
+                resposta = messagebox.askyesno(
+                    "Verifique dados da Haste",
+                    f"Comprimento da Haste ou diâmetro da Haste está incorreto.\n\n"
+                    f"PDF: Comprimento: {rod_length} →  Diametro: {probe_diameter}\n"
+                    "Deseja continuar?")
+                
+                if resposta == False:
+                        dados_ok = False
+                        "AC NÃO GERADA",
+                        "O usuário optou por não continuar devido a dados incorretos da Haste.\n"
+                        "A Análise Crítica não será gerada."
+                
 
         
 

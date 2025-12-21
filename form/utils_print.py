@@ -166,6 +166,6 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
         wb_excel.Close(SaveChanges=False)
 
     finally:
-        excel.Quit()  # encerra somente ESTA instância
+        excel.Quit()  
 
     return caminho_pdf_final,tipo

@@ -90,7 +90,14 @@ def extrair_campos(texto: str) -> dict:
     else:
         min_kpa = None
         max_kpa = None
-    
+
+    # Comprimento da Haste e diâmetro da Haste
+
+    rod_match = re.search(r"Rod length:\s*([\d,.]+)", texto)
+    rod_length = rod_match.group(1).replace(",", ".") if rod_match else None
+
+    probe_match = re.search(r"Probe diameter:\s*([\d,.]+)", texto)
+    probe_diameter = probe_match.group(1).replace(",", ".") if probe_match else None
     
     
 
@@ -106,6 +113,8 @@ def extrair_campos(texto: str) -> dict:
         "report_date": report_date,
         'min_range': min_kpa,
         'max_range': max_kpa,
+        'rod_length': rod_length,
+        'probe_diameter': probe_diameter
     }
 
 
