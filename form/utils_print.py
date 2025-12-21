@@ -51,22 +51,33 @@ def gerar_ac(dados, caminho_pdf_original="TemplateAC.xlsx"):
     
     tag = (dados.get("tag") or "").upper()
    
-
-    if "-TT" in tag:
+    if (
+        tag.startswith("TE") or
+        tag.endswith("-TE") or
+        "-TE-" in tag
+    ):
         ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
-        tipo="TT"
+        tipo = "TE"
 
-    elif any(x in tag for x in ["-DPT", "DPT-","-DPT-" "-PDT", "PDT-", "-PDT-" "-PDIT","PDIT-","-PDIT-", "-FT","-FT-", 'FT-', "-FIT", "-FIT"]):
-        ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão diferencial"
-        tipo="DPT"
+    elif (
+        tag.startswith(("TT", "TIT", "TI")) or
+        tag.endswith(("-TT", "-TIT", "-TI")) or
+        any(x in tag for x in ("-TT-", "-TIT-", "-TI-"))
+    ):
+        ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
+        tipo = "TT"
 
-    elif any(x in tag for x in ["PT", "PIT","-PT"]) and "-TT" not in tag:
+    elif (
+        tag.startswith(("PT", "PIT")) or
+        tag.endswith(("-PT", "-PIT")) or
+        any(x in tag for x in ("-PT-", "-PIT-"))
+    ):
         ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão"
-        tipo="PT"
+        tipo = "PT"
 
     else:
-        ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
-        tipo="TE"
+        ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão Diferencial"
+        tipo = "DPT"
 
 
     #Report Date (+1 dia) - útil
