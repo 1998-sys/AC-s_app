@@ -7,6 +7,9 @@ from data.utils_db import (
     inserir_instrumento
 )
 
+# ======================================================
+# UTILITÁRIO
+# ======================================================
 def to_float(value):
     try:
         if value is None:
@@ -15,16 +18,21 @@ def to_float(value):
     except Exception:
         return None
 
+
+# ======================================================
+# REGRA 1 — TAG vs SN (MVS ou divergente)
+# ======================================================
 def regra_tag_vs_sn(ctx):
     if ctx.db is None and ctx.reg_sn is not None:
 
+        # Família MVS
         if ctx.tag_base_pdf == ctx.tag_base_sn:
             ctx.mvs = True
             return ValidationIssue(
                 key="mvs",
                 title="TAG compatível (Família MVS)",
                 message=(
-                    f"NS pertence à mesma família.\n\n"
+                    "NS pertence à mesma família.\n\n"
                     f"Banco: {ctx.reg_sn['tag']}\n"
                     f"Certificado: {ctx.pdf['tag']}"
                 ),
@@ -38,21 +46,26 @@ def regra_tag_vs_sn(ctx):
                 blocking=False
             )
 
+        # TAG divergente
         return ValidationIssue(
             key="tag_divergente",
             title="TAG divergente",
             message=(
-                f"NS já cadastrado com outra TAG.\n\n"
+                "NS já cadastrado com outra TAG.\n\n"
                 f"Banco: {ctx.reg_sn['tag']}\n"
                 f"Certificado: {ctx.pdf['tag']}"
             ),
             action=lambda: atualizar_tag(
                 ctx.pdf["sn_instrumento"],
                 ctx.pdf["tag"]
-            )
+            ),
+            blocking=True
         )
 
 
+# ======================================================
+# REGRA 2 — Novo Instrumento
+# ======================================================
 def regra_novo_instrumento(ctx):
     if ctx.db is None and ctx.reg_sn is None:
         return ValidationIssue(
@@ -69,10 +82,14 @@ def regra_novo_instrumento(ctx):
                 ctx.pdf.get("sn_sensor"),
                 ctx.pdf.get("min_range"),
                 ctx.pdf.get("max_range")
-            )
+            ),
+            blocking=True
         )
 
 
+# ======================================================
+# REGRA 3 — SN do Instrumento
+# ======================================================
 def regra_sn_instrumento(ctx):
     if (
         ctx.pdf.get("sn_instrumento")
@@ -85,13 +102,16 @@ def regra_sn_instrumento(ctx):
                 f"PDF: {ctx.pdf['sn_instrumento']}\n"
                 f"Banco: {ctx.db['sn_instrumento']}"
             ),
-            action=lambda: atualizar_sn(
-                ctx.db["tag"],
-                ctx.pdf["sn_instrumento"]
+            action=lambda: (
+                atualizar_sn(ctx.db["tag"], ctx.pdf["sn_instrumento"]),
+                ctx.pdf.__setitem__("sn_atualizado", True)
             )
         )
 
 
+# ======================================================
+# REGRA 4 — SN do Sensor
+# ======================================================
 def regra_sn_sensor(ctx):
     if (
         ctx.pdf.get("sn_sensor")
@@ -104,13 +124,16 @@ def regra_sn_sensor(ctx):
                 f"PDF: {ctx.pdf['sn_sensor']}\n"
                 f"Banco: {ctx.db['sn_sensor']}"
             ),
-            action=lambda: atualizar_sn_sensor(
-                ctx.db["tag"],
-                ctx.pdf["sn_sensor"]
+            action=lambda: (
+                atualizar_sn_sensor(ctx.db["tag"], ctx.pdf["sn_sensor"]),
+                ctx.pdf.__setitem__("sn_atualizado", True)
             )
         )
 
 
+# ======================================================
+# REGRA 5 — RANGE (normalização + comparação real)
+# ======================================================
 def regra_range(ctx):
     if ctx.mvs:
         return None
@@ -121,33 +144,32 @@ def regra_range(ctx):
     db_min = to_float(ctx.db.get("min_range"))
     db_max = to_float(ctx.db.get("max_range"))
 
-    # Se PDF não trouxe range, ignora regra
+    # PDF sem range → ignora
     if pdf_min is None or pdf_max is None:
         return None
 
-    # Atualiza o contexto com valores normalizados
+    # Atualiza contexto com valores normalizados
     ctx.pdf["min_range"] = pdf_min
     ctx.pdf["max_range"] = pdf_max
     ctx.db["min_range"] = db_min
     ctx.db["max_range"] = db_max
 
-    # Banco sem range cadastrado
+    # Banco sem range
     if db_min is None or db_max is None:
         return ValidationIssue(
             key="range",
             title="Range ausente no banco",
             message=(
                 f"PDF: {pdf_min} → {pdf_max}\n"
-                f"Banco: não cadastrado"
+                "Banco: não cadastrado"
             ),
-            action=lambda: atualizar_range(
-                ctx.db["tag"],
-                pdf_min,
-                pdf_max
+            action=lambda: (
+                atualizar_range(ctx.db["tag"], pdf_min, pdf_max),
+                ctx.pdf.__setitem__("range_atualizado", True)
             )
         )
 
-    # Comparação numérica REAL
+    # Divergência real
     if pdf_min != db_min or pdf_max != db_max:
         return ValidationIssue(
             key="range",
@@ -156,19 +178,21 @@ def regra_range(ctx):
                 f"PDF: {pdf_min} → {pdf_max}\n"
                 f"Banco: {db_min} → {db_max}"
             ),
-            action=lambda: atualizar_range(
-                ctx.db["tag"],
-                pdf_min,
-                pdf_max
+            action=lambda: (
+                atualizar_range(ctx.db["tag"], pdf_min, pdf_max),
+                ctx.pdf.__setitem__("range_atualizado", True)
             )
         )
 
     return None
 
 
+# ======================================================
+# REGRA 6 — HASTE (somente TE)
+# ======================================================
 def regra_haste_te(ctx):
     if "TE" not in ctx.pdf["tag"]:
-        return
+        return None
 
     try:
         rod = ctx.pdf.get("rod_length")
@@ -192,3 +216,5 @@ def regra_haste_te(ctx):
             message="Erro ao interpretar os valores.",
             blocking=True
         )
+
+    return None
