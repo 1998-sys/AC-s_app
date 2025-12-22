@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from threading import Thread
 import os
@@ -18,61 +18,96 @@ from data.utils_db import (
 )
 
 from form.utils_print import gerar_ac
-
 from validation.engine import ValidationEngine
 from validation.context import ValidationContext
 
 
+ctk.set_appearance_mode("light")
+ODS_RED = "#D81F3C"
+ODS_RED_HOVER = "#B51A32"
+ODS_BG = "#FFFFFF"  # Fundo principal: Branco
+ODS_FRAME = "#F0F0F0" # Fundo de frames: Cinza claro
+ODS_ENTRY = "#E0E0E0" # Fundo de campos de entrada: Cinza mais claro
+ODS_TEXT = "#333333" # Cor do texto principal: Cinza escuro
+ODS_WHITE = "#FFFFFF" # Cor do texto em botões vermelhos
+ODS_OK = "#10B981" # Verde mais escuro para modo claro
+ODS_ERROR = "#D81F3C"
 
 
 def extrair_tag_base(tag: str) -> str:
-    """
-    Docstring for extrair_tag_base MVS
-    
-    :param tag: Description
-    :type tag: str
-    :return: Description
-    :rtype: str
-    """
     if "-" not in tag:
         return tag
-    partes = tag.split("-")
-    return "-".join(partes[:-1])
+    return "-".join(tag.split("-")[:-1])
 
 
+class App(ctk.CTkFrame):
+    def __init__(self, master):
+        
+        super().__init__(master, fg_color=ODS_BG)
+        self.pack(fill="both", expand=True, padx=20, pady=20)
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Análise Crítica de Certificados")
-        self.root.geometry("600x420")
-        self.root.resizable(False, False)
+        self.master.title("Análise Crítica de Certificados")
+        self.master.geometry("680x480")
+        self.master.resizable(False, False)
+       
+        self.master.configure(fg_color=ODS_BG)
 
-        self.btn_selecionar = tk.Button(
-            root,
+        
+        self.lbl_title = ctk.CTkLabel(
+            self,
+            text="Gerador de Análise Crítica",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=ODS_TEXT 
+        )
+        self.lbl_title.pack(pady=(10, 25))
+
+        
+        self.btn_pdf = ctk.CTkButton(
+            self,
             text="Selecionar Certificado PDF",
-            command=self.selecionar_pdf,
-            width=30,
-            height=2
+            width=300,
+            height=44,
+            fg_color=ODS_RED,
+            hover_color=ODS_RED_HOVER,
+            text_color=ODS_WHITE, 
+            corner_radius=10,
+            command=self.selecionar_pdf
         )
-        self.btn_selecionar.pack(pady=15)
+        self.btn_pdf.pack(pady=10)
 
-        self.btn_consultar = tk.Button(
-            root,
+        self.btn_consultar = ctk.CTkButton(
+            self,
             text="Consultar / Atualizar Dados",
-            command=self.abrir_consulta,
-            width=30
+            width=300,
+            height=44,
+            fg_color=ODS_RED,
+            hover_color=ODS_RED_HOVER,
+            text_color=ODS_WHITE, 
+            border_width=1,
+            border_color=ODS_RED,
+            corner_radius=10,
+            command=self.abrir_consulta
         )
-        self.btn_consultar.pack(pady=5)
+        self.btn_consultar.pack(pady=10)
 
-        self.lbl_pdf = tk.Label(root, text="Nenhum PDF selecionado.")
-        self.lbl_pdf.pack(pady=10)
+        
+        self.lbl_pdf = ctk.CTkLabel(
+            self,
+            text="Nenhum PDF selecionado.",
+            text_color=ODS_TEXT 
+        )
+        self.lbl_pdf.pack(pady=18)
 
-        self.result_frame = tk.Frame(root)
-        self.result_frame.pack(pady=10)
+        
+        self.result_frame = ctk.CTkFrame(
+            self,
+            fg_color=ODS_FRAME, 
+            corner_radius=12
+        )
+        self.result_frame.pack(fill="x", pady=10, padx=10)
 
+    
 
-   
     def selecionar_pdf(self):
         caminho_pdf = filedialog.askopenfilename(
             title="Selecione o certificado PDF",
@@ -82,8 +117,8 @@ class App:
         if not caminho_pdf:
             return
 
-        self.lbl_pdf.config(
-            text=f"Processando: {os.path.basename(caminho_pdf)} ..."
+        self.lbl_pdf.configure(
+            text=f"Processando: {os.path.basename(caminho_pdf)}..."
         )
 
         Thread(
@@ -96,15 +131,14 @@ class App:
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
-            print(dados_pdf)
 
-            self.root.after(
+            self.after(
                 0,
                 lambda: self.processar_comparacao(dados_pdf, caminho_pdf)
             )
 
         except Exception as e:
-            self.root.after(
+            self.after(
                 0,
                 lambda: messagebox.showerror(
                     "Erro",
@@ -112,11 +146,10 @@ class App:
                 )
             )
 
-
    
+
     def processar_comparacao(self, dados_pdf, caminho_pdf_original):
-        """Processa a comparação entre os dados do PDF e os registros no banco."""
-        tag_pdf = dados_pdf["tag"]
+        tag_pdf = dados_pdf["tag"].upper()
         sn_pdf = dados_pdf.get("sn_instrumento")
 
         registro = buscar_instrumento_por_tag(tag_pdf)
@@ -136,7 +169,6 @@ class App:
         dados_ok = True
 
         for issue in issues:
-
             if issue.action:
                 resposta = messagebox.askyesno(
                     issue.title,
@@ -170,57 +202,84 @@ class App:
                 "Existem divergências pendentes."
             )
 
-        self.lbl_pdf.config(text="Processamento concluído.")
+        self.lbl_pdf.configure(text="Processamento concluído.")
 
-
+    
     def exibir_resultado(self, dados_pdf, registro):
-        """Exibe o resultado da comparação na interface."""
         for w in self.result_frame.winfo_children():
             w.destroy()
 
         def add(text, ok):
-            tk.Label(
+            ctk.CTkLabel(
                 self.result_frame,
                 text=text,
-                fg="green" if ok else "red"
-            ).pack(anchor="w")
+                text_color=ODS_OK if ok else ODS_ERROR,
+                font=ctk.CTkFont(size=13)
+            ).pack(anchor="w", padx=15, pady=4)
 
-        add(f"TAG: {dados_pdf['tag']} | {registro['tag']}",
-            dados_pdf["tag"] == registro["tag"])
+        add(
+            f"TAG: {dados_pdf['tag']} | {registro['tag']}",
+            dados_pdf["tag"] == registro["tag"]
+        )
 
-        add(f"SN Instrumento: {dados_pdf.get('sn_instrumento')} | {registro['sn_instrumento']}",
-            dados_pdf.get("sn_instrumento") == registro["sn_instrumento"])
+        add(
+            f"SN Instrumento: {dados_pdf.get('sn_instrumento')} | {registro['sn_instrumento']}",
+            dados_pdf.get("sn_instrumento") == registro["sn_instrumento"]
+        )
 
         if dados_pdf.get("sn_sensor"):
-            add(f"SN Sensor: {dados_pdf['sn_sensor']} | {registro['sn_sensor']}",
-                dados_pdf["sn_sensor"] == registro["sn_sensor"])
+            add(
+                f"SN Sensor: {dados_pdf['sn_sensor']} | {registro['sn_sensor']}",
+                dados_pdf["sn_sensor"] == registro["sn_sensor"]
+            )
 
 
-    
     def abrir_consulta(self):
-        """Abre a janela de consulta e atualização de dados."""
-        win = tk.Toplevel(self.root)
+        win = ctk.CTkToplevel(self)
         win.title("Consultar / Atualizar Dados")
-        win.geometry("420x360")
-        win.transient(self.root)
+        win.geometry("440x480")
+        win.configure(fg_color=ODS_BG) # Fundo branco
         win.grab_set()
 
-        tk.Label(win, text="TAG").pack(pady=(10, 0))
-        entry_tag = tk.Entry(win, width=30)
+        ctk.CTkLabel(
+            win,
+            text="TAG",
+            text_color=ODS_TEXT # Texto escuro
+        ).pack(pady=(15, 0))
+
+        entry_tag = ctk.CTkEntry(
+            win,
+            width=280,
+            fg_color=ODS_ENTRY, # Fundo de entrada claro
+            text_color=ODS_TEXT, # Texto escuro
+            border_color=ODS_RED
+        )
         entry_tag.pack()
 
         campos = {
-            "sn_instrumento": tk.StringVar(),
-            "sn_sensor": tk.StringVar(),
-            "min_range": tk.StringVar(),
-            "max_range": tk.StringVar()
+            "sn_instrumento": ctk.StringVar(),
+            "sn_sensor": ctk.StringVar(),
+            "min_range": ctk.StringVar(),
+            "max_range": ctk.StringVar()
         }
 
         entries = {}
 
         for nome, var in campos.items():
-            tk.Label(win, text=nome.replace("_", " ").title()).pack(pady=(8, 0))
-            e = tk.Entry(win, textvariable=var, state="readonly", width=30)
+            ctk.CTkLabel(
+                win,
+                text=nome.replace("_", " ").title(),
+                text_color=ODS_TEXT # Texto escuro
+            ).pack(pady=(10, 0))
+
+            e = ctk.CTkEntry(
+                win,
+                textvariable=var,
+                state="readonly",
+                width=280,
+                fg_color=ODS_ENTRY, # Fundo de entrada claro
+                text_color=ODS_TEXT # Texto escuro
+            )
             e.pack()
             entries[nome] = e
 
@@ -232,14 +291,12 @@ class App:
                 messagebox.showerror("Erro", "TAG não encontrada")
                 return
 
-            campos["sn_instrumento"].set(registro["sn_instrumento"])
-            campos["sn_sensor"].set(registro["sn_sensor"])
-            campos["min_range"].set(registro["min_range"])
-            campos["max_range"].set(registro["max_range"])
+            for k in campos:
+                campos[k].set(registro[k])
 
         def editar():
             for e in entries.values():
-                e.config(state="normal")
+                e.configure(state="normal")
 
         def salvar():
             try:
@@ -257,8 +314,31 @@ class App:
             messagebox.showinfo("Sucesso", "Dados atualizados")
 
             for e in entries.values():
-                e.config(state="readonly")
+                e.configure(state="readonly")
 
-        tk.Button(win, text="Consultar", command=consultar).pack(pady=5)
-        tk.Button(win, text="Editar", command=editar).pack(pady=5)
-        tk.Button(win, text="Salvar", command=salvar).pack(pady=10)
+        ctk.CTkButton(
+            win,
+            text="Consultar",
+            fg_color=ODS_RED,
+            hover_color=ODS_RED_HOVER,
+            text_color=ODS_WHITE, 
+            command=consultar
+        ).pack(pady=10)
+
+        ctk.CTkButton(
+            win,
+            text="Editar",
+            fg_color=ODS_FRAME, 
+            border_width=1,
+            border_color=ODS_RED,
+            text_color=ODS_TEXT, 
+            command=editar
+        ).pack(pady=5)
+
+        ctk.CTkButton(
+            win,
+            text="Salvar",
+            fg_color=ODS_RED,
+            hover_color=ODS_RED_HOVER,
+            text_color=ODS_WHITE, 
+        ).pack(pady=10)
