@@ -1,4 +1,5 @@
 from validation.issue import ValidationIssue
+import unicodedata
 from data.utils_db import (
     atualizar_sn,
     atualizar_sn_sensor,
@@ -7,10 +8,19 @@ from data.utils_db import (
     inserir_instrumento
 )
 
-# ======================================================
-# UTILITÁRIO
-# ======================================================
+def normalizar_texto(texto):
+    if not texto:
+        return ""
+    texto = texto.upper()
+    texto = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in texto if not unicodedata.combining(c))
+
 def to_float(value):
+    """
+    Docstring for to_float
+    
+    :param value: Description
+    """ 
     try:
         if value is None:
             return None
@@ -19,9 +29,7 @@ def to_float(value):
         return None
 
 
-# ======================================================
 # REGRA 1 — TAG vs SN (MVS ou divergente)
-# ======================================================
 def regra_tag_vs_sn(ctx):
     if ctx.db is None and ctx.reg_sn is not None:
 
@@ -63,9 +71,8 @@ def regra_tag_vs_sn(ctx):
         )
 
 
-# ======================================================
+
 # REGRA 2 — Novo Instrumento
-# ======================================================
 def regra_novo_instrumento(ctx):
     if ctx.db is None and ctx.reg_sn is None:
         return ValidationIssue(
@@ -87,9 +94,8 @@ def regra_novo_instrumento(ctx):
         )
 
 
-# ======================================================
+
 # REGRA 3 — SN do Instrumento
-# ======================================================
 def regra_sn_instrumento(ctx):
     if (
         ctx.pdf.get("sn_instrumento")
@@ -109,9 +115,8 @@ def regra_sn_instrumento(ctx):
         )
 
 
-# ======================================================
+
 # REGRA 4 — SN do Sensor
-# ======================================================
 def regra_sn_sensor(ctx):
     if (
         ctx.pdf.get("sn_sensor")
@@ -131,9 +136,8 @@ def regra_sn_sensor(ctx):
         )
 
 
-# ======================================================
+
 # REGRA 5 — RANGE (normalização + comparação real)
-# ======================================================
 def regra_range(ctx):
     if ctx.mvs:
         return None
@@ -187,9 +191,8 @@ def regra_range(ctx):
     return None
 
 
-# ======================================================
+
 # REGRA 6 — HASTE (somente TE)
-# ======================================================
 def regra_haste_te(ctx):
     if "TE" not in ctx.pdf["tag"]:
         return None
@@ -218,3 +221,41 @@ def regra_haste_te(ctx):
         )
 
     return None
+
+# Regra 7 - Local
+def regra_local_fpso(ctx):
+    local_pdf = normalizar_texto(ctx.pdf.get("local"))
+
+    if not local_pdf:
+        return ValidationIssue(
+            key="local_ausente",
+            title="Local não informado",
+            message="O campo LOCAL não foi encontrado no PDF.",
+            blocking=True
+        )
+
+    fpsos = {
+        "FPSO FRADE": ["FPSO", "FRADE"],
+        "FPSO FORTE": ["FPSO", "FORTE"],
+        "FPSO BRAVO": ["FPSO", "BRAVO"],
+        "POLVO": ["POLVO"]
+    }
+
+    for nome, palavras in fpsos.items():
+        if all(p in local_pdf for p in palavras):
+            ctx.fpso_identificado = nome
+            return None
+
+    return ValidationIssue(
+        key="local_invalido",
+        title="Local incompatível",
+        message=(
+            f"Local informado:\n{ctx.pdf.get('local')}\n\n"
+            "Não corresponde a:\n"
+            "- FPSO FRADE\n"
+            "- FPSO FORTE\n"
+            "- FPSO BRAVO\n"
+            "- POLVO"
+        ),
+        blocking=True
+    )

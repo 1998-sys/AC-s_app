@@ -23,19 +23,24 @@ from validation.engine import ValidationEngine
 from validation.context import ValidationContext
 
 
-# ======================================================
-# UTIL
-# ======================================================
+
+
 def extrair_tag_base(tag: str) -> str:
+    """
+    Docstring for extrair_tag_base MVS
+    
+    :param tag: Description
+    :type tag: str
+    :return: Description
+    :rtype: str
+    """
     if "-" not in tag:
         return tag
     partes = tag.split("-")
     return "-".join(partes[:-1])
 
 
-# ======================================================
-# APP
-# ======================================================
+
 class App:
     def __init__(self, root):
         self.root = root
@@ -67,9 +72,7 @@ class App:
         self.result_frame.pack(pady=10)
 
 
-    # ======================================================
-    # SELEÇÃO DE PDF
-    # ======================================================
+   
     def selecionar_pdf(self):
         caminho_pdf = filedialog.askopenfilename(
             title="Selecione o certificado PDF",
@@ -93,6 +96,7 @@ class App:
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
+            print(dados_pdf)
 
             self.root.after(
                 0,
@@ -109,11 +113,9 @@ class App:
             )
 
 
-    # ======================================================
-    # PROCESSAMENTO PRINCIPAL (MOTOR)
-    # ======================================================
+   
     def processar_comparacao(self, dados_pdf, caminho_pdf_original):
-
+        """Processa a comparação entre os dados do PDF e os registros no banco."""
         tag_pdf = dados_pdf["tag"]
         sn_pdf = dados_pdf.get("sn_instrumento")
 
@@ -171,10 +173,8 @@ class App:
         self.lbl_pdf.config(text="Processamento concluído.")
 
 
-    # ======================================================
-    # EXIBIÇÃO
-    # ======================================================
     def exibir_resultado(self, dados_pdf, registro):
+        """Exibe o resultado da comparação na interface."""
         for w in self.result_frame.winfo_children():
             w.destroy()
 
@@ -196,10 +196,9 @@ class App:
                 dados_pdf["sn_sensor"] == registro["sn_sensor"])
 
 
-    # ======================================================
-    # CONSULTA / ATUALIZAÇÃO MANUAL
-    # ======================================================
+    
     def abrir_consulta(self):
+        """Abre a janela de consulta e atualização de dados."""
         win = tk.Toplevel(self.root)
         win.title("Consultar / Atualizar Dados")
         win.geometry("420x360")
