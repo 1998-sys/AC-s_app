@@ -8,6 +8,10 @@ from data.utils_db import (
     inserir_instrumento
 )
 
+# =========================
+# UTILITÁRIOS
+# =========================
+
 def normalizar_texto(texto):
     if not texto:
         return ""
@@ -15,12 +19,8 @@ def normalizar_texto(texto):
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
 
+
 def to_float(value):
-    """
-    Docstring for to_float
-    
-    :param value: Description
-    """ 
     try:
         if value is None:
             return None
@@ -29,7 +29,10 @@ def to_float(value):
         return None
 
 
+# =========================
 # REGRA 1 — TAG vs SN (MVS ou divergente)
+# =========================
+
 def regra_tag_vs_sn(ctx):
     if ctx.db is None and ctx.reg_sn is not None:
 
@@ -71,8 +74,10 @@ def regra_tag_vs_sn(ctx):
         )
 
 
-
+# =========================
 # REGRA 2 — Novo Instrumento
+# =========================
+
 def regra_novo_instrumento(ctx):
     if ctx.db is None and ctx.reg_sn is None:
         return ValidationIssue(
@@ -94,19 +99,24 @@ def regra_novo_instrumento(ctx):
         )
 
 
-
+# =========================
 # REGRA 3 — SN do Instrumento
+# =========================
+
 def regra_sn_instrumento(ctx):
+    if ctx.db is None:
+        return None
+
     if (
         ctx.pdf.get("sn_instrumento")
-        and ctx.pdf["sn_instrumento"] != ctx.db["sn_instrumento"]
+        and ctx.pdf["sn_instrumento"] != ctx.db.get("sn_instrumento")
     ):
         return ValidationIssue(
             key="sn_instrumento",
             title="SN do Instrumento divergente",
             message=(
                 f"PDF: {ctx.pdf['sn_instrumento']}\n"
-                f"Banco: {ctx.db['sn_instrumento']}"
+                f"Banco: {ctx.db.get('sn_instrumento')}"
             ),
             action=lambda: (
                 atualizar_sn(ctx.db["tag"], ctx.pdf["sn_instrumento"]),
@@ -115,19 +125,24 @@ def regra_sn_instrumento(ctx):
         )
 
 
-
+# =========================
 # REGRA 4 — SN do Sensor
+# =========================
+
 def regra_sn_sensor(ctx):
+    if ctx.db is None:
+        return None
+
     if (
         ctx.pdf.get("sn_sensor")
-        and ctx.pdf["sn_sensor"] != ctx.db["sn_sensor"]
+        and ctx.pdf["sn_sensor"] != ctx.db.get("sn_sensor")
     ):
         return ValidationIssue(
             key="sn_sensor",
             title="SN do Sensor divergente",
             message=(
                 f"PDF: {ctx.pdf['sn_sensor']}\n"
-                f"Banco: {ctx.db['sn_sensor']}"
+                f"Banco: {ctx.db.get('sn_sensor')}"
             ),
             action=lambda: (
                 atualizar_sn_sensor(ctx.db["tag"], ctx.pdf["sn_sensor"]),
@@ -136,29 +151,28 @@ def regra_sn_sensor(ctx):
         )
 
 
+# =========================
+# REGRA 5 — RANGE
+# =========================
 
-# REGRA 5 — RANGE (normalização + comparação real)
 def regra_range(ctx):
-    if ctx.mvs:
+    if ctx.db is None or ctx.mvs:
         return None
 
     pdf_min = to_float(ctx.pdf.get("min_range"))
     pdf_max = to_float(ctx.pdf.get("max_range"))
 
-    db_min = to_float(ctx.db.get("min_range"))
-    db_max = to_float(ctx.db.get("max_range"))
-
-    # PDF sem range → ignora
     if pdf_min is None or pdf_max is None:
         return None
 
-    # Atualiza contexto com valores normalizados
+    db_min = to_float(ctx.db.get("min_range"))
+    db_max = to_float(ctx.db.get("max_range"))
+
     ctx.pdf["min_range"] = pdf_min
     ctx.pdf["max_range"] = pdf_max
     ctx.db["min_range"] = db_min
     ctx.db["max_range"] = db_max
 
-    # Banco sem range
     if db_min is None or db_max is None:
         return ValidationIssue(
             key="range",
@@ -173,7 +187,6 @@ def regra_range(ctx):
             )
         )
 
-    # Divergência real
     if pdf_min != db_min or pdf_max != db_max:
         return ValidationIssue(
             key="range",
@@ -191,8 +204,10 @@ def regra_range(ctx):
     return None
 
 
-
+# =========================
 # REGRA 6 — HASTE (somente TE)
+# =========================
+
 def regra_haste_te(ctx):
     if "TE" not in ctx.pdf["tag"]:
         return None
@@ -222,7 +237,11 @@ def regra_haste_te(ctx):
 
     return None
 
-# Regra 7 - Local
+
+# =========================
+# REGRA 7 — LOCAL (FPSO / POLVO)
+# =========================
+
 def regra_local_fpso(ctx):
     local_pdf = normalizar_texto(ctx.pdf.get("local"))
 

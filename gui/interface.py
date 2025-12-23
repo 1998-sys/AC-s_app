@@ -22,46 +22,55 @@ from validation.engine import ValidationEngine
 from validation.context import ValidationContext
 
 
+# ================= TEMA / CORES =================
 ctk.set_appearance_mode("light")
+
 ODS_RED = "#D81F3C"
 ODS_RED_HOVER = "#B51A32"
-ODS_BG = "#FFFFFF"  # Fundo principal: Branco
-ODS_FRAME = "#F0F0F0" # Fundo de frames: Cinza claro
-ODS_ENTRY = "#E0E0E0" # Fundo de campos de entrada: Cinza mais claro
-ODS_TEXT = "#333333" # Cor do texto principal: Cinza escuro
-ODS_WHITE = "#FFFFFF" # Cor do texto em botões vermelhos
-ODS_OK = "#10B981" # Verde mais escuro para modo claro
+ODS_BG = "#FFFFFF"
+ODS_FRAME = "#F0F0F0"
+ODS_ENTRY = "#E0E0E0"
+ODS_TEXT = "#333333"
+ODS_WHITE = "#FFFFFF"
+ODS_OK = "#10B981"
 ODS_ERROR = "#D81F3C"
 
 
+# ================= UTIL =================
 def extrair_tag_base(tag: str) -> str:
     if "-" not in tag:
         return tag
     return "-".join(tag.split("-")[:-1])
 
 
+def to_float_safe(value):
+    try:
+        return float(str(value).replace(",", "."))
+    except Exception:
+        return None
+
+
+# ================= APP =================
 class App(ctk.CTkFrame):
     def __init__(self, master):
-        
         super().__init__(master, fg_color=ODS_BG)
         self.pack(fill="both", expand=True, padx=20, pady=20)
 
         self.master.title("Análise Crítica de Certificados")
         self.master.geometry("680x480")
         self.master.resizable(False, False)
-       
         self.master.configure(fg_color=ODS_BG)
 
-        
+        # ================= TÍTULO =================
         self.lbl_title = ctk.CTkLabel(
             self,
             text="Gerador de Análise Crítica",
             font=ctk.CTkFont(size=22, weight="bold"),
-            text_color=ODS_TEXT 
+            text_color=ODS_TEXT
         )
         self.lbl_title.pack(pady=(10, 25))
 
-        
+        # ================= BOTÕES =================
         self.btn_pdf = ctk.CTkButton(
             self,
             text="Selecionar Certificado PDF",
@@ -69,7 +78,7 @@ class App(ctk.CTkFrame):
             height=44,
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
-            text_color=ODS_WHITE, 
+            text_color=ODS_WHITE,
             corner_radius=10,
             command=self.selecionar_pdf
         )
@@ -82,32 +91,29 @@ class App(ctk.CTkFrame):
             height=44,
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
-            text_color=ODS_WHITE, 
-            border_width=1,
-            border_color=ODS_RED,
+            text_color=ODS_WHITE,
             corner_radius=10,
             command=self.abrir_consulta
         )
         self.btn_consultar.pack(pady=10)
 
-        
+        # ================= STATUS =================
         self.lbl_pdf = ctk.CTkLabel(
             self,
             text="Nenhum PDF selecionado.",
-            text_color=ODS_TEXT 
+            text_color=ODS_TEXT
         )
         self.lbl_pdf.pack(pady=18)
 
-        
+        # ================= RESULTADOS =================
         self.result_frame = ctk.CTkFrame(
             self,
-            fg_color=ODS_FRAME, 
+            fg_color=ODS_FRAME,
             corner_radius=12
         )
         self.result_frame.pack(fill="x", pady=10, padx=10)
 
-    
-
+    # ================= PDF =================
     def selecionar_pdf(self):
         caminho_pdf = filedialog.askopenfilename(
             title="Selecione o certificado PDF",
@@ -146,10 +152,11 @@ class App(ctk.CTkFrame):
                 )
             )
 
-   
-
+    # ================= PROCESSAMENTO =================
     def processar_comparacao(self, dados_pdf, caminho_pdf_original):
-        tag_pdf = dados_pdf["tag"].upper()
+        tag_pdf = dados_pdf["tag"].strip().upper()
+        dados_pdf["tag"] = tag_pdf
+
         sn_pdf = dados_pdf.get("sn_instrumento")
 
         registro = buscar_instrumento_por_tag(tag_pdf)
@@ -172,7 +179,7 @@ class App(ctk.CTkFrame):
             if issue.action:
                 resposta = messagebox.askyesno(
                     issue.title,
-                    f"{issue.message}\n\nDeseja aplicar a correção?"
+                    f"{issue.message}\n\nDeseja aplicar a correção/inclusão?"
                 )
 
                 if resposta:
@@ -191,11 +198,22 @@ class App(ctk.CTkFrame):
         self.exibir_resultado(dados_pdf, registro_final)
 
         if dados_ok:
-            caminho_final, _ = gerar_ac(dados_pdf, caminho_pdf_original)
-            messagebox.showinfo(
-                "AC Gerada",
-                f"Arquivo salvo em:\n{caminho_final}"
-            )
+            try:
+                caminho_final, _ = gerar_ac(dados_pdf, caminho_pdf_original)
+                messagebox.showinfo(
+                    "AC Gerada",
+                    f"Arquivo salvo em:\n{caminho_final}"
+                )
+            except PermissionError as e:
+                messagebox.showerror(
+                    "Arquivo em uso",
+                    str(e)
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Erro ao gerar AC",
+                    f"Ocorreu um erro inesperado:\n{e}"
+                )
         else:
             messagebox.showwarning(
                 "AC NÃO GERADA",
@@ -204,10 +222,13 @@ class App(ctk.CTkFrame):
 
         self.lbl_pdf.configure(text="Processamento concluído.")
 
-    
+    # ================= RESULTADOS =================
     def exibir_resultado(self, dados_pdf, registro):
         for w in self.result_frame.winfo_children():
             w.destroy()
+
+        if not registro:
+            return
 
         def add(text, ok):
             ctk.CTkLabel(
@@ -233,25 +254,21 @@ class App(ctk.CTkFrame):
                 dados_pdf["sn_sensor"] == registro["sn_sensor"]
             )
 
-
+    # ================= CONSULTA =================
     def abrir_consulta(self):
         win = ctk.CTkToplevel(self)
         win.title("Consultar / Atualizar Dados")
         win.geometry("440x480")
-        win.configure(fg_color=ODS_BG) # Fundo branco
+        win.configure(fg_color=ODS_BG)
         win.grab_set()
 
-        ctk.CTkLabel(
-            win,
-            text="TAG",
-            text_color=ODS_TEXT # Texto escuro
-        ).pack(pady=(15, 0))
+        ctk.CTkLabel(win, text="TAG", text_color=ODS_TEXT).pack(pady=(15, 0))
 
         entry_tag = ctk.CTkEntry(
             win,
             width=280,
-            fg_color=ODS_ENTRY, # Fundo de entrada claro
-            text_color=ODS_TEXT, # Texto escuro
+            fg_color=ODS_ENTRY,
+            text_color=ODS_TEXT,
             border_color=ODS_RED
         )
         entry_tag.pack()
@@ -269,7 +286,7 @@ class App(ctk.CTkFrame):
             ctk.CTkLabel(
                 win,
                 text=nome.replace("_", " ").title(),
-                text_color=ODS_TEXT # Texto escuro
+                text_color=ODS_TEXT
             ).pack(pady=(10, 0))
 
             e = ctk.CTkEntry(
@@ -277,16 +294,19 @@ class App(ctk.CTkFrame):
                 textvariable=var,
                 state="readonly",
                 width=280,
-                fg_color=ODS_ENTRY, # Fundo de entrada claro
-                text_color=ODS_TEXT # Texto escuro
+                fg_color=ODS_ENTRY,
+                text_color=ODS_TEXT
             )
             e.pack()
             entries[nome] = e
 
         def consultar():
             tag = entry_tag.get().strip().upper()
-            registro = buscar_instrumento_por_tag(tag)
+            if not tag:
+                messagebox.showerror("Erro", "TAG inválida")
+                return
 
+            registro = buscar_instrumento_por_tag(tag)
             if not registro:
                 messagebox.showerror("Erro", "TAG não encontrada")
                 return
@@ -299,19 +319,23 @@ class App(ctk.CTkFrame):
                 e.configure(state="normal")
 
         def salvar():
-            try:
-                atualizar_sn(entry_tag.get(), campos["sn_instrumento"].get())
-                atualizar_sn_sensor(entry_tag.get(), campos["sn_sensor"].get())
-                atualizar_range(
-                    entry_tag.get(),
-                    float(campos["min_range"].get()),
-                    float(campos["max_range"].get())
-                )
-            except ValueError:
+            tag = entry_tag.get().strip().upper()
+            if not tag:
+                messagebox.showerror("Erro", "TAG inválida")
+                return
+
+            min_range = to_float_safe(campos["min_range"].get())
+            max_range = to_float_safe(campos["max_range"].get())
+
+            if min_range is None or max_range is None:
                 messagebox.showerror("Erro", "Range deve ser numérico")
                 return
 
-            messagebox.showinfo("Sucesso", "Dados atualizados")
+            atualizar_sn(tag, campos["sn_instrumento"].get())
+            atualizar_sn_sensor(tag, campos["sn_sensor"].get())
+            atualizar_range(tag, min_range, max_range)
+
+            messagebox.showinfo("Sucesso", "Dados atualizados com sucesso")
 
             for e in entries.values():
                 e.configure(state="readonly")
@@ -321,17 +345,17 @@ class App(ctk.CTkFrame):
             text="Consultar",
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
-            text_color=ODS_WHITE, 
+            text_color=ODS_WHITE,
             command=consultar
         ).pack(pady=10)
 
         ctk.CTkButton(
             win,
             text="Editar",
-            fg_color=ODS_FRAME, 
+            fg_color=ODS_FRAME,
             border_width=1,
             border_color=ODS_RED,
-            text_color=ODS_TEXT, 
+            text_color=ODS_TEXT,
             command=editar
         ).pack(pady=5)
 
@@ -340,5 +364,6 @@ class App(ctk.CTkFrame):
             text="Salvar",
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
-            text_color=ODS_WHITE, 
+            text_color=ODS_WHITE,
+            command=salvar
         ).pack(pady=10)
