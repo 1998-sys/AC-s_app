@@ -316,3 +316,5 @@ def regra_rangein(ctx):
         )
 
     return None
+
+# Incerteza e Erro fiducial 
