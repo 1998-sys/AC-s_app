@@ -22,7 +22,6 @@ from validation.engine import ValidationEngine
 from validation.context import ValidationContext
 
 
-# ================= TEMA / CORES =================
 ctk.set_appearance_mode("light")
 
 ODS_RED = "#D81F3C"
@@ -36,7 +35,6 @@ ODS_OK = "#10B981"
 ODS_ERROR = "#D81F3C"
 
 
-# ================= UTIL =================
 def extrair_tag_base(tag: str) -> str:
     if "-" not in tag:
         return tag
@@ -50,7 +48,6 @@ def to_float_safe(value):
         return None
 
 
-# ================= APP =================
 class App(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color=ODS_BG)
@@ -61,7 +58,7 @@ class App(ctk.CTkFrame):
         self.master.resizable(False, False)
         self.master.configure(fg_color=ODS_BG)
 
-        # ================= TÍTULO =================
+        # Título
         self.lbl_title = ctk.CTkLabel(
             self,
             text="Gerador de Análise Crítica",
@@ -70,7 +67,7 @@ class App(ctk.CTkFrame):
         )
         self.lbl_title.pack(pady=(10, 25))
 
-        # ================= BOTÕES =================
+        # Botões
         self.btn_pdf = ctk.CTkButton(
             self,
             text="Selecionar Certificado PDF",
@@ -97,7 +94,7 @@ class App(ctk.CTkFrame):
         )
         self.btn_consultar.pack(pady=10)
 
-        # ================= STATUS =================
+        # Status 
         self.lbl_pdf = ctk.CTkLabel(
             self,
             text="Nenhum PDF selecionado.",
@@ -105,7 +102,7 @@ class App(ctk.CTkFrame):
         )
         self.lbl_pdf.pack(pady=18)
 
-        # ================= RESULTADOS =================
+        # resultados
         self.result_frame = ctk.CTkFrame(
             self,
             fg_color=ODS_FRAME,
@@ -113,7 +110,7 @@ class App(ctk.CTkFrame):
         )
         self.result_frame.pack(fill="x", pady=10, padx=10)
 
-    # ================= PDF =================
+    # PDF
     def selecionar_pdf(self):
         caminho_pdf = filedialog.askopenfilename(
             title="Selecione o certificado PDF",
@@ -152,7 +149,7 @@ class App(ctk.CTkFrame):
                 )
             )
 
-    # ================= PROCESSAMENTO =================
+    # Comparação e validação
     def processar_comparacao(self, dados_pdf, caminho_pdf_original):
         tag_pdf = dados_pdf["tag"].strip().upper()
         dados_pdf["tag"] = tag_pdf
@@ -222,7 +219,7 @@ class App(ctk.CTkFrame):
 
         self.lbl_pdf.configure(text="Processamento concluído.")
 
-    # ================= RESULTADOS =================
+    # Resultados
     def exibir_resultado(self, dados_pdf, registro):
         for w in self.result_frame.winfo_children():
             w.destroy()
@@ -254,7 +251,7 @@ class App(ctk.CTkFrame):
                 dados_pdf["sn_sensor"] == registro["sn_sensor"]
             )
 
-    # ================= CONSULTA =================
+    # Consulta e atualização
     def abrir_consulta(self):
         win = ctk.CTkToplevel(self)
         win.title("Consultar / Atualizar Dados")
