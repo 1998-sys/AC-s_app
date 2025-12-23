@@ -1,6 +1,6 @@
 import re
 import unicodedata
-
+import pdfplumber
 
 
 
@@ -193,6 +193,9 @@ def extrair_erro_incerteza(texto):
 
 
 
+
+
+
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
     sn_inst, sn_sensor = extrair_sn(texto)
@@ -206,6 +209,7 @@ def extrair_campos(texto: str) -> dict:
 
     rod_length, probe_diameter = extrair_haste(texto)
     erro_fid, incerteza = extrair_erro_incerteza(texto)
+   
 
     return {
         "tag": tag,
@@ -223,7 +227,8 @@ def extrair_campos(texto: str) -> dict:
         "rod_length": rod_length,
         "probe_diameter": probe_diameter,
         "erro_fid": erro_fid,
-        "incerteza": incerteza
+        "incerteza": incerteza,
+        
     }
 
 

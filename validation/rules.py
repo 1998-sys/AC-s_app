@@ -8,9 +8,6 @@ from data.utils_db import (
     inserir_instrumento
 )
 
-# =========================
-# UTILITÁRIOS
-# =========================
 
 def normalizar_texto(texto):
     if not texto:
@@ -29,10 +26,8 @@ def to_float(value):
         return None
 
 
-# =========================
-# REGRA 1 — TAG vs SN (MVS ou divergente)
-# =========================
 
+# TAG vs SN (MVS ou divergente)
 def regra_tag_vs_sn(ctx):
     if ctx.db is None and ctx.reg_sn is not None:
 
@@ -73,11 +68,7 @@ def regra_tag_vs_sn(ctx):
             blocking=True
         )
 
-
-# =========================
-# REGRA 2 — Novo Instrumento
-# =========================
-
+# Novo Instrumento
 def regra_novo_instrumento(ctx):
     if ctx.db is None and ctx.reg_sn is None:
         return ValidationIssue(
@@ -98,11 +89,7 @@ def regra_novo_instrumento(ctx):
             blocking=True
         )
 
-
-# =========================
-# REGRA 3 — SN do Instrumento
-# =========================
-
+# SN do Instrumento
 def regra_sn_instrumento(ctx):
     if ctx.db is None:
         return None
@@ -124,11 +111,7 @@ def regra_sn_instrumento(ctx):
             )
         )
 
-
-# =========================
-# REGRA 4 — SN do Sensor
-# =========================
-
+# SN do Sensor
 def regra_sn_sensor(ctx):
     if ctx.db is None:
         return None
@@ -150,11 +133,7 @@ def regra_sn_sensor(ctx):
             )
         )
 
-
-# =========================
-# REGRA 5 — RANGE
-# =========================
-
+# RANGE
 def regra_range(ctx):
     if ctx.db is None:
         return None
@@ -203,11 +182,7 @@ def regra_range(ctx):
 
     return None
 
-
-# =========================
-# REGRA 6 — HASTE (somente TE)
-# =========================
-
+# HASTE (somente TE)
 def regra_haste_te(ctx):
     if "TE" not in ctx.pdf["tag"]:
         return None
@@ -237,11 +212,7 @@ def regra_haste_te(ctx):
 
     return None
 
-
-# =========================
-# REGRA 7 — LOCAL (FPSO / POLVO)
-# =========================
-
+# LOCAL
 def regra_local_fpso(ctx):
     local_pdf = normalizar_texto(ctx.pdf.get("local"))
 
@@ -279,10 +250,8 @@ def regra_local_fpso(ctx):
         blocking=True
     )
 
-# =========================
-# REGRA 8 — RANGE indicado x calibrado
-# =========================
 
+# RANGE indicado x calibrado
 def regra_rangein(ctx):
 
     # Converter valores do PDF para float

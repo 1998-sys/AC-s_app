@@ -12,7 +12,6 @@ def extrair_texto(caminho_pdf: str) -> str:
 
         # Normalização 
         texto_final = texto_final.replace("\xa0", " ").strip()
-
         return texto_final
 
     except Exception as e:

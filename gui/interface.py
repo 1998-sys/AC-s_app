@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos
-
+#from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 from data.utils_db import (
     buscar_instrumento_por_tag,
     buscar_por_sn_instrumento,
@@ -134,7 +134,10 @@ class App(ctk.CTkFrame):
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
+            #pontos=extrair_pontos_calibracao_pdf(caminho_pdf)
             print(dados_pdf)
+            #print(pontos)
+            
 
             self.after(
                 0,
