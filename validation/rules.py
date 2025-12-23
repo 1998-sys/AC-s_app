@@ -318,3 +318,32 @@ def regra_rangein(ctx):
     return None
 
 # Incerteza e Erro fiducial 
+def regra_incert_fidu(ctx):
+
+    # Converter valores do PDF para float
+    incert= to_float(ctx.pdf.get("incerteza"))
+    fiducial = to_float(ctx.pdf.get("erro_fid"))
+
+   
+    if incert is None or fiducial is None:
+        return None
+
+    
+    ctx.pdf["erro_fid"] = fiducial 
+    ctx.pdf["incerteza"] = incert
+
+ 
+    if incert >= 0.1 or fiducial > 0.1:
+        return ValidationIssue(
+            key="incert_fiducial",
+            title="Incerteza/Erro Fiducial",
+            message=(
+                f"Incerteza (PDF): {incert}\n"
+                f"Erro fiducial (PDF): {fiducial}\n\n"
+                "Incerteza ou Erro fiducial acima de  0.1%"
+            ),
+            action=None,     # Apenas informativo
+            blocking=True    # Bloqueia a geração da AC
+        )
+
+    return None

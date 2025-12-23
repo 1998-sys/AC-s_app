@@ -6,7 +6,8 @@ from validation.rules import (
     regra_range,
     regra_haste_te,
     regra_local_fpso,
-    regra_rangein
+    regra_rangein,
+    regra_incert_fidu
 )
 
 
@@ -20,7 +21,8 @@ class ValidationEngine:
             regra_range,
             regra_haste_te,
             regra_local_fpso,
-            regra_rangein
+            regra_rangein,
+            regra_incert_fidu
         ]
 
     def run(self, context):
