@@ -156,7 +156,7 @@ def regra_sn_sensor(ctx):
 # =========================
 
 def regra_range(ctx):
-    if ctx.db is None or ctx.mvs:
+    if ctx.db is None:
         return None
 
     pdf_min = to_float(ctx.pdf.get("min_range"))
@@ -278,3 +278,41 @@ def regra_local_fpso(ctx):
         ),
         blocking=True
     )
+
+# =========================
+# REGRA 8 — RANGE indicado x calibrado
+# =========================
+
+def regra_rangein(ctx):
+
+    # Converter valores do PDF para float
+    pdf_min = to_float(ctx.pdf.get("min_range"))
+    pdf_max = to_float(ctx.pdf.get("max_range"))
+    pdf_imin = to_float(ctx.pdf.get("inmin_range"))
+    pdf_imax = to_float(ctx.pdf.get("inmax_range"))
+
+    # Se algum valor não puder ser convertido, ignora a regra
+    if pdf_min is None or pdf_max is None or pdf_imin is None or pdf_imax is None:
+        return None
+
+    # Atualiza o contexto com os valores normalizados
+    ctx.pdf["min_range"] = pdf_min
+    ctx.pdf["max_range"] = pdf_max
+    ctx.pdf["inmin_range"] = pdf_imin
+    ctx.pdf["inmax_range"] = pdf_imax
+
+    # Validação: range calibrado deve estar contido no range indicado
+    if pdf_min < pdf_imin or pdf_max > pdf_imax:
+        return ValidationIssue(
+            key="range_calibracao",
+            title="Range de calibração fora do range indicado",
+            message=(
+                f"Range indicado (PDF): {pdf_min} → {pdf_max}\n"
+                f"Range calibrado (PDF): {pdf_imin} → {pdf_imax}\n\n"
+                "O range calibrado está fora do range indicado."
+            ),
+            action=None,     # Apenas informativo
+            blocking=True    # Bloqueia a geração da AC
+        )
+
+    return None

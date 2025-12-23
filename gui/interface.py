@@ -134,6 +134,7 @@ class App(ctk.CTkFrame):
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
+            print(dados_pdf)
 
             self.after(
                 0,
@@ -141,11 +142,12 @@ class App(ctk.CTkFrame):
             )
 
         except Exception as e:
+            erro=str(e)
             self.after(
                 0,
-                lambda: messagebox.showerror(
+                lambda erro=erro: messagebox.showerror(
                     "Erro",
-                    f"Erro ao processar PDF:\n{e}"
+                    f"Erro ao processar PDF:\n{erro}"
                 )
             )
 

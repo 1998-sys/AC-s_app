@@ -91,6 +91,7 @@ def extrair_campos(texto: str) -> dict:
         min_kpa = None
         max_kpa = None
 
+
     # Comprimento da Haste e diâmetro da Haste
 
     rod_match = re.search(r"Rod length:\s*([\d,.]+)", texto)
@@ -98,6 +99,28 @@ def extrair_campos(texto: str) -> dict:
 
     probe_match = re.search(r"Probe diameter:\s*([\d,.]+)", texto)
     probe_diameter = probe_match.group(1).replace(",", ".") if probe_match else None
+
+    # ===== Indication Range =====
+    padrao_indicacao = r"""
+    Indication\s*Range\s*[:\-]?\s*
+    Min\s*[:\-]?\s*([-+]?[0-9]+(?:[.,][0-9]+)?)
+    .*?
+    Max\s*[:\-]?\s*([-+]?[0-9]+(?:[.,][0-9]+)?)
+    """
+
+    i_range = re.search(
+        padrao_indicacao,
+        texto,
+        flags=re.IGNORECASE | re.DOTALL | re.VERBOSE
+    )
+
+    if i_range:
+        inmin_kpa = i_range.group(1).replace(",", ".")
+        inmax_kpa = i_range.group(2).replace(",", ".")
+    else:
+        inmin_kpa = None
+        inmax_kpa = None
+
     
     
 
@@ -114,7 +137,9 @@ def extrair_campos(texto: str) -> dict:
         'min_range': min_kpa,
         'max_range': max_kpa,
         'rod_length': rod_length,
-        'probe_diameter': probe_diameter
+        'probe_diameter': probe_diameter,
+        'inmin_range': inmin_kpa,
+        'inmax_range': inmax_kpa
     }
 
 

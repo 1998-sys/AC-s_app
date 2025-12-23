@@ -11,7 +11,7 @@ Software desenvolvido para analisar certificados de calibração (PDF) de instru
 - Leitura automática do PDF
 - Extrai TAG, certificado, datas, ranges, SN do instrumento e sensor, valores de calibração
 -Comparação com banco SQLite
--Verifica divergências de TAG, SN, Range, Diametro e comprimento da haste, localização.
+-Verifica divergências de TAG, SN, Range, Diametro e comprimento da haste, localização, range de calibração e indicado
 -Atualiza automaticamente quando autorizado
 -Geração automática da Análise Crítica (PDF)
 -Usa o template TemplateAC.xlsx e exporta para PDF via Excel.
