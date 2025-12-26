@@ -1,7 +1,33 @@
 import re
 import unicodedata
-import pdfplumber
 
+
+
+def extrair_curva_calibracao(texto):
+    """
+    Extrai curva do tipo:
+    y = a + b.x
+    onde x e y estão em kPa
+    """
+
+    texto = texto.upper().replace(",", ".")
+
+    padrao = r"Y\s*=\s*([\-0-9.]+)\s*\+\s*([0-9.]+)\s*[\.\*X×]\s*X"
+    m = re.search(padrao, texto)
+
+    if not m:
+        return None
+
+    return {
+        "a": float(m.group(1)),
+        "b": float(m.group(2))
+    }
+
+def aplicar_curva_kpa(valor_kpa, curva):
+    if valor_kpa is None or curva is None:
+        return valor_kpa
+
+    return curva["a"] + curva["b"] * valor_kpa
 
 
 def normalizar_num(valor):
