@@ -23,11 +23,23 @@ def extrair_curva_calibracao(texto):
         "b": float(m.group(2))
     }
 
-def aplicar_curva_kpa(valor_kpa, curva):
-    if valor_kpa is None or curva is None:
-        return valor_kpa
+def aplicar_curva_kpa(valor_ma, curva):
+    """
+    Converte mA → kPa usando a curva do certificado.
+    Equação REAL do certificado:
+        mA = a + b * kPa
+        => kPa = (mA - a) / b
+    """
+    if valor_ma is None or not curva:
+        return None
 
-    return curva["a"] + curva["b"] * valor_kpa
+    a = curva.get("a")
+    b = curva.get("b")
+
+    if a is None or b in (None, 0):
+        return None
+
+    return (valor_ma - a) / b
 
 
 def normalizar_num(valor):
@@ -235,6 +247,8 @@ def extrair_campos(texto: str) -> dict:
 
     rod_length, probe_diameter = extrair_haste(texto)
     erro_fid, incerteza = extrair_erro_incerteza(texto)
+
+    curva_de_calibracao = extrair_curva_calibracao(texto)
    
 
     return {
@@ -254,6 +268,7 @@ def extrair_campos(texto: str) -> dict:
         "probe_diameter": probe_diameter,
         "erro_fid": erro_fid,
         "incerteza": incerteza,
+        "curva_de_calibracao": curva_de_calibracao
         
     }
 
