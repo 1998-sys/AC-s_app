@@ -3,12 +3,12 @@ from tkinter import filedialog, messagebox
 from threading import Thread
 import os
 import sys
+from PIL import Image 
 
+# Seus imports de módulos locais
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos
-#from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 from data.utils_db import (
     buscar_instrumento_por_tag,
     buscar_por_sn_instrumento,
@@ -16,24 +16,26 @@ from data.utils_db import (
     atualizar_sn_sensor,
     atualizar_range
 )
-
 from form.utils_print import gerar_ac
 from validation.engine import ValidationEngine
 from validation.context import ValidationContext
-
+from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 
 ctk.set_appearance_mode("light")
 
+# Paleta de Cores ODS (Mantendo o visual moderno)
 ODS_RED = "#D81F3C"
 ODS_RED_HOVER = "#B51A32"
-ODS_BG = "#FFFFFF"
-ODS_FRAME = "#F0F0F0"
+ODS_BG = "#FFFFFF"      # Fundo do painel interno (branco puro)
+ODS_FRAME = "#F5F5F5"   # Fundo da janela principal (cinza muito claro para o efeito de "sombra")
 ODS_ENTRY = "#E0E0E0"
 ODS_TEXT = "#333333"
 ODS_WHITE = "#FFFFFF"
 ODS_OK = "#10B981"
 ODS_ERROR = "#D81F3C"
 
+# Configuração da Fonte
+FONT_FAMILY = "Inter" # Fonte moderna e limpa
 
 def extrair_tag_base(tag: str) -> str:
     if "-" not in tag:
@@ -50,67 +52,122 @@ def to_float_safe(value):
 
 class App(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master, fg_color=ODS_BG)
-        self.pack(fill="both", expand=True, padx=20, pady=20)
+        # O frame principal usa ODS_FRAME para simular o fundo da janela/sombra
+        super().__init__(master, fg_color=ODS_FRAME)
+        self.pack(fill="both", expand=True, padx=10, pady=10) # Padding para simular a margem externa
 
         self.master.title("Análise Crítica de Certificados")
-        self.master.geometry("680x480")
+        self.master.geometry("400x550") # Tamanho ajustado para o layout compacto e largura aumentada
         self.master.resizable(False, False)
-        self.master.configure(fg_color=ODS_BG)
+        self.master.configure(fg_color=ODS_FRAME) # Janela principal também usa ODS_FRAME
 
+        # Frame interno que contém todo o conteúdo e o rodapé
+        self.main_content_frame = ctk.CTkFrame(self, fg_color=ODS_BG, corner_radius=12)
+        self.main_content_frame.pack(fill="both", expand=True)
+
+        # ================= CONFIGURAÇÃO DO GRID PRINCIPAL (PAINEL ÚNICO) =================
+        self.main_content_frame.grid_columnconfigure(0, weight=1) # Coluna única, centralizada
+        self.main_content_frame.grid_rowconfigure(0, weight=0)    # Linha 0: Logo/Título (não expandível)
+        self.main_content_frame.grid_rowconfigure(1, weight=0)    # Linha 1: Botões (não expandível)
+        self.main_content_frame.grid_rowconfigure(2, weight=1)    # Linha 2: Resultados (expandível)
+        self.main_content_frame.grid_rowconfigure(3, weight=0)    # Linha 3: Rodapé (não expandível)
+
+        # ================= LOGO E TÍTULO (LINHA 0) =================
+        
+        # Frame para centralizar a logo e o título
+        self.header_frame = ctk.CTkFrame(self.main_content_frame, fg_color="transparent")
+        self.header_frame.grid(row=0, column=0, pady=(30, 10), sticky="n")
+        self.header_frame.grid_columnconfigure(0, weight=1)
+
+        # >>>>>>>>>>>>> LOCAL PARA INSERIR A LOGO <<<<<<<<<<<<<
+        # Exemplo de inserção da logo (necessita do arquivo 'logo.jpg' no diretório)
+        # Tamanho reduzido para o layout compacto (ex: 100x50)
+        self.logo_img = ctk.CTkImage(light_image=Image.open("logo\logo.jpg"), size=(100, 50))
+        self.lbl_logo = ctk.CTkLabel(self.header_frame, image=self.logo_img, text="")
+        self.lbl_logo.pack(pady=(0, 5))
+        
         # Título
         self.lbl_title = ctk.CTkLabel(
-            self,
+            self.header_frame,
             text="Gerador de Análise Crítica",
-            font=ctk.CTkFont(size=22, weight="bold"),
+            font=ctk.CTkFont(family=FONT_FAMILY, size=24, weight="bold"), # Fonte e tamanho ajustados
             text_color=ODS_TEXT
         )
-        self.lbl_title.pack(pady=(10, 25))
+        self.lbl_title.pack(pady=(5, 20))
 
-        # Botões
+        # ================= BOTÕES (LINHA 1) =================
+        self.buttons_frame = ctk.CTkFrame(self.main_content_frame, fg_color="transparent")
+        self.buttons_frame.grid(row=1, column=0, pady=(0, 20), sticky="n")
+        self.buttons_frame.grid_columnconfigure(0, weight=1)
+
         self.btn_pdf = ctk.CTkButton(
-            self,
+            self.buttons_frame,
             text="Selecionar Certificado PDF",
-            width=300,
-            height=44,
+            width=350, # Largura aumentada
+            height=48,
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
             text_color=ODS_WHITE,
-            corner_radius=10,
+            corner_radius=8,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             command=self.selecionar_pdf
         )
-        self.btn_pdf.pack(pady=10)
+        self.btn_pdf.pack(pady=5)
 
         self.btn_consultar = ctk.CTkButton(
-            self,
+            self.buttons_frame,
             text="Consultar / Atualizar Dados",
-            width=300,
-            height=44,
+            width=350, # Largura aumentada
+            height=48,
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
             text_color=ODS_WHITE,
-            corner_radius=10,
+            corner_radius=8,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             command=self.abrir_consulta
         )
-        self.btn_consultar.pack(pady=10)
+        self.btn_consultar.pack(pady=5)
 
-        # Status 
+        # Status (Abaixo dos botões)
         self.lbl_pdf = ctk.CTkLabel(
-            self,
+            self.buttons_frame,
             text="Nenhum PDF selecionado.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
             text_color=ODS_TEXT
         )
-        self.lbl_pdf.pack(pady=18)
+        self.lbl_pdf.pack(pady=(10, 0))
 
-        # resultados
+        # ================= RESULTADOS (LINHA 2) =================
         self.result_frame = ctk.CTkFrame(
-            self,
-            fg_color=ODS_FRAME,
+            self.main_content_frame,
+            fg_color=ODS_FRAME, # Usando o cinza claro para o frame de resultados
             corner_radius=12
         )
-        self.result_frame.pack(fill="x", pady=10, padx=10)
+        # Usa grid para ocupar o espaço restante
+        self.result_frame.grid(row=2, column=0, pady=20, padx=50, sticky="nsew") 
+        self.result_frame.grid_columnconfigure(0, weight=1)
+        self.result_frame.grid_rowconfigure(0, weight=1)
 
-    # PDF
+        # Placeholder para o conteúdo do result_frame
+        ctk.CTkLabel(
+            self.result_frame,
+            text="Área de Mensagens Importantes / Resultados",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+            text_color="#888888"
+        ).grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+
+        # ================= RODAPÉ (LINHA 3) =================
+        self.footer_label = ctk.CTkLabel(
+            self.main_content_frame,
+            text="Developed by: M.Bandeira, L. Zambelli, G. Machado",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=10),
+            text_color="#888888"
+        )
+        self.footer_label.grid(row=3, column=0, pady=(5, 5), sticky="s")
+
+
+    # PDF (MÉTODOS DE FUNCIONALIDADE MANTIDOS)
     def selecionar_pdf(self):
         caminho_pdf = filedialog.askopenfilename(
             title="Selecione o certificado PDF",
@@ -134,9 +191,9 @@ class App(ctk.CTkFrame):
         try:
             texto = extrair_texto(caminho_pdf)
             dados_pdf = extrair_campos(texto)
-            #pontos=extrair_pontos_calibracao_pdf(caminho_pdf)
+            pontos=extrair_pontos_calibracao_pdf(caminho_pdf)
             print(dados_pdf)
-            #print(pontos)
+            print(pontos)
             
 
             self.after(
@@ -237,7 +294,7 @@ class App(ctk.CTkFrame):
                 self.result_frame,
                 text=text,
                 text_color=ODS_OK if ok else ODS_ERROR,
-                font=ctk.CTkFont(size=13)
+                font=ctk.CTkFont(family=FONT_FAMILY, size=13)
             ).pack(anchor="w", padx=15, pady=4)
 
         add(
@@ -256,22 +313,23 @@ class App(ctk.CTkFrame):
                 dados_pdf["sn_sensor"] == registro["sn_sensor"]
             )
 
-    # Consulta e atualização
+    # Consulta e atualização (MÉTODOS DE FUNCIONALIDADE MANTIDOS)
     def abrir_consulta(self):
         win = ctk.CTkToplevel(self)
         win.title("Consultar / Atualizar Dados")
         win.geometry("440x480")
-        win.configure(fg_color=ODS_BG)
+        win.configure(fg_color=ODS_FRAME)
         win.grab_set()
 
-        ctk.CTkLabel(win, text="TAG", text_color=ODS_TEXT).pack(pady=(15, 0))
+        ctk.CTkLabel(win, text="TAG", text_color=ODS_TEXT, font=ctk.CTkFont(family=FONT_FAMILY, size=13)).pack(pady=(15, 0))
 
         entry_tag = ctk.CTkEntry(
             win,
             width=280,
             fg_color=ODS_ENTRY,
             text_color=ODS_TEXT,
-            border_color=ODS_RED
+            border_color=ODS_RED,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=13)
         )
         entry_tag.pack()
 
@@ -288,7 +346,8 @@ class App(ctk.CTkFrame):
             ctk.CTkLabel(
                 win,
                 text=nome.replace("_", " ").title(),
-                text_color=ODS_TEXT
+                text_color=ODS_TEXT,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=13)
             ).pack(pady=(10, 0))
 
             e = ctk.CTkEntry(
@@ -297,7 +356,8 @@ class App(ctk.CTkFrame):
                 state="readonly",
                 width=280,
                 fg_color=ODS_ENTRY,
-                text_color=ODS_TEXT
+                text_color=ODS_TEXT,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=13)
             )
             e.pack()
             entries[nome] = e
@@ -348,6 +408,7 @@ class App(ctk.CTkFrame):
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
             text_color=ODS_WHITE,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             command=consultar
         ).pack(pady=10)
 
@@ -358,6 +419,7 @@ class App(ctk.CTkFrame):
             border_width=1,
             border_color=ODS_RED,
             text_color=ODS_TEXT,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             command=editar
         ).pack(pady=5)
 
@@ -367,5 +429,6 @@ class App(ctk.CTkFrame):
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
             text_color=ODS_WHITE,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=14, weight="bold"),
             command=salvar
         ).pack(pady=10)
