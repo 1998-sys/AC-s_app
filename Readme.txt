@@ -11,7 +11,8 @@ Software desenvolvido para analisar certificados de calibração (PDF) de instru
 - Leitura automática do PDF
 - Extrai TAG, certificado, datas, ranges, SN do instrumento e sensor, valores de calibração, erro fiducial e incerteza global
 -Comparação com banco SQLite
--Verifica divergências de TAG, SN, Range, Diametro e comprimento da haste, localização, range de calibração e indicado, erro fiducial e incerteza global (DPT e PT)
+-Verifica divergências de TAG, SN, Range, Diametro e comprimento da haste, localização, range de calibração e indicado, erro fiducial e incerteza global (DPT e PT), Range indicado x Calibrado,
+
 -Atualiza automaticamente quando autorizado
 -Geração automática da Análise Crítica (PDF)
 -Usa o template TemplateAC.xlsx e exporta para PDF via Excel.
@@ -32,6 +33,7 @@ Suporte a diferentes tipos de instrumentos
 │── TemplateAC.xlsx          → Template para gerar AC
 │── instrumentos.db          → Banco local SQLite
 │── /pdf                     → Módulos de extração
+│── /validation              → Regras de Validação
 │── /xml_model               → Gerador do XML
 │── /form                    → Geração do PDF de AC
 │── /gui                     → Interface Tkinter
