@@ -9,6 +9,7 @@ def extrair_texto(caminho_pdf: str) -> str:
                 texto = page.extract_text()
                 if texto:  
                     texto_final += texto + "\n"
+                    print(texto_final)
 
         # Normalização 
         texto_final = texto_final.replace("\xa0", " ").strip()
