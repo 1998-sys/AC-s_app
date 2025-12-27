@@ -3,7 +3,8 @@ from tkinter import filedialog, messagebox
 from threading import Thread
 import os
 import sys
-from PIL import Image 
+from pathlib import Path
+from PIL import Image
 
 # ================= IMPORTS LOCAIS =================
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -11,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos
 from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
+from xml_model.xml_generator import gerar_xml_calibracao
 
 from data.utils_db import (
     buscar_instrumento_por_tag,
@@ -31,7 +33,6 @@ ODS_RED = "#D81F3C"
 ODS_RED_HOVER = "#B51A32"
 ODS_BG = "#FFFFFF"
 ODS_FRAME = "#F5F5F5"
-ODS_ENTRY = "#E0E0E0"
 ODS_TEXT = "#333333"
 ODS_WHITE = "#FFFFFF"
 ODS_OK = "#10B981"
@@ -61,198 +62,182 @@ class App(ctk.CTkFrame):
         self.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.master.title("Análise Crítica de Certificados")
-        self.master.geometry("400x550")
+        self.master.geometry("420x650")
         self.master.resizable(False, False)
-        self.master.configure(fg_color=ODS_FRAME)
 
-        # ✅ NOVO: armazenar pontos de calibração
         self.pontos_calibracao = []
+        self.caminho_pdf_atual = None
 
         # ================= FRAME PRINCIPAL =================
-        self.main_content_frame = ctk.CTkFrame(
-            self, fg_color=ODS_BG, corner_radius=12
-        )
-        self.main_content_frame.pack(fill="both", expand=True)
-
-        self.main_content_frame.grid_columnconfigure(0, weight=1)
-        self.main_content_frame.grid_rowconfigure(2, weight=1)
+        self.main = ctk.CTkFrame(self, fg_color=ODS_BG, corner_radius=12)
+        self.main.pack(fill="both", expand=True)
 
         # ================= CABEÇALHO =================
-        self.header_frame = ctk.CTkFrame(
-            self.main_content_frame, fg_color="transparent"
-        )
-        self.header_frame.grid(row=0, column=0, pady=(30, 10))
+        header = ctk.CTkFrame(self.main, fg_color="transparent")
+        header.pack(pady=20)
 
-        self.logo_img = ctk.CTkImage(
-            light_image=Image.open("logo/logo.jpg"),
-            size=(100, 50)
-        )
-        ctk.CTkLabel(
-            self.header_frame, image=self.logo_img, text=""
-        ).pack(pady=(0, 5))
+        logo = ctk.CTkImage(Image.open("logo/logo.jpg"), size=(110, 55))
+        ctk.CTkLabel(header, image=logo, text="").pack()
 
         ctk.CTkLabel(
-            self.header_frame,
+            header,
             text="Gerador de Análise Crítica",
-            font=ctk.CTkFont(
-                family=FONT_FAMILY, size=24, weight="bold"
-            ),
+            font=ctk.CTkFont(FONT_FAMILY, 24, "bold"),
             text_color=ODS_TEXT
-        ).pack(pady=(5, 20))
+        ).pack(pady=10)
 
         # ================= BOTÕES =================
-        self.buttons_frame = ctk.CTkFrame(
-            self.main_content_frame, fg_color="transparent"
-        )
-        self.buttons_frame.grid(row=1, column=0, pady=(0, 20))
-
         self.btn_pdf = ctk.CTkButton(
-            self.buttons_frame,
+            self.main,
             text="Selecionar Certificado PDF",
-            width=350,
-            height=48,
+            width=360,
+            height=45,
             fg_color=ODS_RED,
             hover_color=ODS_RED_HOVER,
-            text_color=ODS_WHITE,
-            font=ctk.CTkFont(
-                family=FONT_FAMILY, size=14, weight="bold"
-            ),
             command=self.selecionar_pdf
         )
         self.btn_pdf.pack(pady=5)
 
+        self.btn_consulta = ctk.CTkButton(
+            self.main,
+            text="Consultar / Editar Instrumento",
+            width=360,
+            height=45,
+            fg_color=ODS_FRAME,
+            border_color=ODS_RED,
+            border_width=1,
+            text_color=ODS_TEXT,
+            command=self.abrir_consulta
+        )
+        self.btn_consulta.pack(pady=5)
+
         self.lbl_pdf = ctk.CTkLabel(
-            self.buttons_frame,
-            text="Nenhum PDF selecionado.",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=13),
+            self.main,
+            text="Nenhum PDF selecionado",
             text_color=ODS_TEXT
         )
-        self.lbl_pdf.pack(pady=(10, 0))
+        self.lbl_pdf.pack(pady=10)
 
         # ================= RESULTADOS =================
-        self.result_frame = ctk.CTkFrame(
-            self.main_content_frame,
-            fg_color=ODS_FRAME,
-            corner_radius=12
-        )
-        self.result_frame.grid(
-            row=2, column=0, pady=20, padx=50, sticky="nsew"
-        )
+        self.result_frame = ctk.CTkFrame(self.main, fg_color=ODS_FRAME)
+        self.result_frame.pack(fill="x", padx=30, pady=15)
 
-        # ================= RODAPÉ =================
-        ctk.CTkLabel(
-            self.main_content_frame,
-            text="Developed by: M. Bandeira, L. Zambelli, G. Machado",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=10),
-            text_color="#888888"
-        ).grid(row=3, column=0, pady=(5, 5))
-
-    # ================= PDF =================
+    # =====================================================
+    # PDF
+    # =====================================================
     def selecionar_pdf(self):
-        caminho_pdf = filedialog.askopenfilename(
-            title="Selecione o certificado PDF",
-            filetypes=[("Arquivos PDF", "*.pdf")]
-        )
-
-        if not caminho_pdf:
+        caminho = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
+        if not caminho:
             return
 
-        self.lbl_pdf.configure(
-            text=f"Processando: {os.path.basename(caminho_pdf)}..."
-        )
+        self.caminho_pdf_atual = caminho
+        self.lbl_pdf.configure(text=f"Processando {os.path.basename(caminho)}")
 
         Thread(
             target=self._processar_pdf_thread,
-            args=(caminho_pdf,),
+            args=(caminho,),
             daemon=True
         ).start()
 
-    def _processar_pdf_thread(self, caminho_pdf):
+    def _processar_pdf_thread(self, caminho):
         try:
-            texto = extrair_texto(caminho_pdf)
+            texto = extrair_texto(caminho)
             dados_pdf = extrair_campos(texto)
-            print(dados_pdf)
+            self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
 
-            # ✅ NOVO: extrair e armazenar pontos
-            self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho_pdf)
-            print(self.pontos_calibracao)
-
-            self.after(
-                0,
-                lambda: self.processar_comparacao(
-                    dados_pdf, caminho_pdf
-                )
-            )
+            self.after(0, lambda: self.processar_comparacao(dados_pdf))
 
         except Exception as e:
             self.after(
                 0,
                 lambda: messagebox.showerror(
-                    "Erro", f"Erro ao processar PDF:\n{e}"
+                    "Erro ao processar PDF",
+                    str(e)
                 )
             )
 
-    # ================= VALIDAÇÃO =================
-    def processar_comparacao(self, dados_pdf, caminho_pdf_original):
-        tag_pdf = dados_pdf["tag"].strip().upper()
-        dados_pdf["tag"] = tag_pdf
+    # =====================================================
+    # VALIDAÇÃO + AC + XML
+    # =====================================================
+    def processar_comparacao(self, dados_pdf):
+        tag = dados_pdf["tag"].upper()
+        dados_pdf["tag"] = tag
 
-        sn_pdf = dados_pdf.get("sn_instrumento")
+        registro = buscar_instrumento_por_tag(tag)
+        reg_sn = buscar_por_sn_instrumento(
+            dados_pdf.get("sn_instrumento")
+        )
 
-        registro = buscar_instrumento_por_tag(tag_pdf)
-        reg_sn = buscar_por_sn_instrumento(sn_pdf) if sn_pdf else None
-
-        # ✅ NOVO: pontos passam para o contexto
         ctx = ValidationContext(
             dados_pdf=dados_pdf,
             registro=registro,
             reg_sn=reg_sn,
-            tag_base_pdf=extrair_tag_base(tag_pdf),
-            tag_base_sn=extrair_tag_base(reg_sn["tag"]) if reg_sn else None,
+            tag_base_pdf=extrair_tag_base(tag),
+            tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None,
             pontos=self.pontos_calibracao
         )
 
         engine = ValidationEngine()
         issues = engine.run(ctx)
 
-        dados_ok = True
-
+        ok = True
         for issue in issues:
             if issue.action:
-                resp = messagebox.askyesno(
-                    issue.title,
-                    f"{issue.message}\n\nDeseja aplicar?"
-                )
-                if resp:
+                if messagebox.askyesno(issue.title, issue.message):
                     issue.action()
                 else:
-                    dados_ok = False
+                    ok = False
                     if issue.blocking:
                         break
             else:
                 messagebox.showwarning(issue.title, issue.message)
                 if issue.blocking:
-                    dados_ok = False
+                    ok = False
                     break
 
-        registro_final = buscar_instrumento_por_tag(tag_pdf)
-        self.exibir_resultado(dados_pdf, registro_final)
+        # ================= AC + XML =================
+        if ok:
+            try:
+                caminho_ac, _ = gerar_ac(
+                    dados_pdf,
+                    self.caminho_pdf_atual
+                )
 
-        if dados_ok:
-            caminho_final, _ = gerar_ac(
-                dados_pdf, caminho_pdf_original
-            )
-            messagebox.showinfo(
-                "AC Gerada", f"Arquivo salvo em:\n{caminho_final}"
-            )
-        else:
-            messagebox.showwarning(
-                "AC NÃO GERADA", "Existem divergências pendentes."
-            )
+                caminho_xml = Path(caminho_ac).with_suffix(".xml")
 
-        self.lbl_pdf.configure(text="Processamento concluído.")
+                gerar_xml_calibracao(
+                    dados_pdf,
+                    self.pontos_calibracao,
+                    str(caminho_xml),
+                    dados_pdf.get("certificado_te_anterior")
+                )
 
-    # ================= RESULTADOS =================
+                messagebox.showinfo(
+                    "Sucesso",
+                    f"AC e XML gerados com sucesso:\n\n{caminho_xml}"
+                )
+
+            except PermissionError:
+                messagebox.showerror(
+                    "Arquivo em uso",
+                    "⚠ Não foi possível gerar a Análise Crítica.\n\n"
+                    "O arquivo PDF está aberto em outro programa.\n\n"
+                    "➡ Feche o PDF e tente novamente."
+                )
+                return
+
+            except Exception as e:
+                messagebox.showerror(
+                    "Erro inesperado",
+                    f"Ocorreu um erro ao gerar a AC:\n\n{e}"
+                )
+                return
+
+        self.exibir_resultado(dados_pdf, registro)
+
+    # =====================================================
+    # RESULTADOS
+    # =====================================================
     def exibir_resultado(self, dados_pdf, registro):
         for w in self.result_frame.winfo_children():
             w.destroy()
@@ -260,23 +245,88 @@ class App(ctk.CTkFrame):
         if not registro:
             return
 
-        def add(text, ok):
+        def linha(txt, ok):
             ctk.CTkLabel(
                 self.result_frame,
-                text=text,
-                text_color=ODS_OK if ok else ODS_ERROR,
-                font=ctk.CTkFont(
-                    family=FONT_FAMILY, size=13
-                )
-            ).pack(anchor="w", padx=15, pady=4)
+                text=txt,
+                text_color=ODS_OK if ok else ODS_ERROR
+            ).pack(anchor="w", padx=10, pady=2)
 
-        add(
+        linha(
             f"TAG: {dados_pdf['tag']} | {registro['tag']}",
             dados_pdf["tag"] == registro["tag"]
         )
 
-        add(
-            f"SN Instrumento: {dados_pdf.get('sn_instrumento')} | "
+        linha(
+            f"SN Instr.: {dados_pdf.get('sn_instrumento')} | "
             f"{registro['sn_instrumento']}",
             dados_pdf.get("sn_instrumento") == registro["sn_instrumento"]
         )
+
+    # =====================================================
+    # CONSULTA / EDIÇÃO
+    # =====================================================
+    def abrir_consulta(self):
+        win = ctk.CTkToplevel(self)
+        win.title("Consulta / Edição")
+        win.geometry("420x520")
+        win.grab_set()
+
+        campos = {
+            "sn_instrumento": ctk.StringVar(),
+            "sn_sensor": ctk.StringVar(),
+            "min_range": ctk.StringVar(),
+            "max_range": ctk.StringVar()
+        }
+
+        ctk.CTkLabel(win, text="TAG").pack(pady=(10, 0))
+        entry_tag = ctk.CTkEntry(win, width=280)
+        entry_tag.pack()
+
+        entries = {}
+
+        for k, var in campos.items():
+            ctk.CTkLabel(win, text=k.replace("_", " ").title()).pack(pady=(10, 0))
+            e = ctk.CTkEntry(
+                win,
+                textvariable=var,
+                state="readonly",
+                width=280
+            )
+            e.pack()
+            entries[k] = e
+
+        def consultar():
+            tag = entry_tag.get().upper()
+            reg = buscar_instrumento_por_tag(tag)
+            if not reg:
+                messagebox.showerror("Erro", "TAG não encontrada")
+                return
+
+            for k in campos:
+                campos[k].set(reg[k])
+
+        def editar():
+            for e in entries.values():
+                e.configure(state="normal")
+
+        def salvar():
+            tag = entry_tag.get().upper()
+            min_r = to_float_safe(campos["min_range"].get())
+            max_r = to_float_safe(campos["max_range"].get())
+
+            if min_r is None or max_r is None:
+                messagebox.showerror("Erro", "Range inválido")
+                return
+
+            atualizar_sn(tag, campos["sn_instrumento"].get())
+            atualizar_sn_sensor(tag, campos["sn_sensor"].get())
+            atualizar_range(tag, min_r, max_r)
+
+            messagebox.showinfo("OK", "Dados atualizados")
+            for e in entries.values():
+                e.configure(state="readonly")
+
+        ctk.CTkButton(win, text="Consultar", command=consultar).pack(pady=10)
+        ctk.CTkButton(win, text="Editar", command=editar).pack(pady=5)
+        ctk.CTkButton(win, text="Salvar", command=salvar).pack(pady=10)

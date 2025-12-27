@@ -20,3 +20,11 @@ class ValidationContext:
 
         # ---- novo atributo ----
         self.pontos = pontos or []
+
+        # ---- novo atributo derivado ----
+        self.tipo = self._obter_tipo()
+
+    def _obter_tipo(self):
+        if not self.pontos:
+            return None
+        return self.pontos[0].get("tipo")
