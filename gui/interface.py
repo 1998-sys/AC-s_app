@@ -217,7 +217,7 @@ class App(ctk.CTk):
         if ok:
             try:
                 caminho_ac, _ = gerar_ac(dados_pdf, self.caminho_pdf_atual)
-                caminho_xml = Path(caminho_ac).with_suffix(".xml")
+                caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
                 gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), dados_pdf.get("certificado_te_anterior"))
                 messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
             except Exception as e:
