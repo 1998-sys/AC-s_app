@@ -7,6 +7,7 @@ from data.utils_db import (
     atualizar_tag,
     inserir_instrumento
 )
+from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 
 
 def normalizar_texto(texto):
@@ -316,3 +317,7 @@ def regra_incert_fidu(ctx):
         )
 
     return None
+
+# Verificar ponto inicial e final de calibração
+def regra_pontos_if(ctx):
+    pass
