@@ -3,14 +3,12 @@ from xml.dom import minidom
 from pathlib import Path
 
 
-# ===============================
-# UTILITÁRIOS
-# ===============================
+
+
 
 def normalizar_certificado(cert: str | None) -> str:
     """
     Remove espaços do número do certificado.
-    Ex: '25 - ODS - 70 - PRE - 495' → '25-ODS-70-PRE-495'
     """
     if not cert:
         return ""
@@ -66,9 +64,7 @@ def normalizar_tag_mvs(tag: str | None, instalacao: str | None) -> str:
     return tag
 
 
-# ===============================
-# GERADOR DE XML
-# ===============================
+
 
 def gerar_xml_calibracao(
     dados_pdf: dict,
@@ -89,9 +85,9 @@ def gerar_xml_calibracao(
         el.text = "" if value is None else str(value)
         return el
 
-    # ===============================
-    # CABEÇALHO
-    # ===============================
+
+    
+ 
     add("NroCertificado", normalizar_certificado(dados_pdf.get("certificado")))
     add("FechaDeCalibracion", dados_pdf.get("data"))
     add("FechaEmisionCertificado", dados_pdf.get("report_date"))
@@ -105,9 +101,7 @@ def gerar_xml_calibracao(
     add("InLoco", "1")
     add("AsLeft", "0")
 
-    # ===============================
-    # SOMENTE TT → CERTIFICADO RTD
-    # ===============================
+   
     if tipo == "TT":
         add(
             "NroCertificadoRTD",
@@ -116,7 +110,7 @@ def gerar_xml_calibracao(
 
     add("CalcularValorNominal", "0")
 
-    # 🔑 TAG NORMALIZADA PARA MVS
+    
     add(
         "TAG",
         normalizar_tag_mvs(
@@ -125,9 +119,7 @@ def gerar_xml_calibracao(
         )
     )
 
-    # ===============================
-    # GRILLA AS FOUND
-    # ===============================
+   
     for p in pontos:
         grid = ET.SubElement(root, "GrillaAsFound")
 
@@ -137,9 +129,7 @@ def gerar_xml_calibracao(
         ET.SubElement(grid, "Incerteza").text = fmt_num(p.get("incerteza"))
         ET.SubElement(grid, "K").text = fmt_num(p.get("k"), 2)
 
-    # ===============================
-    # PRETTY PRINT (minidom)
-    # ===============================
+    
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)
     pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")

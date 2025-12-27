@@ -2,9 +2,6 @@ import pdfplumber
 from pdf.parser_certificados import extrair_curva_calibracao, aplicar_curva_kpa
 
 
-# =========================================================
-# UTILITÁRIOS
-# =========================================================
 
 def _to_float(v):
     if v is None:
@@ -33,17 +30,13 @@ def _valor_pos_barra(v):
     return _to_float(v)
 
 
-# =========================================================
-# FUNÇÃO PRINCIPAL
-# =========================================================
+
 
 def extrair_pontos_calibracao_pdf(caminho_pdf):
     tabelas = []
     texto = ""
 
-    # ===============================
-    # LEITURA DO PDF
-    # ===============================
+    
     with pdfplumber.open(caminho_pdf) as pdf:
         for pagina in pdf.pages:
             texto += (pagina.extract_text() or "") + "\n"
@@ -58,9 +51,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     texto_upper = texto.upper()
     pontos = []
 
-    # ===============================
-    # CLASSIFICAÇÃO
-    # ===============================
+    # Classificação
     is_te = "THERMORESISTANCE" in texto_upper or "TERMORRESISTÊNCIA" in texto_upper
 
     is_tt = (
@@ -83,9 +74,8 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
         "PDIT" in texto_upper
     )
 
-    # =========================================================
+    
     # TE – Termorresistência
-    # =========================================================
     if is_te and not is_tt:
         tabela = tabelas[0]
 
@@ -108,13 +98,12 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
 
         return pontos
 
-    # =========================================================
-    # TT – Temperatura (DOIS FORMATOS)
-    # =========================================================
+    
+    # TT – Temperatura (dois formatos de tabela)
     if is_tt:
         tabela = tabelas[0]
 
-        # 🔑 DETECÇÃO PELO CABEÇALHO
+        
         cabecalho = " ".join(
             str(c).upper()
             for c in tabela[0]
@@ -131,18 +120,16 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
             if referencia is None:
                 continue
 
-            # ---------------------------------
+           
             # TT TIPO 2 → POSSUI mA DC (IGNORAR)
-            # ---------------------------------
             if possui_ma_dc:
-                media = _to_float(linha[1])        # °C
-                tendencia = _to_float(linha[3])    # °C
-                incerteza = _to_float(linha[4])    # °C
+                media = _to_float(linha[1])        
+                tendencia = _to_float(linha[3])    
+                incerteza = _to_float(linha[4])    
                 k = _to_float(linha[5]) if len(linha) > 5 else None
 
-            # ---------------------------------
+            
             # TT TIPO 1 → TUDO EM °C
-            # ---------------------------------
             else:
                 media = _to_float(linha[1])
                 tendencia = _to_float(linha[2])
@@ -160,9 +147,8 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
 
         return pontos
 
-    # =========================================================
+    
     # PT / DPT – PRESSÃO
-    # =========================================================
     if (is_pt or is_dpt) and len(tabelas) >= 2:
         tabela = tabelas[1]
         tipo = "DPT" if is_dpt else "PT"
