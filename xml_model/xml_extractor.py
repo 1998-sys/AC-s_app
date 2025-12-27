@@ -1,5 +1,10 @@
 import pdfplumber
+from pdf.parser_certificados import extrair_curva_calibracao, aplicar_curva_kpa
 
+
+# =========================================================
+# UTILITÁRIOS
+# =========================================================
 
 def _to_float(v):
     if v is None:
@@ -17,10 +22,6 @@ def _to_float(v):
 
 
 def _valor_pos_barra(v):
-    """
-    Retorna sempre o valor após '/' convertido para float.
-    Usado quando tendência/incerteza vêm no formato mA/kPa ou mA DC/kPa.
-    """
     if v is None:
         return None
 
@@ -31,6 +32,10 @@ def _valor_pos_barra(v):
 
     return _to_float(v)
 
+
+# =========================================================
+# FUNÇÃO PRINCIPAL
+# =========================================================
 
 def extrair_pontos_calibracao_pdf(caminho_pdf):
     tabelas = []
@@ -52,6 +57,11 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
 
     texto_upper = texto.upper()
     pontos = []
+
+    # ===============================
+    # CURVA DE CALIBRAÇÃO (SEMPRE EXISTE)
+    # ===============================
+    curva_calibracao = extrair_curva_calibracao(texto)
 
     # ===============================
     # CLASSIFICAÇÃO
@@ -79,7 +89,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     )
 
     # =========================================================
-    # CASO TE
+    # TE – Termorresistência
     # =========================================================
     if is_te and not is_tt:
         tabela = tabelas[0]
@@ -89,79 +99,59 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
                 continue
 
             referencia = _to_float(linha[2])
-            media = _to_float(linha[4])
-            tendencia = _to_float(linha[5])
-            incerteza = _to_float(linha[6])
-            k = _to_float(linha[7]) if len(linha) > 7 else None
-
             if referencia is None:
                 continue
 
             pontos.append({
                 "tipo": "TE",
                 "referencia": referencia,
-                "media": media,
-                "tendencia": tendencia,
-                "incerteza": incerteza,
-                "k": k
+                "media": _to_float(linha[4]),
+                "tendencia": _to_float(linha[5]),
+                "incerteza": _to_float(linha[6]),
+                "k": _to_float(linha[7]) if len(linha) > 7 else None
             })
 
         return pontos
 
     # =========================================================
-    # CASO TT
+    # TT – Temperatura
     # =========================================================
     if is_tt:
         tabela = tabelas[0]
 
         for linha in tabela[1:]:
+            referencia = _to_float(linha[0])
+            media = _to_float(linha[1])
 
-            # TT – Transmissor (possui mA)
-            if len(linha) >= 7 and _to_float(linha[2]) is not None:
-                referencia = _to_float(linha[0])
-                media = _to_float(linha[1])
-                tendencia = _to_float(linha[3])
-                incerteza = _to_float(linha[4])
-                k = _to_float(linha[5])
-
-                if referencia is not None and media is not None:
-                    pontos.append({
-                        "tipo": "TT",
-                        "referencia": referencia,
-                        "media": media,
-                        "tendencia": tendencia,
-                        "incerteza": incerteza,
-                        "k": k
-                    })
+            if referencia is None or media is None:
                 continue
 
-            # TT – Termômetro digital
-            if len(linha) >= 5:
-                referencia = _to_float(linha[0])
-                media = _to_float(linha[1])
-                tendencia = _to_float(linha[2])
-                incerteza = _to_float(linha[3])
-                k = _to_float(linha[4])
-
-                if referencia is not None and media is not None:
-                    pontos.append({
-                        "tipo": "TT",
-                        "referencia": referencia,
-                        "media": media,
-                        "tendencia": tendencia,
-                        "incerteza": incerteza,
-                        "k": k
-                    })
+            pontos.append({
+                "tipo": "TT",
+                "referencia": referencia,
+                "media": media,
+                "tendencia": _to_float(linha[2]),
+                "incerteza": _to_float(linha[3]),
+                "k": _to_float(linha[4]) if len(linha) > 4 else None
+            })
 
         return pontos
 
     # =========================================================
-    # CASO PT e DPT (MESMA LÓGICA)
+    # PT / DPT – PRESSÃO (REGRA CORRETA)
     # =========================================================
     if (is_pt or is_dpt) and len(tabelas) >= 2:
-        tabela = tabelas[1]  # sempre segunda tabela
-
+        tabela = tabelas[1]
         tipo = "DPT" if is_dpt else "PT"
+
+        # 🔑 DETECÇÃO PELO CABEÇALHO
+        cabecalho = " ".join(
+            str(c).upper()
+            for c in tabela[0]
+            if c
+        )
+
+        media_em_ma = "MA DC" in cabecalho
 
         for linha in tabela[1:]:
             if len(linha) < 4:
@@ -171,31 +161,39 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
             if referencia is None:
                 continue
 
-            media_kpa = _to_float(linha[2]) if len(linha) > 2 else None
-            media_ma = _to_float(linha[1]) if len(linha) > 1 else None
+            media_ma = _to_float(linha[1])
+            media_kpa = _to_float(linha[2])
 
-            # Transmissor (mA/kPa ou apenas mA)
+            # -------------------------------
+            # MÉDIA
+            # -------------------------------
+            if media_em_ma and curva_calibracao:
+                media = round(
+                    aplicar_curva_kpa(media_ma, curva_calibracao),
+                    3
+                )
+            else:
+                media = media_kpa
+
+            # -------------------------------
+            # TENDÊNCIA / INCERTEZA
+            # -------------------------------
             if "/" in str(linha[3]):
                 tendencia = _valor_pos_barra(linha[3])
                 incerteza = (
                     _valor_pos_barra(linha[4])
-                    if len(linha) > 4 and "/" in str(linha[4])
-                    else None
+                    if len(linha) > 4 else None
                 )
-                media = media_kpa if media_kpa is not None else media_ma
-                k = _to_float(linha[5]) if len(linha) > 5 else None
-
-            # Manômetro digital (tudo em kPa)
             else:
-                media = media_kpa
-                tendencia = _to_float(linha[3]) if len(linha) > 3 else None
+                tendencia = _to_float(linha[3])
                 incerteza = _to_float(linha[4]) if len(linha) > 4 else None
-                k = _to_float(linha[5]) if len(linha) > 5 else None
+
+            k = _to_float(linha[5]) if len(linha) > 5 else None
 
             pontos.append({
                 "tipo": tipo,
                 "referencia": referencia,
-                "media": media,
+                "media": media,          # ✅ SEMPRE kPa
                 "tendencia": tendencia,
                 "incerteza": incerteza,
                 "k": k
