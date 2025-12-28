@@ -102,7 +102,7 @@ def gerar_xml_calibracao(
     add("AsLeft", "0")
 
    
-    if tipo == "TT":
+    if tipo == "TT" and nro_certificado_te_anterior:
         add(
             "NroCertificadoRTD",
             normalizar_certificado(nro_certificado_te_anterior)

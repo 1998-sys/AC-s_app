@@ -64,6 +64,7 @@ class App(ctk.CTk):
 
         self.pontos_calibracao = []
         self.caminho_pdf_atual = None
+        self.certificado_te_atual = None
 
         self._build_ui()
 
@@ -200,6 +201,11 @@ class App(ctk.CTk):
         dados_pdf["tag"] = tag
         registro = buscar_instrumento_por_tag(tag)
         reg_sn = buscar_por_sn_instrumento(dados_pdf.get("sn_instrumento"))
+        
+        if "TE" in tag.upper():
+            self.certificado_te_atual = normalizar_certificado(
+            dados_pdf.get("certificado"))
+            
         ctx = ValidationContext(dados_pdf=dados_pdf, registro=registro, reg_sn=reg_sn, 
                                 tag_base_pdf=extrair_tag_base(tag), 
                                 tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None, 
@@ -221,7 +227,7 @@ class App(ctk.CTk):
             try:
                 caminho_ac, _ = gerar_ac(dados_pdf, self.caminho_pdf_atual)
                 caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
-                gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), dados_pdf.get("certificado_te_anterior"))
+                gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), self.certificado_te_atual)
                 messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
