@@ -13,7 +13,7 @@ try:
     from pdf.extrator import extrair_texto
     from pdf.parser_certificados import extrair_campos
     from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
-    from xml_model.xml_generator import gerar_xml_calibracao, normalizar_certificado
+    from xml_model.xml_generator import gerar_xml_calibracao, normalizar_certificado, tag_te
     from data.utils_db import (
         buscar_instrumento_por_tag,
         buscar_por_sn_instrumento,
@@ -201,11 +201,11 @@ class App(ctk.CTk):
         dados_pdf["tag"] = tag
         registro = buscar_instrumento_por_tag(tag)
         reg_sn = buscar_por_sn_instrumento(dados_pdf.get("sn_instrumento"))
-        
-        if "TE" in tag.upper():
+
+        if tag_te(dados_pdf.get("tag")):
             self.certificado_te_atual = normalizar_certificado(
-            dados_pdf.get("certificado"))
-            
+                dados_pdf.get("certificado"))
+
         ctx = ValidationContext(dados_pdf=dados_pdf, registro=registro, reg_sn=reg_sn, 
                                 tag_base_pdf=extrair_tag_base(tag), 
                                 tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None, 
@@ -229,6 +229,8 @@ class App(ctk.CTk):
                 caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
                 gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), self.certificado_te_atual)
                 messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
+                if "TT" in dados_pdf.get("tag", "").upper():
+                    self.certificado_te_atual = None
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
         self.exibir_resultado(dados_pdf, registro)

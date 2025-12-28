@@ -1,51 +1,54 @@
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from pathlib import Path
+import re
 
 
 
 
+def tag_te(tag: str | None) -> bool:
+    if not tag:
+        return False
+
+    partes = tag.upper().split("-")
+    return "TE" in partes
 
 def normalizar_certificado(cert: str | None) -> str:
-    """
-    Remove espaços do número do certificado.
-    """
     if not cert:
         return ""
     return cert.replace(" ", "").replace("--", "-")
 
 
+SIGLAS = {"FPSO"} 
+
 def formatar_instalacao(instalacao: str | None) -> str:
-    """
-    Formata instalação:
-    FPSO FORTE → FPSO Forte
-    FPSO BRAVO → FPSO Bravo
-    """
+
     if not instalacao:
         return ""
 
-    partes = instalacao.strip().split()
-    if len(partes) >= 2 and partes[0].upper() == "FPSO":
-        return f"FPSO {partes[1].capitalize()}"
+    inst = instalacao.strip()
 
-    return instalacao.title()
+    inst = re.sub(r"[\-_–]+", " ", inst)
+
+    palavras = inst.split()
+    resultado = []
+
+    for p in palavras:
+        if p.upper() in SIGLAS:
+            resultado.append(p.upper())
+        else:
+            resultado.append(p.capitalize())
+
+    return " ".join(resultado)
 
 
 def fmt_num(valor: float | None, casas=3) -> str:
-    """
-    Formata número com vírgula como separador decimal.
-    """
     if valor is None:
         valor = 0.0
     return f"{valor:.{casas}f}".replace(".", ",")
 
 
 def normalizar_tag_mvs(tag: str | None, instalacao: str | None) -> str:
-    """
-    Regra MVS:
-    - Somente para FPSO Forte
-    - Remove sufixos -TT, -PT, -DPT da TAG
-    """
     if not tag:
         return ""
 
