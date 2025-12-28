@@ -75,7 +75,7 @@ def gerar_xml_calibracao(
     if not pontos:
         raise ValueError("Pontos de calibração não informados")
 
-    # Tipo vem dos pontos
+    
     tipo = pontos[0]["tipo"].upper()
 
     root = ET.Element("Calibracion")

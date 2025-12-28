@@ -313,7 +313,7 @@ def regra_incert_fidu(ctx):
                 "Incerteza ou Erro fiducial acima de  0.1%"
             ),
             action=None,     # Apenas informativo
-            blocking=True    # Bloqueia a geração da AC
+            blocking=None    # Bloqueia a geração da AC
         )
 
     return None

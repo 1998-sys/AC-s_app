@@ -188,7 +188,9 @@ class App(ctk.CTk):
         try:
             texto = extrair_texto(caminho)
             dados_pdf = extrair_campos(texto)
+            print(dados_pdf)
             self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
+            print(self.pontos_calibracao)
             self.after(0, lambda: self.processar_comparacao(dados_pdf))
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Erro no PDF", str(e)))
@@ -237,7 +239,7 @@ class App(ctk.CTk):
                 text=txt,
                 text_color=ODS_OK if ok else ODS_ERROR,
                 font=(FONT_FAMILY, 12, "bold")
-            ).pack(anchor="w", pady=2)
+            ).pack(anchor="w", pady=1)
 
         linha(f"N° CERTIFICADO: {normalizar_certificado(dados_pdf.get('certificado'))}", ok=True)
         tag_ok = dados_pdf["tag"] == registro["tag"]
@@ -253,12 +255,16 @@ class App(ctk.CTk):
             tag_text = f"RANGE CAL PDF: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE CAL DB: {registro['min_range']} a {registro['max_range']}"
         linha(tag_text, range_ok)
 
-        #rangein_ok = (to_float_safe(dados_pdf.get("inminrange")) <= to_float_safe(dados_pdf.get("min_range")) and
-                    #to_float_safe(dados_pdf.get("inmax_range")) >= to_float_safe(dados_pdf.get("max_range")))
-        #tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inminrange')} a {dados_pdf.get('inmax_range')}"
-        #if not rangein_ok:
-           # tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN PDF: {dados_pdf.get('inminrange')} a {dados_pdf.get('inmax_range')}"
+        
+        if dados_pdf.get('inmin_range') != None and dados_pdf.get('inmax_range') != None:
+            rangein_ok = (to_float_safe(dados_pdf.get("inmin_range")) <= to_float_safe(dados_pdf.get("min_range")) and
+                    to_float_safe(dados_pdf.get("inmax_range")) >= to_float_safe(dados_pdf.get("max_range")))
+        
 
+            tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
+            if not rangein_ok:
+                tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
+            linha(tag_text, rangein_ok)
 
         sn_pdf = dados_pdf.get("sn_instrumento")
         sn_db = registro.get("sn_instrumento")
