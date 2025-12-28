@@ -75,7 +75,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     )
 
     
-    # TE – Termorresistência
+    
     if is_te and not is_tt:
         tabela = tabelas[0]
 
@@ -99,7 +99,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
         return pontos
 
     
-    # TT – Temperatura (dois formatos de tabela)
+    
     if is_tt:
         tabela = tabelas[0]
 
@@ -121,7 +121,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
                 continue
 
            
-            # TT TIPO 2 → POSSUI mA DC (IGNORAR)
+            
             if possui_ma_dc:
                 media = _to_float(linha[1])        
                 tendencia = _to_float(linha[3])    
@@ -129,7 +129,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
                 k = _to_float(linha[5]) if len(linha) > 5 else None
 
             
-            # TT TIPO 1 → TUDO EM °C
+            
             else:
                 media = _to_float(linha[1])
                 tendencia = _to_float(linha[2])
@@ -148,7 +148,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
         return pontos
 
     
-    # PT / DPT – PRESSÃO
+    
     if (is_pt or is_dpt) and len(tabelas) >= 2:
         tabela = tabelas[1]
         tipo = "DPT" if is_dpt else "PT"

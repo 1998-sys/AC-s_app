@@ -4,6 +4,21 @@ from pathlib import Path
 import re
 
 
+def determinar_tipo_xml(pontos: list, dados_pdf: dict) -> str:
+    """
+    Determina o tipo do instrumento para o XML.
+    Regra especial:
+      - FPSO Bravo + TAG iniciando com FIT → DPT
+    Caso contrário, usa o tipo vindo dos pontos.
+    """
+    tipo_padrao = pontos[0]["tipo"].upper()
+    local = (dados_pdf.get("local") or "").upper()
+    tag = (dados_pdf.get("tag") or "").upper()
+
+    if local == "FPSO BRAVO" and tag.startswith("FIT"):
+        return "DPT"
+
+    return tipo_padrao
 
 
 def tag_te(tag: str | None) -> bool:
@@ -79,7 +94,7 @@ def gerar_xml_calibracao(
         raise ValueError("Pontos de calibração não informados")
 
     
-    tipo = pontos[0]["tipo"].upper()
+    tipo = determinar_tipo_xml(pontos, dados_pdf)
 
     root = ET.Element("Calibracion")
 
