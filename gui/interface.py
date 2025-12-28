@@ -13,7 +13,7 @@ try:
     from pdf.extrator import extrair_texto
     from pdf.parser_certificados import extrair_campos
     from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
-    from xml_model.xml_generator import gerar_xml_calibracao
+    from xml_model.xml_generator import gerar_xml_calibracao, normalizar_certificado
     from data.utils_db import (
         buscar_instrumento_por_tag,
         buscar_por_sn_instrumento,
@@ -104,7 +104,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(
             logo_container, 
-            text="ODS METERING SYSTEMS", 
+            text="ODS ENERGY SOLUTIONS", 
             text_color="white", 
             font=ctk.CTkFont(family=FONT_FAMILY, size=13, weight="bold")
         ).pack(pady=(0, 5))
@@ -207,7 +207,8 @@ class App(ctk.CTk):
         ok = True
         for issue in issues:
             if issue.action:
-                if messagebox.askyesno(issue.title, issue.message): issue.action()
+                if messagebox.askyesno(issue.title, f"{issue.message}\n\nDeseja aplicar a correção/inclusão?"): 
+                    issue.action()
                 else:
                     ok = False
                     if issue.blocking: break
@@ -225,13 +226,53 @@ class App(ctk.CTk):
         self.exibir_resultado(dados_pdf, registro)
 
     def exibir_resultado(self, dados_pdf, registro):
-        for w in self.result_frame.winfo_children(): w.destroy()
-        if not registro: return
+        for w in self.result_frame.winfo_children():
+            w.destroy()
+        if not registro:
+            return
+
         def linha(txt, ok):
-            ctk.CTkLabel(self.result_frame, text=txt, text_color=ODS_OK if ok else ODS_ERROR, font=(FONT_FAMILY, 12, "bold")).pack(anchor="w", pady=2)
-        linha(f"TAG: {dados_pdf['tag']} | DB: {registro['tag']}", dados_pdf["tag"] == registro["tag"])
-        linha(f"SN Instr.: {dados_pdf.get('sn_instrumento')} | DB: {registro['sn_instrumento']}", 
-              dados_pdf.get("sn_instrumento") == registro["sn_instrumento"])
+            ctk.CTkLabel(
+                self.result_frame,
+                text=txt,
+                text_color=ODS_OK if ok else ODS_ERROR,
+                font=(FONT_FAMILY, 12, "bold")
+            ).pack(anchor="w", pady=2)
+
+        linha(f"N° CERTIFICADO: {normalizar_certificado(dados_pdf.get('certificado'))}", ok=True)
+        tag_ok = dados_pdf["tag"] == registro["tag"]
+        tag_text = f"TAG: {dados_pdf['tag']}"
+        if not tag_ok:
+            tag_text = f"TAG PDF: {dados_pdf['tag']} | TAG DB: {registro['tag']}"
+        linha(tag_text, tag_ok)
+
+        range_ok = (to_float_safe(dados_pdf.get("min_range")) == registro["min_range"] and
+                    to_float_safe(dados_pdf.get("max_range")) == registro["max_range"])
+        tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')}"
+        if not range_ok:
+            tag_text = f"RANGE CAL PDF: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE CAL DB: {registro['min_range']} a {registro['max_range']}"
+        linha(tag_text, range_ok)
+
+        #rangein_ok = (to_float_safe(dados_pdf.get("inminrange")) <= to_float_safe(dados_pdf.get("min_range")) and
+                    #to_float_safe(dados_pdf.get("inmax_range")) >= to_float_safe(dados_pdf.get("max_range")))
+        #tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inminrange')} a {dados_pdf.get('inmax_range')}"
+        #if not rangein_ok:
+           # tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN PDF: {dados_pdf.get('inminrange')} a {dados_pdf.get('inmax_range')}"
+
+
+        sn_pdf = dados_pdf.get("sn_instrumento")
+        sn_db = registro.get("sn_instrumento")
+        sn_ok = sn_pdf == sn_db
+        sn_text = f"SN: {sn_pdf}"
+        if not sn_ok:
+            sn_text = f" SN PDF: {sn_pdf} | SN DB: {sn_db}"
+        linha(sn_text, sn_ok)
+        linha(f"DATA CALIBRAÇÃO: {dados_pdf.get('data')}", ok=True)
+        linha(f"LOCAL: {dados_pdf.get('local')}", ok=True)
+        linha(f"SISTEMA: {dados_pdf.get('sistema')}", ok=True)
+
+        
+
 
     def abrir_consulta(self):
         win = ctk.CTkToplevel(self)
