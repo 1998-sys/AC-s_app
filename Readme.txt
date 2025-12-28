@@ -54,3 +54,5 @@ Suporte a diferentes tipos de instrumentos
     - XML.xml
 
 4-Os arquivos são salvos na mesma pasta do PDF original.
+
+OBS: Para calibração malha aberta (TE e TT) executar primeiro a AC do TE para que o sistema grave o N° do certificado no XML do TT
