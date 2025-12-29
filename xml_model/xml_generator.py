@@ -152,6 +152,12 @@ def gerar_xml_calibracao(
     parsed = minidom.parseString(xml_str)
     pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
 
+    pretty_xml = pretty_xml.replace(
+        b'<?xml version="1.0" encoding="utf-8"?>',
+        b'<?xml version="1.0" encoding="utf-8" standalone="yes"?>'
+    )
+
+
     Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
     with open(caminho_saida, "wb") as f:
         f.write(pretty_xml)
