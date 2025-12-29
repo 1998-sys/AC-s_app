@@ -269,9 +269,9 @@ class App(ctk.CTk):
                     to_float_safe(dados_pdf.get("inmax_range")) >= to_float_safe(dados_pdf.get("max_range")))
         
 
-            tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
+            tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IND.: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
             if not rangein_ok:
-                tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IN: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
+                tag_text = f"RANGE CAL: {dados_pdf.get('min_range')} a {dados_pdf.get('max_range')} | RANGE IND.: {dados_pdf.get('inmin_range')} a {dados_pdf.get('inmax_range')}"
             linha(tag_text, rangein_ok)
 
         sn_pdf = dados_pdf.get("sn_instrumento")
