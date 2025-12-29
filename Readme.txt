@@ -1,4 +1,4 @@
-📄 AC Analyzer – Processador de Certificados de Calibração
+📄 AC's Generator – Gerador de Análises Críticas
 
 Software desenvolvido para analisar certificados de calibração (PDF) de instrumentos de pressão e temperatura, comparar com uma base local e gerar automaticamente:
 
