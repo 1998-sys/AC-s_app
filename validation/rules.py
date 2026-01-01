@@ -31,15 +31,23 @@ def to_float(value):
 # TAG vs SN (MVS ou divergente)
 def regra_tag_vs_sn(ctx):
     if ctx.db is None and ctx.reg_sn is not None:
+        tipos_mvs = {
+            "Manometro Digital",
+            "Manometro Diferencial Digital",
+            "Termômetro Digital"
+        }
 
-        # Família MVS
-        if ctx.tag_base_pdf == ctx.tag_base_sn:
+        sn_pdf = ctx.pdf.get("sn_instrumento")
+        sn_banco = ctx.reg_sn.get("sn_instrumento")
+        tipo_equipamento = ctx.pdf.get("categoria")
+        
+        if sn_pdf and sn_banco and sn_pdf == sn_banco and tipo_equipamento in tipos_mvs:
             ctx.mvs = True
             return ValidationIssue(
                 key="mvs",
-                title="TAG compatível (Família MVS)",
+                title="TAG compatível (MVS)",
                 message=(
-                    "NS pertence à mesma família.\n\n"
+                    "NS já pertence a um equipamento.\nEquipamento é um MVS?\n\n"
                     f"Banco: {ctx.reg_sn['tag']}\n"
                     f"Certificado: {ctx.pdf['tag']}"
                 ),
@@ -229,7 +237,8 @@ def regra_local_fpso(ctx):
         "FPSO FRADE": ["FPSO", "FRADE"],
         "FPSO FORTE": ["FPSO", "FORTE"],
         "FPSO BRAVO": ["FPSO", "BRAVO"],
-        "POLVO": ["POLVO"]
+        "POLVO": ["POLVO"],
+        "ORIGEM ENERGIA ALAGOAS S.A.": ["ORIGEM", "ENERGIA", "ALAGOAS"]
     }
 
     for nome, palavras in fpsos.items():
@@ -247,6 +256,7 @@ def regra_local_fpso(ctx):
             "- FPSO FORTE\n"
             "- FPSO BRAVO\n"
             "- POLVO"
+             "- ORIGEM ENERGIA ALAGOAS S.A."
         ),
         blocking=True
     )

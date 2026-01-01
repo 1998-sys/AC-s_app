@@ -1,7 +1,10 @@
 import re
 import unicodedata
 
-
+def extrair_categoria_intrumento(texto):
+    padrão = r"Objeto da Calibração\s*:\s*([^\n\r]+)"
+    m = re.search(padrão, texto)
+    return m.group(1).strip() if m else None
 
 def extrair_curva_calibracao(texto):
     """
@@ -122,7 +125,7 @@ def extrair_local(texto):
         return None
 
     m = re.search(
-        r"(Name|Address|Nome|Endereço):\s*([A-Za-z0-9 \-_/]+)",
+        r"(Name|Address|Nome|Endereço):\s*([A-Za-z0-9 .\-_/]+)",
         bloco.group(1),
         flags=re.IGNORECASE
     )
@@ -238,6 +241,7 @@ def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
     sn_inst, sn_sensor = extrair_sn(texto)
     certificado = extrair_certificado(texto)
+    categoria = extrair_categoria_intrumento(texto)
     data_cal, report_date = extrair_datas(texto)
     local = extrair_local(texto)
     sistema = extrair_sistema(texto)
@@ -256,6 +260,7 @@ def extrair_campos(texto: str) -> dict:
         "sn_instrumento": sn_inst,
         "sn_sensor": sn_sensor,
         "certificado": certificado,
+        "categoria": categoria,
         "data": data_cal,
         "local": local,
         "sistema": sistema,
