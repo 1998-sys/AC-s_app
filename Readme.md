@@ -1,46 +1,74 @@
-📄 AC's Generator – Gerador de Análises Críticas
+# 📄 AC's Generator – Gerador de Análises Críticas
 
-Software desenvolvido para analisar certificados de calibração (PDF) de instrumentos de pressão e temperatura, comparar com uma base local e gerar automaticamente:
+Software desenvolvido para **analisar certificados de calibração (PDF)** de instrumentos de **pressão e temperatura**, comparar com uma base local e gerar automaticamente:
 
--Análise Crítica (AC) em PDF
--Arquivo XML no padrão ODS
--Atualização automática do banco de dados local (SQLite)
+- 📑 **Análise Crítica (AC) em PDF**
+- 🧾 **Arquivo XML no padrão ODS**
+- 🗄️ **Atualização automática do banco de dados local (SQLite)**
 
-⚙️ Funcionalidades Principais
+---
 
-- Leitura automática do PDF
-- Extrai TAG, certificado, datas, ranges, SN do instrumento e sensor, valores de calibração, erro fiducial e incerteza global
--Comparação com banco SQLite
--Verifica divergências de: TAG, SN, Range, Diametro e comprimento da haste, localização, range de calibração e indicado, erro fiducial e incerteza global (DPT e PT),
--Atualiza automaticamente quando autorizado
--Atualização manual por interface 
--Geração automática da Análise Crítica (PDF)
--Usa o template TemplateAC.xlsx e exporta para PDF via Excel.
--Geração do XML
--Preenche o modelo de XML com dados do certificado e do instrumento.
+## ⚙️ Funcionalidades Principais
 
-Suporte a diferentes tipos de instrumentos
+- 📄 Leitura automática do certificado em PDF  
+- 🔎 Extração das seguintes informações:
+  - TAG  
+  - Número do certificado  
+  - Datas  
+  - Ranges  
+  - SN do instrumento e do sensor  
+  - Valores de calibração  
+  - Erro fiducial  
+  - Incerteza global  
 
--PT / PIT
--DPT
--TT / TIT
--Sensores TE
+- 🗃️ Comparação automática com banco de dados SQLite  
+- ⚠️ Verificação de divergências de:
+  - TAG  
+  - SN  
+  - Range  
+  - Diâmetro e comprimento da haste  
+  - Localização  
+  - Range de calibração e range indicado  
+  - Erro fiducial e incerteza global (PT e DPT)  
 
-📁 Estrutura dos Arquivos Necessários
+- 🔄 Atualização automática do banco quando autorizada  
+- ✍️ Atualização manual via interface gráfica  
+- 📑 Geração automática da **Análise Crítica (PDF)**  
+  - Utiliza o template `TemplateAC.xlsx`  
+  - Exporta para PDF via Excel  
 
+- 🧾 Geração automática do **XML**
+  - Preenchimento do modelo XML com dados do certificado e do instrumento  
+
+---
+
+## 🧰 Suporte a Diferentes Tipos de Instrumentos
+
+- PT / PIT  
+- DPT  
+- TT / TIT  
+- Sensores TE  
+
+---
+
+## 📁 Estrutura dos Arquivos Necessários
+
+```text
 /AC_app
 │── Ac_app.exe               → Executável
-│── TemplateAC.xlsx          → Template para gerar AC
-│── instrumentos.db          → Banco local SQLite
-│── /pdf                     → Módulos de extração
-│── /validation              → Regras de Validação
-│── /xml_model               → Gerador do XML
-│── /form                    → Geração do PDF de AC
-│── /gui                     → Interface Tkinter
+│── TemplateAC.xlsx          → Template para geração da AC
+│── instrumentos.db          → Banco de dados local (SQLite)
+│
+├── pdf/                     → Módulos de extração de dados do PDF
+├── validation/              → Regras de validação
+├── xml_model/               → Gerador do XML
+├── form/                    → Geração do PDF da AC
+└── gui/                     → Interface gráfica (Tkinter)
+
 
 ▶️ Como usar
 
-![Tela inicial do ACs Generator](ACs_Generator.png)
+![Tela inicial do ACs Generator](AC's Generator.png)
 
 1-Abra o software (executável).
 2-Clique em Selecionar Certificado PDF.
