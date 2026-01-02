@@ -40,6 +40,8 @@ Suporte a diferentes tipos de instrumentos
 
 ▶️ Como usar
 
+![Tela inicial do ACs Generator](ACs_Generator.png)
+
 1-Abra o software (executável).
 2-Clique em Selecionar Certificado PDF.
 3-O programa:
