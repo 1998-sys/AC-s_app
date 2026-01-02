@@ -233,10 +233,6 @@ def extrair_erro_incerteza(texto):
     )
 
 
-
-
-
-
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
     sn_inst, sn_sensor = extrair_sn(texto)

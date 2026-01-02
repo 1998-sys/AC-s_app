@@ -7,9 +7,7 @@ import win32com.client as win32
 import os
 
 
-# ==========================================================
-# FUNÇÕES AUXILIARES – MERGE SAFE
-# ==========================================================
+
 
 def primeira_celula_merge(ws, cell):
     """
@@ -34,9 +32,6 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
     celula.alignment = Alignment(wrap_text=wrap, vertical=vertical)
 
 
-# ==========================================================
-# FUNÇÃO PRINCIPAL – AC ORIGEM
-# ==========================================================
 
 def gerar_ac_origem(dados, caminho_pdf_original):
 
@@ -52,9 +47,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Template Formulário"]
 
-    # =============================
-    # CONFIGURAÇÃO DE PÁGINA
-    # =============================
+   
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
     ws.page_setup.orientation = "portrait"
@@ -63,16 +56,12 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     ws.page_margins.left = 0.3
     ws.page_margins.right = 0.3
 
-    # =============================
-    # DADOS BÁSICOS
-    # =============================
+   
     escrever(ws, "A6",  dados.get("tag"))
     escrever(ws, "A13", dados.get("certificado"))
     escrever(ws, "D13", dados.get("data"))
 
-    # =============================
-    # IDENTIFICAÇÃO DO TIPO
-    # =============================
+    
     tipo = ""
     tag = (dados.get("tag") or "").upper()
 
@@ -118,9 +107,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
 
         tipo = "DPT"
 
-    # =============================
-    # REPORT DATE (+1 dia útil)
-    # =============================
+  
     if dados.get("report_date"):
         dt = datetime.strptime(dados["report_date"], "%d/%m/%Y")
         dt_util = adicionar_dia_util(dt)
@@ -133,9 +120,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
             vertical="center"
         )
 
-    # =============================
-    # OBSERVAÇÕES – RICH TEXT
-    # =============================
+   
     blocos = []
 
     if dados.get("range_atualizado"):
@@ -157,14 +142,10 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     rich = CellRichText(*blocos) if blocos else ""
     escrever(ws, "A42", rich)
 
-    # =============================
-    # SALVAR TEMPLATE
-    # =============================
+    
     wb.save(caminho_template)
 
-    # =============================
-    # EXPORTAR PARA PDF
-    # =============================
+    
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     certificado = dados.get("certificado", "").replace(" ", "")
     tag_limpa = dados.get("tag", "").replace(" ", "")
