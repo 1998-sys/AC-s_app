@@ -21,7 +21,7 @@ try:
         atualizar_sn_sensor,
         atualizar_range
     )
-    from form.utils_print import gerar_ac
+    from form.utils_print import gerar_ac_escolha
     from validation.engine import ValidationEngine
     from validation.context import ValidationContext
 except ImportError as e:
@@ -225,7 +225,7 @@ class App(ctk.CTk):
                 if issue.blocking: ok = False; break
         if ok:
             try:
-                caminho_ac, _ = gerar_ac(dados_pdf, self.caminho_pdf_atual)
+                caminho_ac, _ = gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual)
                 caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
                 gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), self.certificado_te_atual)
                 messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
@@ -233,6 +233,7 @@ class App(ctk.CTk):
                     self.certificado_te_atual = None
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
+                print(e)
         self.exibir_resultado(dados_pdf, registro)
 
     def exibir_resultado(self, dados_pdf, registro):
