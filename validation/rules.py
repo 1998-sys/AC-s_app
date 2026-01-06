@@ -9,6 +9,26 @@ from data.utils_db import (
 )
 from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 
+# Utilitários para regras de validação
+def normalizar_local(local_calibracao):
+    if not local_calibracao:
+        return None
+    return MAP_LOCAL.get(local_calibracao)
+
+def obter_cmc(categoria, local, valor_referencia):
+    regras_categoria = CMC_REGRAS.get(categoria)
+    if not regras_categoria:
+        return None
+
+    regras_local = regras_categoria.get(local)
+    if not regras_local:
+        return None
+
+    for minimo, maximo, cmc in regras_local:
+        if minimo <= valor_referencia <= maximo:
+            return cmc
+
+    return None
 
 def normalizar_texto(texto):
     if not texto:
@@ -17,7 +37,6 @@ def normalizar_texto(texto):
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
 
-
 def to_float(value):
     try:
         if value is None:
@@ -25,7 +44,6 @@ def to_float(value):
         return float(str(value).replace(",", "."))
     except Exception:
         return None
-
 
 
 # TAG vs SN (MVS ou divergente)
@@ -328,6 +346,187 @@ def regra_incert_fidu(ctx):
 
     return None
 
-# Verificar ponto inicial e final de calibração
-def regra_pontos_if(ctx):
-    pass
+
+# Mapeamento do local de calibração
+MAP_LOCAL = {
+    "Calibration performed at the permanent facility": "permanente",
+    "Calibration performed at the customer's facility": "cliente",
+    "Calibration performed in the mobile installation (container)": "movel",
+}
+
+# Regras CMC 
+CMC_REGRAS = {
+    "Manometro Analógico": {
+        "permanente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "cliente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "movel": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+    },
+
+    "Manometro Diferencial Analógico": {
+        "permanente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "cliente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "movel": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+    },
+
+    "Manometro Digital": {
+        "permanente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "cliente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "movel": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+    },
+
+    "Manometro Diferencial Digital": {
+        "permanente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "cliente": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+        "movel": [
+            (0.1, 16, 0.04),
+            (16, 70, 0.05),
+            (70, 68000, 0.03),
+        ],
+    },
+
+    "Manometro Digital Absoluto": {
+        "permanente": [
+            (15, 170, 0.05),
+            (170, 68000, 0.03),
+        ],
+        "cliente": [
+            (15, 170, 0.05),
+            (170, 68000, 0.03),
+        ],
+        "movel": [
+            (15, 170, 0.05),
+            (170, 68000, 0.03),
+        ],
+    },
+
+    "Transmissor de Pressão com Saída em Unidade Elétrica": {
+        "permanente": [
+            (0.1, 16, 0.05),
+            (16, 70, 0.06),
+            (70, 68000, 0.04),
+        ],
+        "cliente": [
+            (0.1, 16, 0.05),
+            (16, 70, 0.06),
+            (70, 68000, 0.04),
+        ],
+        "movel": [
+            (0.1, 16, 0.05),
+            (16, 70, 0.06),
+            (70, 68000, 0.04),
+        ],
+    },
+
+    "Transmissor de Pressão Absoluta com Saída em Unidade Elétrica": {
+        "permanente": [
+            (15, 170, 0.06),
+            (170, 68000, 0.04),
+        ],
+        "cliente": [
+            (15, 170, 0.06),
+            (170, 68000, 0.04),
+        ],
+        "movel": [
+            (15, 170, 0.06),
+            (170, 68000, 0.04),
+        ],
+    },
+}
+
+
+
+
+def regra_cmc(ctx):
+
+    categoria = ctx.pdf.get("categoria")
+    local_raw = ctx.pdf.get("local_calibracao")
+    pontos = ctx.pontos_calibracao
+
+    local = normalizar_local(local_raw)
+
+    if not categoria or not local or not pontos:
+        return None
+
+    erros = []
+
+    for p in pontos:
+
+        if p.get("tipo") != "PT" and p.get("tipo") != "DPT":
+            continue
+
+        media = to_float(p.get("media"))
+        incerteza = to_float(p.get("incerteza"))
+
+        if media is None or incerteza is None:
+            continue
+
+        cmc = obter_cmc(categoria, local, abs(media)) # faixa de pressão da CMC é definida pelo módulo da pressão, não pelo sinal.
+
+        if cmc is None:
+            continue
+
+        if incerteza < cmc:
+            erros.append(
+                f"Ponto {media} kPa → "
+                f"Incerteza={incerteza}% | CMC={cmc}%"
+            )
+
+    if erros:
+        return ValidationIssue(
+            key="cmc_pressao",
+            title="Incerteza acima da CMC",
+            message=(
+                f"Categoria: {categoria}\n"
+                f"Local de calibração: {local}\n\n"
+                "Pontos fora da CMC:\n" +
+                "\n".join(erros)
+            ),
+            action=None,
+            blocking=True
+        )
+
+    return None

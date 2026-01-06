@@ -73,12 +73,9 @@ class App(ctk.CTk):
         try:
             caminho_logo = os.path.join("logo", "ods-logo2.png")
             if os.path.exists(caminho_logo):
-                # Carregamos com PIL
-                img_icon = Image.open(caminho_logo)
-                # Convertemos para um formato que o Tkinter entende (importante manter a referência)
-                self.img_icon_tk = ctk.CTkImage(light_image=img_icon, dark_image=img_icon)
                 
-                # Usamos o método nativo iconphoto através de um pequeno delay para garantir que a janela já exista
+                img_icon = Image.open(caminho_logo)            
+                self.img_icon_tk = ctk.CTkImage(light_image=img_icon, dark_image=img_icon) 
                 self.after(200, lambda: self.wm_iconphoto(False, self._load_icon_native(caminho_logo)))
         except Exception as e:
             print(f"Erro ao carregar ícone: {e}")

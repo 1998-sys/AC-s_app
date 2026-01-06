@@ -1,6 +1,12 @@
 import re
 import unicodedata
 
+
+def calibration_location(texto):
+    padrão = r"\((Calibration performed at the (?:customer's facility|permanent facility|mobile installation \(container\)))\)"
+    m = re.search(padrão, texto)
+    return m.group(1).strip() if m else None
+
 def extrair_categoria_intrumento(texto):
     padrão = r"Objeto da Calibração\s*:\s*([^\n\r]+)"
     m = re.search(padrão, texto)
@@ -238,6 +244,7 @@ def extrair_campos(texto: str) -> dict:
     sn_inst, sn_sensor = extrair_sn(texto)
     certificado = extrair_certificado(texto)
     categoria = extrair_categoria_intrumento(texto)
+    calibration_loc = calibration_location(texto)
     data_cal, report_date = extrair_datas(texto)
     local = extrair_local(texto)
     sistema = extrair_sistema(texto)
@@ -257,6 +264,7 @@ def extrair_campos(texto: str) -> dict:
         "sn_sensor": sn_sensor,
         "certificado": certificado,
         "categoria": categoria,
+        "local_calibracao": calibration_loc,
         "data": data_cal,
         "local": local,
         "sistema": sistema,

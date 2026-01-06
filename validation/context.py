@@ -19,12 +19,12 @@ class ValidationContext:
         self.mvs = False
 
        
-        self.pontos = pontos or []
+        self.pontos_calibracao = pontos or []
 
         
         self.tipo = self._obter_tipo()
 
     def _obter_tipo(self):
-        if not self.pontos:
+        if not self.pontos_calibracao:
             return None
-        return self.pontos[0].get("tipo")
+        return self.pontos_calibracao[0].get("tipo")

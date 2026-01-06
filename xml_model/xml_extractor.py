@@ -71,7 +71,8 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
         "DIFFERENTIAL" in texto_upper or
         "DIFERENCIAL" in texto_upper or
         "-DPT" in texto_upper or
-        "PDIT" in texto_upper
+        "PDIT" in texto_upper or
+        "-FT-" in texto_upper
     )
 
     
