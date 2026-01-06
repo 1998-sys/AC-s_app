@@ -36,7 +36,6 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
 def gerar_ac_origem(dados, caminho_pdf_original):
 
     def adicionar_dia_util(data):
-        data += timedelta(days=1)
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
         elif data.weekday() == 6:  # domingo
@@ -48,14 +47,17 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     ws = wb["Template Formulário"]
 
    
+    ws.page_setup.orientation = "portrait"
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
-    ws.page_setup.orientation = "portrait"
-    ws.page_margins.top = 0.3
-    ws.page_margins.bottom = 0.3
-    ws.page_margins.left = 0.3
-    ws.page_margins.right = 0.3
 
+    ws.page_setup.horizontalCentered = True
+    ws.page_setup.verticalCentered = True
+
+    ws.page_margins.top = 0.5
+    ws.page_margins.bottom = 0.5
+    ws.page_margins.left = 0.8
+    ws.page_margins.right = 0.5
    
     escrever(ws, "A6",  dados.get("tag"))
     escrever(ws, "A13", dados.get("certificado"))
@@ -70,7 +72,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         tag.endswith("-TE") or
         "-TE-" in tag
     ):
-        escrever(ws, "F8", "[ X ] Termorresistência (TE)")
+        escrever(ws, "F8", "[ ✔ ] Termorresistência (TE)")
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
@@ -83,7 +85,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     ):
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
-        escrever(ws, "C10", "[ X ] Transmissor de temperatura (TT)")
+        escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
         tipo = "TT"
 
@@ -92,7 +94,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         tag.endswith(("-PT", "-PIT")) or
         any(x in tag for x in ("-PT-", "-PIT-"))
     ):
-        escrever(ws, "C8", "[ X ] Transmissor de pressão estática (PT)")
+        escrever(ws, "C8", "[ ✔ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
@@ -101,7 +103,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
 
     else:
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
-        escrever(ws, "C9", "[ X ] Transmissor de pressão diferencial (PDT)")
+        escrever(ws, "C9", "[ ✔ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
