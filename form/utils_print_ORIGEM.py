@@ -34,6 +34,7 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
 
 
 def gerar_ac_origem(dados, caminho_pdf_original):
+    print(dados)
 
     def adicionar_dia_util(data):
         if data.weekday() == 5:  # sábado
@@ -60,6 +61,9 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     ws.page_margins.right = 0.5
    
     escrever(ws, "A6",  dados.get("tag"))
+    escrever(ws, "C6",  dados.get("localizacao"))
+    escrever(ws, "F6", f"SAP: {dados.get('sap', '')}")
+    escrever(ws, "G6", f"CE: {dados.get('n_ac', '')}")
     escrever(ws, "A13", dados.get("certificado"))
     escrever(ws, "D13", dados.get("data"))
 

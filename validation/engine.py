@@ -8,7 +8,7 @@ from validation.rules import (
     regra_local_fpso,
     regra_rangein,
     regra_incert_fidu,
-    regra_cmc
+    
 )
 
 
@@ -24,7 +24,7 @@ class ValidationEngine:
             regra_local_fpso,
             regra_rangein,
             regra_incert_fidu,
-            regra_cmc
+            
         ]
 
     def run(self, context):

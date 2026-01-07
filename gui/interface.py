@@ -187,11 +187,95 @@ class App(ctk.CTk):
             texto = extrair_texto(caminho)
             dados_pdf = extrair_campos(texto)
             print(dados_pdf)
+
             self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
             print(self.pontos_calibracao)
-            self.after(0, lambda: self.processar_comparacao(dados_pdf))
+
+            def continuar(dados):
+                self.processar_comparacao(dados)
+            if "ORIGEM" in (dados_pdf.get("local") or "").upper():
+                self.after(
+                    0,
+                    lambda: self.solicitar_dados_origem(dados_pdf, continuar)
+                )
+            else:
+                self.after(
+                    0,
+                    lambda: continuar(dados_pdf)
+                )
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Erro no PDF", str(e)))
+
+    def solicitar_dados_origem(self, dados_pdf, callback):
+        win = ctk.CTkToplevel(self)
+        win.title("Dados Complementares")
+        win.geometry("420x420")
+        win.resizable(False, False)
+        win.configure(fg_color=ODS_BG)
+        win.grab_set()
+
+        # ─────────────── ÍCONE ODS (FIX DEFINITIVO) ───────────────
+        try:
+            caminho_logo = os.path.join("logo", "ods-logo2.png")
+            if os.path.exists(caminho_logo):
+                from tkinter import PhotoImage
+                win.icon_img = PhotoImage(file=caminho_logo)  # mantém referência
+                win.wm_iconphoto(False, win.icon_img)
+        except Exception as e:
+            print("Erro ao carregar ícone:", e)
+
+        # ─────────────── TARJA SUPERIOR ───────────────
+        sub_h = ctk.CTkFrame(win, fg_color=ODS_RED, height=48, corner_radius=0)
+        sub_h.pack(fill="x")
+        sub_h.pack_propagate(False)
+
+        ctk.CTkLabel(
+            sub_h,
+            text="DADOS COMPLEMENTARES",
+            text_color="white",
+            font=(FONT_FAMILY, 13, "bold")
+        ).pack(expand=True)
+
+        # ─────────────── CONTEÚDO ───────────────
+        container = ctk.CTkFrame(win, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=30, pady=25)
+
+        var_localizacao = ctk.StringVar()
+        var_sap = ctk.StringVar()
+        var_nac = ctk.StringVar()
+
+        def campo(label, var):
+            ctk.CTkLabel(container, text=label, font=(FONT_FAMILY, 11)).pack(anchor="w")
+            e = ctk.CTkEntry(container, textvariable=var, width=340, height=34)
+            e.pack(pady=(0, 15))
+            return e
+
+        campo("Localização", var_localizacao)
+        campo("SAP", var_sap)
+        campo("Nº AC", var_nac)
+
+        # ─────────────── AÇÃO SALVAR ───────────────
+        def salvar():
+            if not var_localizacao.get().strip():
+                messagebox.showerror("Erro", "Localização é obrigatória.")
+                return
+
+            dados_pdf["localizacao"] = var_localizacao.get().strip()
+            dados_pdf["sap"] = var_sap.get().strip()
+            dados_pdf["n_ac"] = var_nac.get().strip()
+
+            win.destroy()
+            callback(dados_pdf)
+
+        ctk.CTkButton(
+            container,
+            text="SALVAR",
+            fg_color=ODS_OK,
+            hover_color="#059669",
+            height=38,
+            font=(FONT_FAMILY, 12, "bold"),
+            command=salvar
+        ).pack(fill="x", pady=(10, 0))
 
     def processar_comparacao(self, dados_pdf):
         tag = dados_pdf["tag"].upper()
