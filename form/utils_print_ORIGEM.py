@@ -43,7 +43,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
             data += timedelta(days=1)
         return data
     
-    sensor = dados.get("sn_sensor", None).upper()
+    
     caminho_template = "TemplateAC_ORIGEM.xlsx"
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Template Formulário"]
@@ -71,6 +71,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     
     tipo = ""
     tag = (dados.get("tag") or "").upper()
+    sensor = (dados.get("sn_sensor") or "").upper()
 
     if (
         tag.startswith("TE") or
@@ -88,7 +89,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         tag.endswith(("-TT", "-TIT", "-TI")) or
         any(x in tag for x in ("-TT-", "-TIT-", "-TI-"))
     ):
-        if sensor != None:
+        if sensor != "":
             escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
             escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
             escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
