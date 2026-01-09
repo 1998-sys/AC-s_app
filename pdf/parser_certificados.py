@@ -193,7 +193,10 @@ def extrair_range_indicado(texto):
         normalizar_num(m.group(2)) if m else None
     )
 
-
+def extrair_resolucao(texto):
+    padrao = r"Resolution\s*:\s*([\d.,]+)\s*(kPa|Pa|bar|mbar)"
+    m = re.search(padrao, texto, flags=re.I)
+    return normalizar_num(m.group(1)) if m else None
 
 def extrair_haste(texto):
     rod = re.search(r"Rod length:\s*([\d,.]+)", texto, flags=re.IGNORECASE)
@@ -248,6 +251,7 @@ def extrair_campos(texto: str) -> dict:
     data_cal, report_date = extrair_datas(texto)
     local = extrair_local(texto)
     sistema = extrair_sistema(texto)
+    resolucao=extrair_resolucao(texto)
 
     min_range, max_range = extrair_range_calibrado(texto)
     inmin_range, inmax_range = extrair_range_indicado(texto)
@@ -273,6 +277,7 @@ def extrair_campos(texto: str) -> dict:
         "max_range": max_range,
         "inmin_range": inmin_range,
         "inmax_range": inmax_range,
+        'resolucao': resolucao,
         "rod_length": rod_length,
         "probe_diameter": probe_diameter,
         "erro_fid": erro_fid,
@@ -280,5 +285,4 @@ def extrair_campos(texto: str) -> dict:
         "curva_de_calibracao": curva_de_calibracao
         
     }
-
 
