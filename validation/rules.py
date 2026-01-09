@@ -498,21 +498,24 @@ def regra_cmc(ctx):
         if p.get("tipo") != "PT" and p.get("tipo") != "DPT":
             continue
 
-        media = to_float(p.get("media"))
+        referencia = to_float(p.get("referencia"))
         incerteza = to_float(p.get("incerteza"))
+        
 
-        if media is None or incerteza is None:
+        if referencia is None or incerteza is None:
             continue
 
-        cmc = obter_cmc(categoria, local, abs(media)) # faixa de pressão da CMC é definida pelo módulo da pressão, não pelo sinal.
+        incerteza_percent = (incerteza/abs(referencia)) * 100
+        print(incerteza_percent)
+        cmc = obter_cmc(categoria, local, abs(referencia)) # faixa de pressão da CMC é definida pelo módulo da pressão, não pelo sinal.
 
         if cmc is None:
             continue
 
-        if incerteza < cmc:
+        if incerteza_percent < cmc:
             erros.append(
-                f"Ponto {media} kPa → "
-                f"Incerteza={incerteza}% | CMC={cmc}%"
+                f"Ponto {referencia} kPa → "
+                f"Incerteza={incerteza} | Incerteza%={round(incerteza_percent, 5)} | CMC={cmc}%"
             )
 
     if erros:
