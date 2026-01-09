@@ -42,7 +42,8 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         elif data.weekday() == 6:  # domingo
             data += timedelta(days=1)
         return data
-
+    
+    sensor = dados.get("sn_sensor", None).upper()
     caminho_template = "TemplateAC_ORIGEM.xlsx"
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Template Formulário"]
@@ -87,11 +88,18 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         tag.endswith(("-TT", "-TIT", "-TI")) or
         any(x in tag for x in ("-TT-", "-TIT-", "-TI-"))
     ):
-        escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
-        escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
-        escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
-        escrever(ws, "F8", "[ ] Termorresistência (TE)")
-        tipo = "TT"
+        if sensor != None:
+            escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
+            escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
+            escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
+            escrever(ws, "F8", "[ ✔ ]Termorresistência (TE)")
+            tipo = "TT"
+        else:
+            escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
+            escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
+            escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
+            escrever(ws, "F8", "[ ]Termorresistência (TE)")
+
 
     elif (
         tag.startswith(("PT", "PIT")) or
@@ -120,7 +128,7 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         texto_data = f"Data: {dt_util.strftime('%d/%m/%Y')}"
         escrever(
             ws,
-            "H45",
+            "D45",
             texto_data,
             wrap=False,
             vertical="center"
