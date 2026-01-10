@@ -7,7 +7,8 @@ from data.utils_db import (
     atualizar_tag,
     inserir_instrumento
 )
-from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
+
+from xml_model.xml_generator import normalizar_certificado
 
 # Utilitários para regras de validação
 def normalizar_local(local_calibracao):
@@ -16,7 +17,9 @@ def normalizar_local(local_calibracao):
     return MAP_LOCAL.get(local_calibracao)
 
 def obter_cmc(categoria, local, valor_referencia):
-    regras_categoria = CMC_REGRAS.get(categoria)
+    familia = MAPA_CATEGORIA_CMC.get(categoria, categoria)
+    print(familia)
+    regras_categoria = CMC_REGRAS.get(familia)
     if not regras_categoria:
         return None
 
@@ -346,6 +349,14 @@ def regra_incert_fidu(ctx):
 
     return None
 
+MAPA_CATEGORIA_CMC = {
+    # Temperatura
+    "Termorresistência PT-100 - 2 Fios": "TERMORRESISTENCIA_PT100",
+    "Termorresistência PT-100 - 3 Fios": "TERMORRESISTENCIA_PT100",
+    "Termorresistência PT-100 - 4 Fios": "TERMORRESISTENCIA_PT100",
+    "Termômetro Digital": 'Termômetro',
+    "Termômetro Analógico": 'Termômetro',
+}
 
 # Mapeamento do local de calibração
 MAP_LOCAL = {
@@ -475,61 +486,141 @@ CMC_REGRAS = {
             (170, 68000, 0.04),
         ],
     },
-}
+
+    "TERMORRESISTENCIA_PT100":{
+        "permanente": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.11),
+        ],
+        "cliente": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.1),
+        ],
+        "movel": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.11),
+        ],
+    },
+    "Transmissor de Temperatura com saída em unidade elétrica":{        
+        "permanente": [
+            (-50, 350, 0.06),
+        ],
+        "cliente": [
+            (-50, 350, 0.06),
+        ],
+        "movel": [
+            (-50, 350, 0.06),
+        ],
+        
+    },
+    'Termômetro': {
+        "permanente": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.11),
+        ],
+        "cliente": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.11),
+        ],
+        "movel": [
+            (-50, -45, 0.12),
+            (-45, 140, 0.10),
+            (140, 350, 0.11),
+        ],
+    }
+    }
 
 
 
 
 def regra_cmc(ctx):
-
+    tag = ctx.pdf.get("tag")
     categoria = ctx.pdf.get("categoria")
     local_raw = ctx.pdf.get("local_calibracao")
-    pontos = ctx.pontos_calibracao
-
+    incerteza = ctx.pdf.get("incerteza")
     local = normalizar_local(local_raw)
+    pontos = ctx.pontos_calibracao
+    certificado= ctx.pdf.get("certificado")
 
-    if not categoria or not local or not pontos:
-        return None
+    if ctx.pontos_calibracao and ctx.pontos_calibracao[0].get("tipo") in ("PT", "DPT"):
+        refs = [
+            p["referencia"]
+            for p in pontos
+            if p.get("tipo") in ("PT", "DPT") and p.get("referencia") is not None
+        ]
 
-    erros = []
+        amplitude = max(refs) - min(refs) if len(refs) >= 2 else None
 
-    for p in pontos:
-
-        if p.get("tipo") != "PT" and p.get("tipo") != "DPT":
-            continue
-
-        referencia = to_float(p.get("referencia"))
-        incerteza = to_float(p.get("incerteza"))
+        if not categoria or not local or not pontos or amplitude is None or incerteza is None:
+            return None
         
+        cmc = obter_cmc(categoria, local, abs(amplitude))
 
-        if referencia is None or incerteza is None:
-            continue
+        if incerteza < cmc:
+            return ValidationIssue(
+                key="cmc_execedida",
+                title="Incerteza abaixo da CMC",
+                message=("A incerteza informada no certificado está\n"
+                        "abaixo da Capacidade de Medição e Calibração (CMC)"
+                        " aplicável.\n\n"
+                        f'Tag: {tag}\n'
+                        f'Certificado: {normalizar_certificado(certificado)}\n'
+                        f"Categoria: {categoria}\n"
+                        f'Local de calibração: {local}\n'
+                        f'Faixa Calibrada (amplitude): {amplitude}\n'
+                        f'Incerteza declarada: {incerteza}\n'
+                        f'CMC aplicável: {cmc}\n'
+                        'Conclusão: NÃO ATENDE A CMC.'),
+                        action=None,
+                        blocking=True)            
+        return None
+    
+    else:
+        erros = []
 
-        incerteza_percent = (incerteza/abs(referencia)) * 100
-        print(incerteza_percent)
-        cmc = obter_cmc(categoria, local, abs(referencia)) # faixa de pressão da CMC é definida pelo módulo da pressão, não pelo sinal.
+        for p in pontos:
 
-        if cmc is None:
-            continue
+            incerteza = to_float(p.get("incerteza"))
+            referencia = to_float(p.get("referencia"))
+            if incerteza is None or referencia is None:
+                continue
+            cmc = obter_cmc(categoria, local, abs(referencia)) 
+            print(categoria)
+            print(incerteza, referencia, cmc)
+            if cmc is None:
+                continue
 
-        if incerteza_percent < cmc:
-            erros.append(
-                f"Ponto {referencia} kPa → "
-                f"Incerteza={incerteza} | Incerteza%={round(incerteza_percent, 5)} | CMC={cmc}%"
+          
+
+            if incerteza < cmc:
+                erros.append(
+                    f"Ponto {referencia} °C → "
+                    f"Incerteza={incerteza} °C | CMC={cmc} °C"
+                    )
+
+        if erros:
+            return ValidationIssue(
+                key="cmc_temperatura",
+                title="Incerteza abaixo da CMC",
+                message=(
+                    "A incerteza informada no certificado está\n"
+                    "abaixo da Capacidade de Medição e Calibração (CMC)"
+                    " aplicável.\n\n"
+                    f'Tag: {tag}\n'
+                    f'Certificado: {normalizar_certificado(certificado)}\n'
+                    f"Categoria: {categoria}\n"
+                    f"Local de calibração: {local}\n\n"
+                    "Pontos fora da CMC:\n" +
+                    "\n".join(erros)
+                ),
+                action=None,
+                blocking=True
             )
 
-    if erros:
-        return ValidationIssue(
-            key="cmc_pressao",
-            title="Incerteza acima da CMC",
-            message=(
-                f"Categoria: {categoria}\n"
-                f"Local de calibração: {local}\n\n"
-                "Pontos fora da CMC:\n" +
-                "\n".join(erros)
-            ),
-            action=None,
-            blocking=True
-        )
-
-    return None
+        return None
+    

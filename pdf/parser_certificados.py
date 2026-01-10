@@ -50,7 +50,6 @@ def aplicar_curva_kpa(valor_ma, curva):
 
     return (valor_ma - a) / b
 
-
 def normalizar_num(valor):
     if valor is None:
         return None
@@ -59,15 +58,12 @@ def normalizar_num(valor):
     except Exception:
         return None
 
-
 def normalizar_texto(texto):
     if not texto:
         return None
     texto = texto.upper()
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
-
-
 
 def extrair_tag(texto):
     padrao = r"TAG:\s*([0-9A-Za-z]+(?:\s*[-‐‒–—―]\s*[0-9A-Za-z]+)+)"
@@ -85,7 +81,6 @@ def extrair_tag(texto):
     )
     return re.sub(r"\s*-\s*", "-", tag).strip()
 
-
 def extrair_sn(texto):
     encontrados = re.findall(
         r"(?:SN|Num\.?\s*de\s*Série):\s*([^\s]+)",
@@ -97,11 +92,9 @@ def extrair_sn(texto):
     sn_sensor = sns_validos[1] if len(sns_validos) >= 2 else None
     return sn_inst, sn_sensor
 
-
 def extrair_certificado(texto):
     m = re.search(r"Nº\s*([^\n]+)", texto)
     return m.group(1).strip() if m else None
-
 
 def extrair_datas(texto):
     m_cal = re.search(
@@ -118,7 +111,6 @@ def extrair_datas(texto):
         m_cal.group(2) if m_cal else None,
         m_rep.group(2) if m_rep else None
     )
-
 
 def extrair_local(texto):
     bloco = re.search(
@@ -137,7 +129,6 @@ def extrair_local(texto):
     )
 
     return m.group(2).strip() if m else None
-
 
 def extrair_sistema(texto):
     m = re.search(
@@ -164,8 +155,6 @@ def extrair_sistema(texto):
 
     return sistema
 
-
-
 def extrair_range_calibrado(texto):
     padrao = r"""
     Calibration\s*Range.*?
@@ -178,7 +167,6 @@ def extrair_range_calibrado(texto):
         normalizar_num(m.group(1)) if m else None,
         normalizar_num(m.group(2)) if m else None
     )
-
 
 def extrair_range_indicado(texto):
     padrao = r"""
@@ -206,8 +194,6 @@ def extrair_haste(texto):
         normalizar_num(rod.group(1)) if rod else None,
         normalizar_num(probe.group(1)) if probe else None
     )
-
-
 
 def extrair_erro_incerteza(texto):
     """
