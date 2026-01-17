@@ -18,7 +18,6 @@ def normalizar_local(local_calibracao):
 
 def obter_cmc(categoria, local, valor_referencia):
     familia = MAPA_CATEGORIA_CMC.get(categoria, categoria)
-    print(familia)
     regras_categoria = CMC_REGRAS.get(familia)
     if not regras_categoria:
         return None
@@ -590,8 +589,6 @@ def regra_cmc(ctx):
             if incerteza is None or referencia is None:
                 continue
             cmc = obter_cmc(categoria, local, abs(referencia)) 
-            print(categoria)
-            print(incerteza, referencia, cmc)
             if cmc is None:
                 continue
 

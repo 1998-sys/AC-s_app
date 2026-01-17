@@ -186,10 +186,8 @@ class App(ctk.CTk):
         try:
             texto = extrair_texto(caminho)
             dados_pdf = extrair_campos(texto)
-            print(dados_pdf)
 
             self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
-            print(self.pontos_calibracao)
 
             def continuar(dados):
                 self.processar_comparacao(dados)
@@ -302,15 +300,16 @@ class App(ctk.CTk):
                 if issue.blocking: ok = False; break
         if ok:
             try:
-                caminho_ac, _ = gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual)
+                caminho_ac = gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual)
                 caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
+                #print(dados_pdf, self.pontos_calibracao)
                 gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), self.certificado_te_atual)
                 messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
                 if "TT" in dados_pdf.get("tag", "").upper():
                     self.certificado_te_atual = None
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
-                print(e)
+                print(e, Exception)
         self.exibir_resultado(dados_pdf, registro)
 
     def exibir_resultado(self, dados_pdf, registro):

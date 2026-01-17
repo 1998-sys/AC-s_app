@@ -34,7 +34,6 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
 
 
 def gerar_ac_origem(dados, caminho_pdf_original):
-
     def adicionar_dia_util(data):
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
@@ -69,58 +68,61 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     
 
     
-    tipo = ""
-    tag = (dados.get("tag") or "").upper()
+    categoria = (dados.get('categoria') or "").upper()
     sensor = (dados.get("sn_sensor") or "").upper()
 
-    if (
-        tag.startswith("TE") or
-        tag.endswith("-TE") or
-        "-TE-" in tag
+    if categoria in (
+        "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
     ):
         escrever(ws, "F8", "[ ✔ ] Termorresistência (TE)")
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
-        tipo = "TE"
+        
 
-    elif (
-        tag.startswith(("TT", "TIT", "TI")) or
-        tag.endswith(("-TT", "-TIT", "-TI")) or
-        any(x in tag for x in ("-TT-", "-TIT-", "-TI-"))
+    elif categoria in (
+        "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TERMÔMETRO ANALÓGICO",
+        "TERMÔMETRO DIGITAL"
     ):
-        if sensor != "":
-            escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
-            escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
-            escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
-            escrever(ws, "F8", "[ ✔ ]Termorresistência (TE)")
-            tipo = "TT"
+        
+        escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
+        escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
+        escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
+
+        if sensor:
+            escrever(ws, "F8", "[ ✔ ] Termorresistência (TE)")
         else:
-            escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
-            escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
-            escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
-            escrever(ws, "F8", "[ ]Termorresistência (TE)")
+            escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
 
-    elif (
-        tag.startswith(("PT", "PIT")) or
-        tag.endswith(("-PT", "-PIT")) or
-        any(x in tag for x in ("-PT-", "-PIT-"))
+    elif categoria in (
+        "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "MANOMETRO DIGITAL",
+        "MANOMETRO ANALÓGICO",
+        "MANOMETRO DIGITAL ABSOLUTO",
     ):
+        
         escrever(ws, "C8", "[ ✔ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
-        tipo = "PT"
+        
 
-    else:
+    elif categoria in (
+        "MANOMETRO DIFERENCIAL DIGITAL",
+        "MANOMETRO DIFERENCIAL ANALÓGICO",
+    ):
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ✔ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
-        tipo = "DPT"
+        
 
   
     if dados.get("report_date"):
@@ -181,5 +183,5 @@ def gerar_ac_origem(dados, caminho_pdf_original):
     finally:
         excel.Quit()
 
-    return caminho_pdf_final, tipo
+    return caminho_pdf_final
 

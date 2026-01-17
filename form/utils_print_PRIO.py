@@ -16,7 +16,7 @@ def gerar_ac_prio(dados, caminho_pdf_original):
             data += timedelta(days=1)
         return data
 
-    caminho_template = "TemplateAC.xlsx"
+    caminho_template = "TemplateAC_PRIO.xlsx"
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Template Formulário"]
 
@@ -49,35 +49,40 @@ def gerar_ac_prio(dados, caminho_pdf_original):
     ws.row_dimensions[7].height = 15 * max(1, local.count("\n") + 1)
 
     
-    tag = (dados.get("tag") or "").upper()
+    categoria = (dados.get("categoria" or "")).upper()
    
-    if (
-        tag.startswith("TE") or
-        tag.endswith("-TE") or
-        "-TE-" in tag
+    if categoria in (
+        "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
     ):
         ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
-        tipo = "TE"
+        
 
-    elif (
-        tag.startswith(("TT", "TIT", "TI")) or
-        tag.endswith(("-TT", "-TIT", "-TI")) or
-        any(x in tag for x in ("-TT-", "-TIT-", "-TI-"))
+    elif categoria in (
+        "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TERMÔMETRO ANALÓGICO",
+        "TERMÔMETRO DIGITAL"
     ):
         ws["B2"] = "Análise Crítica de Calibração dos Sensores de Temperatura"
-        tipo = "TT"
+        
 
-    elif (
-        tag.startswith(("PT", "PIT")) or
-        tag.endswith(("-PT", "-PIT")) or
-        any(x in tag for x in ("-PT-", "-PIT-"))
+    elif categoria in (
+        "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "MANOMETRO DIGITAL",
+        "MANOMETRO ANALÓGICO",
+        "MANOMETRO DIGITAL ABSOLUTO",
     ):
         ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão"
-        tipo = "PT"
+        
 
-    else:
+    elif categoria in (
+        "MANOMETRO DIFERENCIAL DIGITAL",
+        "MANOMETRO DIFERENCIAL ANALÓGICO",
+    ):
         ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão Diferencial"
-        tipo = "DPT"
+        
 
 
     #Report Date (+1 dia) - útil
@@ -168,4 +173,4 @@ def gerar_ac_prio(dados, caminho_pdf_original):
     finally:
         excel.Quit()  
 
-    return caminho_pdf_final,tipo
+    return caminho_pdf_final

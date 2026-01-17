@@ -52,29 +52,29 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     pontos = []
 
     # Classificação
-    is_te = "THERMORESISTANCE" in texto_upper or "TERMORRESISTÊNCIA" in texto_upper
-
-    is_tt = (
-        "DIGITAL THERMOMETER" in texto_upper or
-        "TEMPERATURE TRANSMITTER" in texto_upper or
-        "-TT" in texto_upper or
-        "TRANSMISSOR DE TEMPERATURA" in texto_upper
+    is_te = (
+        "TERMORRESISTÊNCIA PT-100 - 2 FIOS" in texto_upper or
+        "TERMORRESISTÊNCIA PT-100 - 3 FIOS" in texto_upper or
+        "TERMORRESISTÊNCIA PT-100 - 4 FIOS" in texto_upper
     )
 
-    is_pt = (
-        "PRESSURE" in texto_upper or
-        "PRESSÃO" in texto_upper or
-        "-PT" in texto_upper
+    is_tt = (
+        "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in texto_upper or
+        "TERMÔMETRO ANALÓGICO" in texto_upper or
+        "TERMÔMETRO DIGITAL" in texto_upper
+    )
+
+    is_pt = ("TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" in texto_upper or
+            "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA" in texto_upper or
+            "MANOMETRO DIGITAL" in texto_upper or
+            "MANOMETRO ANALÓGICO" in texto_upper or
+            "MANOMETRO DIGITAL ABSOLUTO" in texto_upper
     )
 
     is_dpt = (
-        "DIFFERENTIAL" in texto_upper or
-        "DIFERENCIAL" in texto_upper or
-        "-DPT" in texto_upper or
-        "PDIT" in texto_upper or
-        "-FT-" in texto_upper
+        "MANOMETRO DIFERENCIAL DIGITAL" in texto_upper or
+        "MANOMETRO DIFERENCIAL ANALÓGICO" in texto_upper
     )
-
     
     
     if is_te and not is_tt:

@@ -238,13 +238,10 @@ def extrair_campos(texto: str) -> dict:
     local = extrair_local(texto)
     sistema = extrair_sistema(texto)
     resolucao=extrair_resolucao(texto)
-
     min_range, max_range = extrair_range_calibrado(texto)
     inmin_range, inmax_range = extrair_range_indicado(texto)
-
     rod_length, probe_diameter = extrair_haste(texto)
     erro_fid, incerteza = extrair_erro_incerteza(texto)
-
     curva_de_calibracao = extrair_curva_calibracao(texto)
    
 
