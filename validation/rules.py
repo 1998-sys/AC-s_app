@@ -245,39 +245,23 @@ def regra_haste_te(ctx):
 def regra_local_fpso(ctx):
     local_pdf = normalizar_texto(ctx.pdf.get("local"))
 
-    if not local_pdf:
-        return ValidationIssue(
-            key="local_ausente",
-            title="Local não informado",
-            message="O campo LOCAL não foi encontrado no PDF.",
-            blocking=True
-        )
-
     fpsos = {
         "FPSO FRADE": ["FPSO", "FRADE"],
         "FPSO FORTE": ["FPSO", "FORTE"],
         "FPSO BRAVO": ["FPSO", "BRAVO"],
         "POLVO": ["POLVO"],
-        "ORIGEM ENERGIA ALAGOAS S.A.": ["ORIGEM", "ENERGIA", "ALAGOAS"]
+        "ORIGEM ENERGIA ALAGOAS S.A.": ["ORIGEM", "ENERGIA", "ALAGOAS"],
+        "FPSO MARIA QUITERIA": ["FPSO", "MARIA", "QUITERIA"],
     }
 
-    for nome, palavras in fpsos.items():
+    for nome_fpso, palavras in fpsos.items():
         if all(p in local_pdf for p in palavras):
-            ctx.fpso_identificado = nome
-            return None
+            return None  # OK
 
     return ValidationIssue(
         key="local_invalido",
         title="Local incompatível",
-        message=(
-            f"Local informado:\n{ctx.pdf.get('local')}\n\n"
-            "Não corresponde a:\n"
-            "- FPSO FRADE\n"
-            "- FPSO FORTE\n"
-            "- FPSO BRAVO\n"
-            "- POLVO"
-             "- ORIGEM ENERGIA ALAGOAS S.A."
-        ),
+        message=f"O local informado ({ctx.pdf.get('local')}) não corresponde a um FPSO conhecido.",
         blocking=True
     )
 

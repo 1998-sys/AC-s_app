@@ -272,6 +272,7 @@ class App(ctk.CTk):
         ).pack(fill="x", pady=(10, 0))
 
     def processar_comparacao(self, dados_pdf):
+        print(dados_pdf)
         tag = dados_pdf["tag"].upper()
         dados_pdf["tag"] = tag
         registro = buscar_instrumento_por_tag(tag)
@@ -301,10 +302,21 @@ class App(ctk.CTk):
         if ok:
             try:
                 caminho_ac = gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual)
-                caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
-                #print(dados_pdf, self.pontos_calibracao)
-                gerar_xml_calibracao(dados_pdf, self.pontos_calibracao, str(caminho_xml), self.certificado_te_atual)
-                messagebox.showinfo("Sucesso", "Análise e XML concluídos!")
+                cliente = (dados_pdf.get("cliente") or "").upper()
+
+                if "PRIO" in cliente:
+                    caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
+                    print(dados_pdf, self.pontos_calibracao)
+                    gerar_xml_calibracao(
+                        dados_pdf,
+                        self.pontos_calibracao,
+                        str(caminho_xml),
+                        self.certificado_te_atual
+                    )
+        
+                print(dados_pdf, self.pontos_calibracao)
+    
+                messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
                 if "TT" in dados_pdf.get("tag", "").upper():
                     self.certificado_te_atual = None
             except Exception as e:

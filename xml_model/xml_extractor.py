@@ -72,8 +72,11 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     )
 
     is_dpt = (
-        "MANOMETRO DIFERENCIAL DIGITAL" in texto_upper or
-        "MANOMETRO DIFERENCIAL ANALÓGICO" in texto_upper
+        "DIFFERENTIAL" in texto_upper or
+        "DIFERENCIAL" in texto_upper or
+        "-DPT" in texto_upper or
+        "PDIT" in texto_upper or
+        "-FT-" in texto_upper
     )
     
     

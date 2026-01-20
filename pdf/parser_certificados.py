@@ -66,20 +66,22 @@ def normalizar_texto(texto):
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 def extrair_tag(texto):
-    padrao = r"TAG:\s*([0-9A-Za-z]+(?:\s*[-‐‒–—―]\s*[0-9A-Za-z]+)+)"
+    padrao = r"TAG:\s*([0-9A-Za-z\-‐‒–—―\s]+?)\s+SN:"
     m = re.search(padrao, texto)
     if not m:
         return None
 
+    tag = m.group(1)
+
     tag = (
-        m.group(1)
-        .replace("‐", "-")
-        .replace("‒", "-")
-        .replace("–", "-")
-        .replace("—", "-")
-        .replace("―", "-")
+        tag.replace("‐", "-")
+           .replace("‒", "-")
+           .replace("–", "-")
+           .replace("—", "-")
+           .replace("―", "-")
     )
-    return re.sub(r"\s*-\s*", "-", tag).strip()
+
+    return re.sub(r"\s*-\s*|\s+", "-", tag).strip("-")
 
 def extrair_sn(texto):
     encontrados = re.findall(
@@ -112,6 +114,15 @@ def extrair_datas(texto):
         m_rep.group(2) if m_rep else None
     )
 
+def extrair_nome_cliente(texto):
+    m = re.search(
+        r"(Name|Nome):\s*([^\n\r]+?)(?:\s+(Contact|Contato):|$)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    return m.group(2).strip() if m else None
+
 def extrair_local(texto):
     bloco = re.search(
         r"CALIBRATION LOCATION:(.*?)(?:CALIBRATED ITEM DESCRIPTION|CLIENT INFORMATION|$)",
@@ -123,7 +134,7 @@ def extrair_local(texto):
         return None
 
     m = re.search(
-        r"(Name|Address|Nome|Endereço):\s*([A-Za-z0-9 .\-_/]+)",
+        r"(Name|Nome):\s*([^\n\r\(]+?)(?:\s*\(|\s+Report\s+Date:|\s+Calibration\s+Date:|\n|\r|$)",
         bloco.group(1),
         flags=re.IGNORECASE
     )
@@ -243,6 +254,7 @@ def extrair_campos(texto: str) -> dict:
     rod_length, probe_diameter = extrair_haste(texto)
     erro_fid, incerteza = extrair_erro_incerteza(texto)
     curva_de_calibracao = extrair_curva_calibracao(texto)
+    cliente = extrair_nome_cliente(texto)
    
 
     return {
@@ -251,6 +263,7 @@ def extrair_campos(texto: str) -> dict:
         "sn_sensor": sn_sensor,
         "certificado": certificado,
         "categoria": categoria,
+        'cliente': cliente,
         "local_calibracao": calibration_loc,
         "data": data_cal,
         "local": local,
