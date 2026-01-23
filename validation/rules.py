@@ -252,6 +252,8 @@ def regra_local_fpso(ctx):
         "POLVO": ["POLVO"],
         "ORIGEM ENERGIA ALAGOAS S.A.": ["ORIGEM", "ENERGIA", "ALAGOAS"],
         "FPSO MARIA QUITERIA": ["FPSO", "MARIA", "QUITERIA"],
+        "FPSO ANNA NERY": ["FPSO", "ANNA", "NERY"],
+        
     }
 
     for nome_fpso, palavras in fpsos.items():
@@ -261,7 +263,7 @@ def regra_local_fpso(ctx):
     return ValidationIssue(
         key="local_invalido",
         title="Local incompatível",
-        message=f"O local informado ({ctx.pdf.get('local')}) não corresponde a um FPSO conhecido.",
+        message=f"Verifique o local informado: ({ctx.pdf.get('local')})",
         blocking=True
     )
 

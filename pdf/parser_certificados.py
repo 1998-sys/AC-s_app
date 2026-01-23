@@ -238,6 +238,174 @@ def extrair_erro_incerteza(texto):
         normalizar_num(m.group(4))
     )
 
+def endereco_cliente(texto):
+    if not texto:
+        return None
+
+    padrao = re.search(
+        r"(?:CLIENT INFORMATION|INFORMAÇÕES DO CLIENTE).*?"
+        r"(?:Address|Endereço)\s*:\s*"
+        r"([^\n\r]+)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    return padrao.group(1).strip() if padrao else None
+
+
+SIGNATARIOS_VALIDOS = [
+    "Francisco Nascimento",
+    "Marcio Martirios",
+    "Leonardo Tonim",
+    "Matheus Moraes",
+    "Iago Fiuza",
+    "Caio Campos",
+    "Nathan Santos",
+    "Marcus Fioravante",
+]
+
+
+def normalizar_nome(nome):
+    nome = unicodedata.normalize("NFKD", nome)
+    nome = "".join(c for c in nome if not unicodedata.combining(c))
+    return nome.lower().strip()
+
+def extrair_assinaturas(texto, lista_signatarios):
+    resultado = {
+        "signatario": None,
+        "executante": None
+    }
+
+    if not texto:
+        return resultado
+
+    # normaliza texto
+    texto = re.sub(r'\s+', ' ', texto)
+
+    # extrai TODOS os nomes possíveis (2+ palavras)
+    nomes_encontrados = re.findall(
+        r'[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)+',
+        texto
+    )
+
+    # normaliza lista
+    lista_norm = {
+        normalizar_nome(nome): nome for nome in lista_signatarios
+    }
+
+    nomes_validos = []
+
+    for nome in nomes_encontrados:
+        nome_norm = normalizar_nome(nome)
+        if nome_norm in lista_norm:
+            nomes_validos.append(lista_norm[nome_norm])
+        else:
+            nomes_validos.append(nome)
+
+    # identifica signatário
+    for nome in nomes_validos:
+        if normalizar_nome(nome) in lista_norm:
+            resultado["signatario"] = lista_norm[normalizar_nome(nome)]
+            break
+
+    # executante = o outro nome
+    if resultado["signatario"]:
+        for nome in nomes_validos:
+            if normalizar_nome(nome) != normalizar_nome(resultado["signatario"]):
+                resultado["executante"] = nome
+                break
+
+    return resultado
+
+
+def extrair_condicoes_ambientais(texto):
+    resultado = {
+        "temperatura_ambiente": None,
+        "umidade_ambiente": None
+    }
+
+    # TEMPERATURA AMBIENTE
+    padrao_temp = re.search(
+        r"Ambient\s+Temperature:\s*([\d.,]+)\s*°?\s*C",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if padrao_temp:
+        resultado["temperatura_ambiente"] = float(
+            padrao_temp.group(1).replace(",", ".")
+        )
+
+    # UMIDADE AMBIENTE
+    padrao_umid = re.search(
+        r"Ambient\s+Humidity:\s*([\d.,]+)\s*%",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if padrao_umid:
+        resultado["umidade_ambiente"] = float(
+            padrao_umid.group(1).replace(",", ".")
+        )
+
+    return resultado
+
+def extrair_padroes(texto):
+    padroes = []
+
+    
+    bloco_match = re.search(
+        r"PADRÕES DE REFERÊNCIA:(.*?)(?:\n\s*\n|$)",
+        texto,
+        flags=re.DOTALL | re.IGNORECASE
+    )
+
+    if not bloco_match:
+        return padroes
+
+    bloco = bloco_match.group(1)
+
+    linhas = [
+        l.strip()
+        for l in bloco.splitlines()
+        if l.strip()
+    ]
+
+    regex_padrao = re.compile(
+        r"""
+        (?P<tipo>[^,]+),\s*
+        (?P<identificacao>AF\s*\d+),\s*
+        Cert\.?\s*n[ºo]\s*(?P<certificado>[^,]+),\s*
+        Val\.?\s*(?P<validade>\d{2}/\d{4}),\s*
+        (?P<procedimento>CAL\s*\d+\s*/\s*RBC)
+        """,
+        flags=re.IGNORECASE | re.VERBOSE
+    )
+
+    for linha in linhas:
+        m = regex_padrao.search(linha)
+        if not m:
+            continue
+
+        padroes.append({
+            "tipo": m.group("tipo").strip(),
+            "identificacao": m.group("identificacao").strip(),
+            "certificado": m.group("certificado").strip(),
+            "validade": m.group("validade").strip(),
+            "procedimento_calib": m.group("procedimento").strip()
+        })
+
+    return padroes
+
+MAPA_PROCEDIMENTOS = [{
+    "categorias": ["Transmissor de Pressão com Saída em Unidade Elétrica"].upper(),
+    "procedimento": "7.2 TM‐005 Pressure Transmitters",
+    "descricao": "A calibração consistiu na medição de quatro vezes cada ponto de pressão (dois ciclos de carga e descarga) comparando com um padrão, na sua posição de trabalho e utilizando o procedimento 7.2 TM‐005 Pressure Transmitters"
+}
+
+]
+
+
 
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
@@ -255,7 +423,11 @@ def extrair_campos(texto: str) -> dict:
     erro_fid, incerteza = extrair_erro_incerteza(texto)
     curva_de_calibracao = extrair_curva_calibracao(texto)
     cliente = extrair_nome_cliente(texto)
-   
+    endereco_cli= endereco_cliente(texto)
+    exe_sig = extrair_assinaturas(texto, SIGNATARIOS_VALIDOS)
+    condicoes_amb = extrair_condicoes_ambientais(texto)
+    padroes = extrair_padroes(texto)
+    
 
     return {
         "tag": tag,
@@ -278,7 +450,12 @@ def extrair_campos(texto: str) -> dict:
         "probe_diameter": probe_diameter,
         "erro_fid": erro_fid,
         "incerteza": incerteza,
-        "curva_de_calibracao": curva_de_calibracao
+        "curva_de_calibracao": curva_de_calibracao,
+        'endereco_cliente': endereco_cli,
+        "exec_sig": exe_sig,
+        "cond_amb": condicoes_amb,
+        "padroes_utilizados": padroes,
         
     }
+
 

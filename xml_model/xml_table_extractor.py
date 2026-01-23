@@ -109,6 +109,8 @@ def classificar_tabelas(tabelas):
         "RESULTADOS": None
     }
 
+    qtd_tabelas = len(tabelas) if tabelas else 0
+    
     if not tabelas:
         return classificacao
 
@@ -185,7 +187,7 @@ def ajustar_transmissor_temperatura_eletrico(categoria, tabelas):
     resultado = {"categoria": categoria}
     idx = 1
 
-    for tipo in ("AS_FOUND", "AS_LEFT"):
+    for tipo in ("AS_FOUND", "AS_LEFT", "RESULTADOS"):
         tabela = tabelas.get(tipo)
         if not tabela or len(tabela) <= 1:
             continue
@@ -267,7 +269,7 @@ def ajustar_pt100(categoria, tabelas):
     resultado = {"categoria": categoria}
     idx = 1
 
-    for tipo in ("AS_FOUND", "AS_LEFT"):
+    for tipo in ("AS_FOUND", "AS_LEFT", 'RESULTADOS'):
         tabela = tabelas.get(tipo)
         if not tabela or len(tabela) <= 1:
             continue
@@ -306,6 +308,8 @@ def processar_pdf(pdf_path):
 
         tabelas = extrair_tabelas_pagina_2(pdf)
         classificacao = classificar_tabelas(tabelas)
+        
+        
 
         if "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
             return ajustar_transmissor_pressao_eletrico(categoria, classificacao)
@@ -323,9 +327,9 @@ def processar_pdf(pdf_path):
             return ajustar_manometros(categoria, classificacao)
 
         elif any(c in categoria for c in [
-            "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
-            "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
-            "TERMORRESISTÊNCIA PT-100 - 4 FIOS"
+            "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS",
+            "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS",
+            "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS"
         ]):
             return ajustar_pt100(categoria, classificacao)
 
@@ -337,6 +341,5 @@ def processar_pdf(pdf_path):
 # TESTE
 # =====================================================
 
-caminho_pdf = "xml_model\\25-ODS-0638-PRE-231_PDT-SG-122104-01.pdf"
+caminho_pdf = "xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"
 resultado = processar_pdf(caminho_pdf)
-print(resultado)
