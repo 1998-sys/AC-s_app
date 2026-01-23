@@ -40,6 +40,24 @@ def definir_unidade_eng(categoria):
     return "mA" if categoria in categorias_ma else "kPa"
 
 
+def obter_procedimento_por_categoria(categoria_instrumento):
+    if not categoria_instrumento:
+        return None
+
+    categoria_norm = categoria_instrumento.lower()
+
+    for item in MAPA_PROCEDIMENTOS:
+        for cat in item["categorias"]:
+            if cat.lower() in categoria_norm:
+                return {
+                    "procedimento": item["procedimento"],
+                    "descricao": item["descricao"],
+                    "observacao": item["observacao"]
+                }
+
+    return None
+
+
 # =====================================================
 # BLOCOS BÁSICOS
 # =====================================================
@@ -107,10 +125,38 @@ def criar_condicoes_ambientais(dados=None):
 
     return bloco
 
-def criar_procedimento():
+
+MAPA_PROCEDIMENTOS = [{
+    "categorias": [ "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA", "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA" ],
+    "procedimento": "7.2 TM-005  Pressure Transmitters",
+    "descricao": "A calibração consistiu na medição de quatro vezes cada ponto de pressão (dois ciclos de carga e descaga) comparando com um padrão, na sua posição de trabalho e utilizando o procedimento 7.2 TM-005  Pressure Transmitters"
+},
+{
+    "categorias": [ "MANOMETRO ANALÓGICO", "MANOMETRO DIGITAL", "MANOMETRO DIGITAL ABSOLUTO", "MANOMETRO DIFERENCIAL ANALÓGICO", "MANOMETRO DIFERENCIAL DIGITAL" ],
+    "procedimento": "7.2 TM-002 Manometers",
+    "descricao": "A calibração consistiu na medição de quatro vezes cada ponto de pressão (dois ciclos de carga e descaga) comparando com um padrão, na sua posição de trabalho e utilizando o procedimento 7.2 TM-002 Manometers"
+},
+{
+    "categorias": ["TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA"],
+    "procedimento": "7.2 TM-004 Temperature Transmitter",
+    "descricao": "A calibração consistiu na medição de três vezes cada ponto calibrado em um ciclo de subida e outro de descida, conforme o procedimento 7.2 TM-004 Temperature Transmitter"
+},
+{
+    "categorias": [ "TERMÔMETRO ANALÓGICO", "TERMÔMETRO DIGITAL", ],
+    "procedimento": "7.2 TM-001 Temperature Meter with Sensor",
+    "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no banho térmico e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas, com intervalos de 1 minuto. A calibração foi realizado conforme procedimento 7.2 TM-001 Temperature Meter with Sensor, , no qual esta de acordo aos requisitos da norma NBR 14610"
+},
+{
+    "categorias": [ "TERMORRESISTÊNCIA PT-100 - 2 FIOS", "TERMORRESISTÊNCIA PT-100 - 3 FIOS", "TERMORRESISTÊNCIA PT-100 - 4 FIOS", ],
+    "procedimento": "7.2 TM-006 Thermoresistances",
+    "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no bloco seco e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas. A calibração foi realizado conforme procedimento 7.2 TM-006 Thermoresistances, no qual esta de acordo aos requisitos da norma  NBR 13772"
+}]
+
+
+def criar_procedimento(dados=None):
     bloco = ET.Element("PROCEDIMENTO_CALIBRACAO")
-    ET.SubElement(bloco, "IDENTIFICADOR")
-    ET.SubElement(bloco, "DESCRICAO")
+    ET.SubElement(bloco, "IDENTIFICADOR").text = dados.get("procedimento", "").get("procedimento", "") if dados else ""
+    ET.SubElement(bloco, "DESCRICAO").text = dados.get("procedimento", "").get("descricao", "") if dados else ""
     return bloco
 
 
@@ -261,7 +307,7 @@ def gerar_xml_certificado_pressao(informacoes: dict, pontos: list) -> ET.Element
     root.append(criar_identificacao_certificado(informacoes))
     root.append(criar_laboratorio())
     root.append(criar_cliente(informacoes))
-    root.append(criar_procedimento())
+    root.append(criar_procedimento(informacoes))
     root.append(criar_identificacao_instrumento())
     root.append(criar_identificacao_padroes(informacoes))
     root.append(criar_condicoes_ambientais(informacoes))

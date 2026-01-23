@@ -341,5 +341,5 @@ def processar_pdf(pdf_path):
 # TESTE
 # =====================================================
 
-caminho_pdf = "xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"
-resultado = processar_pdf(caminho_pdf)
+#caminho_pdf = "xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"
+#resultado = processar_pdf(caminho_pdf)
