@@ -206,22 +206,30 @@ def extrair_haste(texto):
         normalizar_num(probe.group(1)) if probe else None
     )
 
-def extrair_erro_incerteza(texto):
+def extrair_indicadores_metrologicos(texto):
     """
-    Extrai Erro Fiducial e Incerteza a partir da tabela
-    'Metrological characteristics', ignorando curva de calibração.
+    Extrai Repetibilidade, Histerese, Erro Fiducial e Incerteza
+    de forma robusta, mesmo com variações no PDF.
     """
 
     padrao = r"""
-    Metrological\ characteristics.*?          # início do bloco
-    Repeatability.*?Uncertainty                # cabeçalho (EN)
-    .*?\n                                     # quebra de linha
-    .*?\n                                     # linha PT (Repetibilidade...)
-    \s*
-    ([-+]?\d+[.,]\d+)\s*%?\s+                 # repetibilidade
-    ([-+]?\d+[.,]\d+)\s*%?\s+                 # histerese
-    ([-+]?\d+[.,]\d+)\s*%?\s+                 # ERRO FIDUCIAL  ← grupo 3
-    ([-+]?\d+[.,]\d+)\s*%?                    # INCERTEZA      ← grupo 4
+    (Metrological\ characteristics|Caracter[ií]sticas\ metrol[oó]gicas)
+    .*?
+    (Repeatability|Repetibilidade)
+    .*?
+    (Hysteresis|Histerese)
+    .*?
+    (Fiducial\s*Error|Erro\s*Fiducial)
+    .*?
+    (Uncertainty|Incerteza)
+    .*?
+    ([-+]?\d+[.,]\d+)\s*%?
+    \s+
+    ([-+]?\d+[.,]\d+)\s*%?
+    \s+
+    ([-+]?\d+[.,]\d+)\s*%?
+    \s+
+    ([-+]?\d+[.,]\d+)\s*%?
     """
 
     m = re.search(
@@ -231,12 +239,19 @@ def extrair_erro_incerteza(texto):
     )
 
     if not m:
-        return None, None
+        return {
+            "repetibilidade": None,
+            "histerese": None,
+            "erro_fiducial": None,
+            "incerteza": None
+        }
 
-    return (
-        normalizar_num(m.group(3)),
-        normalizar_num(m.group(4))
-    )
+    return {
+        "repetibilidade": normalizar_num(m.group(6)),
+        "histerese": normalizar_num(m.group(7)),
+        "erro_fiducial": normalizar_num(m.group(8)),
+        "incerteza": normalizar_num(m.group(9))
+    }
 
 def endereco_cliente(texto):
     if not texto:
@@ -439,7 +454,38 @@ def obter_procedimento_por_categoria(categoria_instrumento):
 
     return None
 
+def extrair_fabricante(texto):
+    """
+    Extrai somente o fabricante, ignorando:
+    - Model
+    - Output
+    - TAG
+    """
+    padrao = re.search(
+        r"(?:Manufacturer|Maker)\s*:\s*(.+?)(?=\s+(?:Model|Modelo|Output|TAG)\s*:|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
 
+    if padrao:
+        return padrao.group(1).strip()
+
+    return None
+
+def extrair_modelo(texto):
+    """
+    Extrai o modelo (Model) do certificado.
+    """
+    if not texto:
+        return None
+
+    padrao = re.search(
+        r"Model:\s*([A-Z0-9\-]+)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    return padrao.group(1).strip() if padrao else None
 
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
@@ -454,7 +500,7 @@ def extrair_campos(texto: str) -> dict:
     min_range, max_range = extrair_range_calibrado(texto)
     inmin_range, inmax_range = extrair_range_indicado(texto)
     rod_length, probe_diameter = extrair_haste(texto)
-    erro_fid, incerteza = extrair_erro_incerteza(texto)
+    ind = extrair_indicadores_metrologicos(texto)
     curva_de_calibracao = extrair_curva_calibracao(texto)
     cliente = extrair_nome_cliente(texto)
     endereco_cli= endereco_cliente(texto)
@@ -462,6 +508,8 @@ def extrair_campos(texto: str) -> dict:
     condicoes_amb = extrair_condicoes_ambientais(texto)
     padroes = extrair_padroes(texto)
     proced= obter_procedimento_por_categoria(categoria)
+    fab = extrair_fabricante(texto)
+    model = extrair_modelo(texto)
 
     return {
         "tag": tag,
@@ -482,14 +530,15 @@ def extrair_campos(texto: str) -> dict:
         'resolucao': resolucao,
         "rod_length": rod_length,
         "probe_diameter": probe_diameter,
-        "erro_fid": erro_fid,
-        "incerteza": incerteza,
+        "indicadores_metrologicos": ind,
         "curva_de_calibracao": curva_de_calibracao,
         'endereco_cliente': endereco_cli,
         "exec_sig": exe_sig,
         "cond_amb": condicoes_amb,
         "padroes_utilizados": padroes,
-        "procedimento": proced
+        "procedimento": proced,
+        "fabricante": fab,
+        "modelo": model
         
     }
 

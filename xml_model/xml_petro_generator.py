@@ -11,15 +11,13 @@ from xml_model.xml_generator import normalizar_certificado
 
 
 
-# =====================================================
-# UTIL – CAMINHO DO XML
-# =====================================================
 
 def gerar_caminho_xml(caminho_pdf):
     pasta = os.path.dirname(caminho_pdf)
     nome = os.path.splitext(os.path.basename(caminho_pdf))[0]
     return os.path.join(pasta, f"{nome}.xml")
 
+# Converte data para o padrão correto
 def data_xs_date(data_str):
     if not data_str:
         return ""
@@ -28,10 +26,8 @@ def data_xs_date(data_str):
     except ValueError:
         return ""
 
-# =====================================================
-# REGRA DE UNIDADE
-# =====================================================
 
+# regra para a unidade eng istrumento pressão
 def definir_unidade_eng(categoria):
     categorias_ma = [
         "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
@@ -58,26 +54,26 @@ def obter_procedimento_por_categoria(categoria_instrumento):
     return None
 
 
-# =====================================================
-# BLOCOS BÁSICOS
-# =====================================================
+def criar_identificacao_certificado(root, dados=None):
+    el = ET.SubElement(root, "NUMERO_CERTIFICADO")
+    el.text = normalizar_certificado(
+        dados.get("certificado", "")
+    ) if dados else ""
 
-def criar_identificacao_certificado(dados=None):
-    bloco = ET.Element("IDENTIFICACAO_CERTIFICADO")
-    
-    ET.SubElement(bloco, "NUMERO_CERTIFICADO").text = (
-        normalizar_certificado(dados.get("certificado", "")) if dados else ""
-    )
-    ET.SubElement(bloco, "NUMERO_CERTIFICADO_REVISADO")
-    ET.SubElement(bloco, "DATA_EMISSAO").text = (
-        data_xs_date(dados.get("report_date", "")) if dados else ""
-    )
-    ET.SubElement(bloco, "DATA_CALIBRACAO").text = (
-        data_xs_date(dados.get("data", "")) if dados else ""
-    )
-    return bloco
+    ET.SubElement(root, "NUMERO_CERTIFICADO_REVISADO")
 
+    el = ET.SubElement(root, "DATA_EMISSAO")
+    el.text = data_xs_date(
+        dados.get("report_date", "")
+    ) if dados else ""
 
+# FALTA COLETAR SIGNATÁRIO e EXECUTOR
+def sig_ex(root, dados=None):
+    el = ET.SubElement(root, "TECNICO_SIGNATARIO")
+
+    ET.SubElement(root, "TECNICO_EXECUTANTE")
+
+# Informações Laboratório
 def criar_laboratorio():
     bloco = ET.Element("LABORATORIO")
     ET.SubElement(bloco, "NOME").text = "ODS Lab"
@@ -85,7 +81,7 @@ def criar_laboratorio():
     ET.SubElement(bloco, "ACREDITACAO").text = "CAL 0746"
     return bloco
 
-
+# Informações cliente
 def criar_cliente(dados=None):
     bloco = ET.Element("CLIENTE")
     ET.SubElement(bloco, "NOME").text = dados.get("cliente", "") if dados else ""
@@ -93,8 +89,7 @@ def criar_cliente(dados=None):
     ET.SubElement(bloco, "UNIDADE_OPERACIONAL").text = dados.get("local", "") if dados else ""
     return bloco
 
-# FALTA COLETAR SIGNATÁRIO e EXECUTOR
-
+# Condições ambientais
 def criar_condicoes_ambientais(dados=None):
     bloco = ET.Element("CONDICOES_AMBIENTAIS")
     cond = dados.get("cond_amb", {}) if dados else {}
@@ -159,28 +154,54 @@ def criar_procedimento(dados=None):
     ET.SubElement(bloco, "DESCRICAO").text = dados.get("procedimento", "").get("descricao", "") if dados else ""
     return bloco
 
+def observacoes():
+    bloco = ET.Element('OBSERVACOES')
+    ET.SubElement(bloco, "OBSERVACAO").text = "A reprodução deste documento somente poderá ser feita integralmente, sem qualquer alteração."
+    return bloco
 
-# =====================================================
-# BLOCO – IDENTIFICAÇÃO DO INSTRUMENTO (MANTIDO)
-# =====================================================
+def criar_identificacao_instrumento(dados):
+    bloco = ET.Element("INSTRUMENTO_PRESSÃO")
+    ET.SubElement(bloco, "NUM_SERIE").text = dados.get("sn_instrumento","") if dados else ""
+    ET.SubElement(bloco, 'TAG').text = dados.get("tag", "") if dados else ""
+    ET.SubElement(bloco, "DESCRICAO").text = dados.get("categoria", "") if dados else ""
+    ET.SubElement(bloco, "FABRICANTE").text = dados.get('fabricante', "") if dados else ""
+    ET.SubElement(bloco, "MODELO").text = dados.get('modelo', "") if dados else ""
+    faixa = ET.SubElement(bloco, "FAIXA_NOMINAL")
 
-def criar_identificacao_instrumento():
-    bloco = ET.Element("IDENTIFICACAO_INSTRUMENTO")
-    ET.SubElement(bloco, "TIPO_INSTRUMENTO")
-    ET.SubElement(bloco, "FABRICANTE")
-    ET.SubElement(bloco, "MODELO")
-    ET.SubElement(bloco, "NUMERO_SERIE")
-    ET.SubElement(bloco, "TAG")
-    ET.SubElement(bloco, "FAIXA")
-    ET.SubElement(bloco, "RESOLUCAO")
-    ET.SubElement(bloco, "UNIDADE_ENG")
+    min_el = ET.SubElement(faixa, "MIN", UNIDADE_ENG="kPa")
+    min_el.text = str(dados.get("inmin_range", "")) if dados else ""
+
+    max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="kPa")
+    max_el.text = str(dados.get("inmax_range", "")) if dados else ""
     return bloco
 
 
-# =====================================================
-# PADRÕES (MANTIDO)
-# =====================================================
+# FAIXA NOMINNAL
+def criar_faixa_nominal(dados):
+    bloco = ET.Element("FAIXA_NOMINAL")
+    min_el = ET.SubElement(bloco, "MIN", UNIDADE_ENG="kPa")
+    min_el.text = str(dados.get("min_range", "")) if dados else ""
 
+    max_el = ET.SubElement(bloco, "MAX", UNIDADE_ENG="kPa")
+    max_el.text = str(dados.get("max_range", "")) if dados else ""
+
+    return bloco
+
+def criar_data_calibracao(root, dados):
+    el = ET.SubElement(root, "DATA_CALIBRACAO")
+    el.text = data_xs_date(dados.get("data", "")) if dados else ""
+
+# tipo transmissor
+def tipo_transmissor_pressao(dados):
+    categoria = dados.get("categoria", "") if dados else ""
+    el = ET.Element("TIPO_TRANSMISSOR_PRESSAO")
+    if categoria.upper() == "MANOMETRO DIGITAL" or categoria.upper() == "MANOMETRO DIFERENCIAL DIGITAL":
+        el.text = "diferencial" if categoria else ""
+    else:
+        el.text = "estática" if categoria else ""
+    return el
+
+# padrões
 def criar_identificacao_padroes(dados=None):
     bloco = ET.Element("PADROES")
 
@@ -203,100 +224,149 @@ def criar_identificacao_padroes(dados=None):
 
         ET.SubElement(cert, "NUMERO_CERTIFICADO").text = p.get("certificado", "")
 
-        ET.SubElement(cert, "DATA_CALIBRACAO").text = p.get("data_calibracao") # Não obrigatório
-
         ET.SubElement(cert, "VALIDADE").text = p.get("validade", "") # Confirmar a data correta no certificado só está mês 
     return bloco
 
+# Faixa calibrada
+
+def criar_faixa_calibrada(dados, unidade_eng=None):
+    
+    faixa = ET.Element("FAIXA_CALIBRADA")
+
+    min_el = ET.SubElement(faixa, "MIN", UNIDADE_ENG="kPa")
+    min_el.text = str(dados.get("min_range", "")) if dados else "NI"
+
+    max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="kPa")
+    max_el.text = str(dados.get("max_range", "")) if dados else "NI"
+
+    return faixa
 
 
-# =====================================================
-# CALIBRAÇÃO – PONTOS (MANTIDO)
-# =====================================================
 
-def gerar_pontos_calibracao(resultados, unidade_eng):
+def gerar_pontos_calibracao(results1, results2, unidade_eng):
     pontos = ET.Element("PONTOS_DE_CALIBRACAO")
 
-    for linha in resultados:
+    for bruto, resultado in zip(results1, results2):
         ponto = ET.SubElement(pontos, "PONTO_DE_CALIBRACAO")
 
-        ET.SubElement(ponto, "VALOR_REFERENCIA", UNIDADE_ENG=unidade_eng).text = str(linha.get("kPa_ref", ""))
+        # Valor de referência
+        ET.SubElement(
+            ponto,
+            "VALOR_REFERENCIA",
+            UNIDADE_ENG=unidade_eng
+        ).text = str(bruto.get("kPa_ref", "NI"))
 
-        for idx, ciclo in enumerate(
-            [("p_cic_cresc", "p_cic_decres"), ("s_cic_cres", "s_cic_decrs")],
-            start=1
-        ):
-            c = ET.SubElement(ponto, f"CICLO_{idx}")
-            ET.SubElement(c, "VALOR_INDICADO_ASCENDENTE", UNIDADE_ENG=unidade_eng).text = str(linha.get(ciclo[0], ""))
-            ET.SubElement(c, "VALOR_INDICADO_DESCENDENTE", UNIDADE_ENG=unidade_eng).text = str(linha.get(ciclo[1], ""))
+        # Ciclos
+        ciclos = [
+            ("p_cic_cresc", "p_cic_decres"),
+            ("s_cic_cres", "s_cic_decrs"),
+        ]
 
-        ET.SubElement(ponto, "MEDIA", UNIDADE_ENG=unidade_eng).text = str(linha.get("media", ""))
+        for idx, (asc, desc) in enumerate(ciclos, start=1):
+            ciclo_el = ET.SubElement(ponto, f"CICLO_{idx}")
 
-    return pontos
+            ET.SubElement(
+                ciclo_el,
+                "VALOR_INDICADO_ASCENDENTE",
+                UNIDADE_ENG=unidade_eng
+            ).text = str(bruto.get(asc, "NI"))
 
+            ET.SubElement(
+                ciclo_el,
+                "VALOR_INDICADO_DESCENDENTE",
+                UNIDADE_ENG=unidade_eng
+            ).text = str(bruto.get(desc, "NI"))
 
-# =====================================================
-# RESULTADOS (MANTIDO)
-# =====================================================
-
-def gerar_resultados_xml(resultados, unidade_eng):
-    bloco = ET.Element("RESULTADOS_CALIBRACAO")
-
-    for linha in resultados:
-        ponto = ET.SubElement(bloco, "RESULTADO")
-
-        ET.SubElement(ponto, "ERRO", UNIDADE_ENG=unidade_eng).text = str(linha.get("tendencia_ma_kpa", ""))
-
+        # INCERTEZA (vem do results2)
         inc = ET.SubElement(
             ponto,
             "INCERTEZA",
             UNIDADE_ENG=unidade_eng,
-            K=str(linha.get("k", "")),
-            GRAU_LIBERDADE=str(linha.get("veff", ""))
+            K=str(resultado.get("k", "NI")),
+            GRAU_LIBERDADE=str(resultado.get("veff", "NI"))
         )
-        inc.text = str(linha.get("incerteza_ma_kpa", ""))
+        inc.text = str(resultado.get("incerteza_ma", "NI"))
 
-    return bloco
-
-
-# =====================================================
-# BLOCOS FINAIS
-# =====================================================
-
-def criar_avaliacao_conformidade():
-    bloco = ET.Element("AVALIACAO_CONFORMIDADE")
-    ET.SubElement(bloco, "CRITERIO")
-    ET.SubElement(bloco, "RESULTADO")
-    return bloco
+        # ERRO (vem do results2)
+        ET.SubElement(
+            ponto,
+            "ERRO",
+            UNIDADE_ENG=unidade_eng
+        ).text = str(resultado.get("tendencia_ma", "NI"))
 
 
-def criar_ajuste():
-    bloco = ET.Element("AJUSTE")
-    ET.SubElement(bloco, "REALIZADO")
-    ET.SubElement(bloco, "DESCRICAO")
-    return bloco
+    return pontos
 
 
-def criar_cmc():
-    bloco = ET.Element("CMC")
-    ET.SubElement(bloco, "EXPRESSAO")
-    ET.SubElement(bloco, "UNIDADE")
-    return bloco
 
+def indicadores_globais(dados, unidade_eng="NI"):
+    """
+    Cria os indicadores metrológicos globais conforme XSD.
+    Retorna uma lista de elementos XML.
+    """
 
-def criar_rastreabilidade():
-    bloco = ET.Element("RASTREABILIDADE")
-    ET.SubElement(bloco, "DESCRICAO")
-    return bloco
+    indicadores = dados.get("indicadores_metrologicos", {}) if dados else {}
 
+    elementos = []
 
-def criar_assinaturas():
-    bloco = ET.Element("ASSINATURAS")
-    ET.SubElement(bloco, "EXECUTANTE")
-    ET.SubElement(bloco, "RESPONSAVEL_TECNICO")
-    return bloco
+    # -------------------------------
+    # ERRO_FIDUCIAL (obrigatório)
+    # -------------------------------
+    erro_fid = ET.Element(
+        "ERRO_FIDUCIAL",
+        UNIDADE_ENG=unidade_eng
+    )
+    erro_fid.text = (
+        "NI" if indicadores.get("erro_fiducial") in (None, "", "NI")
+        else str(indicadores.get("erro_fiducial"))
+    )
+    elementos.append(erro_fid)
 
+    # -------------------------------
+    # INCERTEZA GLOBAL (opcional)
+    # -------------------------------
+    if "incerteza" in indicadores:
+        inc = ET.Element(
+            "INCERTEZA",
+            UNIDADE_ENG=unidade_eng,
+            K="NI",
+            GRAU_LIBERDADE="NI"
+        )
+        inc.text = (
+            "NI" if indicadores.get("incerteza") in (None, "", "NI")
+            else str(indicadores.get("incerteza"))
+        )
+        elementos.append(inc)
 
+    # -------------------------------
+    # HISTERESE (obrigatório)
+    # -------------------------------
+    hist = ET.Element(
+        "HISTERESE",
+        UNIDADE_ENG=unidade_eng
+    )
+    hist.text = (
+        "NI" if indicadores.get("histerese") in (None, "", "NI")
+        else str(indicadores.get("histerese"))
+    )
+    elementos.append(hist)
+
+    # -------------------------------
+    # REPETIBILIDADE (obrigatório)
+    # -------------------------------
+    rep = ET.Element(
+        "REPETIBILIDADE",
+        UNIDADE_ENG=unidade_eng
+    )
+    rep.text = (
+        "NI" if indicadores.get("repetibilidade") in (None, "", "NI")
+        else str(indicadores.get("repetibilidade"))
+    )
+    elementos.append(rep)
+
+    return elementos
+    
+   
 # =====================================================
 # XML COMPLETO
 # =====================================================
@@ -304,37 +374,53 @@ def criar_assinaturas():
 def gerar_xml_certificado_pressao(informacoes: dict, pontos: list) -> ET.Element:
     root = ET.Element("CERTIFICADO_CALIBRACAO_PRESSAO")
 
-    root.append(criar_identificacao_certificado(informacoes))
+    criar_identificacao_certificado(root,informacoes)
     root.append(criar_laboratorio())
     root.append(criar_cliente(informacoes))
-    root.append(criar_procedimento(informacoes))
-    root.append(criar_identificacao_instrumento())
-    root.append(criar_identificacao_padroes(informacoes))
+    sig_ex(root, infomacoes)
     root.append(criar_condicoes_ambientais(informacoes))
+    root.append(criar_identificacao_padroes(informacoes))    
+    root.append(criar_procedimento(informacoes))
+    root.append(observacoes())
+    root.append(criar_identificacao_instrumento(informacoes))
+    criar_data_calibracao(root,infomacoes)
+    root.append(tipo_transmissor_pressao(infomacoes))
+    
+    
 
     calibracoes = ET.SubElement(root, "CALIBRACOES")
     unidade_eng = definir_unidade_eng(pontos.get("categoria", ""))
 
     cal_as_found = ET.SubElement(calibracoes, "CALIBRACAO_AS_FOUND")
+    cal_as_found.append(
+    criar_faixa_calibrada(informacoes, unidade_eng))
+
     if pontos.get("tabela1") == "AS FOUND":
-        cal_as_found.append(gerar_pontos_calibracao(pontos.get("results1", []), unidade_eng))
+        cal_as_found.append(
+            gerar_pontos_calibracao(
+                pontos.get("results1", []),
+                pontos.get("results2", []),
+                unidade_eng
+            )
+        )
 
+    # AS LEFT (somente se houver dados reais)
     cal_as_left = ET.SubElement(calibracoes, "CALIBRACAO_AS_LEFT")
+
     if pontos.get("tabela2") == "AS LEFT":
-        cal_as_left.append(gerar_pontos_calibracao(pontos.get("results2", []), unidade_eng))
+        cal_as_left.append(
+            criar_faixa_calibrada(informacoes, unidade_eng)
+        )
+        cal_as_left.append(
+            gerar_pontos_calibracao(
+                pontos.get("results_left_bruto", []),
+                pontos.get("results_left_resultados", []),
+                unidade_eng
+            )
+        )
 
-    resultados = []
-    for i in range(1, 10):
-        if pontos.get(f"tabela{i}") == "RESULTADOS":
-            resultados = pontos.get(f"results{i}", [])
-
-    calibracoes.append(gerar_resultados_xml(resultados, unidade_eng))
-
-    root.append(criar_avaliacao_conformidade())
-    root.append(criar_ajuste())
-    root.append(criar_cmc())
-    root.append(criar_rastreabilidade())
-    root.append(criar_assinaturas())
+    for el in indicadores_globais(infomacoes, unidade_eng):
+        root.append(el)
 
     return root
 
@@ -350,6 +436,7 @@ if __name__ == "__main__":
     infomacoes = extrair_campos(extrair_texto("xml_model\\24-ODS-95-PRE-974_27PT2001.pdf"))
     print(infomacoes)
     dados_tabela = processar_pdf(caminho_pdf)
+    print(f'\n{dados_tabela}')
     xml_root = gerar_xml_certificado_pressao(infomacoes, dados_tabela)
 
     xml_bruto = ET.tostring(xml_root, encoding="utf-8")
