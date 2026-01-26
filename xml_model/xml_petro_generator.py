@@ -33,8 +33,24 @@ def definir_unidade_eng(categoria):
         "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
         "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA",
     ]
-    return "mA" if categoria in categorias_ma else "kPa"
+    categorias_c = [
+        "TERMÔMETRO DIGITAL",
+        "TERMÔMETRO ANALÓGICO",
+        "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
+        'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA'
+    ]
 
+    if categoria in categorias_ma:
+        return "mA"
+
+    if categoria in categorias_c:
+        return "°C"
+
+    # fallback (pressão mecânica, etc.)
+    return "NI"
+    
 
 def obter_procedimento_por_categoria(categoria_instrumento):
     if not categoria_instrumento:
@@ -101,14 +117,6 @@ def criar_condicoes_ambientais(dados=None):
     temp_var.text = "NI"
     temp_var.set("UNIDADE_ENG", "NI")
 
-    pressao = ET.SubElement(bloco, "PRESSAO_ATMOSFERICA")
-    pres_valor = ET.SubElement(pressao, "VALOR")
-    pres_valor.text = "NI"
-    pres_valor.set("UNIDADE_ENG", "NI")
-    pres_var = ET.SubElement(pressao, "VARIABILIDADE")
-    pres_var.text = "NI"
-    pres_var.set("UNIDADE_ENG", "NI")
-
     umid = ET.SubElement(bloco, "UMIDADE_RELATIVA")
     umid_valor = ET.SubElement(umid, "VALOR")
     umid_valor.text = str(cond.get("umidade_ambiente", "NI"))
@@ -159,22 +167,53 @@ def observacoes():
     ET.SubElement(bloco, "OBSERVACAO").text = "A reprodução deste documento somente poderá ser feita integralmente, sem qualquer alteração."
     return bloco
 
-def criar_identificacao_instrumento(dados):
-    bloco = ET.Element("INSTRUMENTO_PRESSÃO")
-    ET.SubElement(bloco, "NUM_SERIE").text = dados.get("sn_instrumento","") if dados else ""
-    ET.SubElement(bloco, 'TAG').text = dados.get("tag", "") if dados else ""
-    ET.SubElement(bloco, "DESCRICAO").text = dados.get("categoria", "") if dados else ""
-    ET.SubElement(bloco, "FABRICANTE").text = dados.get('fabricante', "") if dados else ""
-    ET.SubElement(bloco, "MODELO").text = dados.get('modelo', "") if dados else ""
-    faixa = ET.SubElement(bloco, "FAIXA_NOMINAL")
+def criar_identificacao_instrumento(dados, root):
+    instrumento = dados.get("categoria", "").upper()
+    sn_sensor = dados.get("sn_sensor", "")
+    if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
+        if sn_sensor != None:
+            bloco_s = ET.SubElement(root,"ELEMENTO_SENSOR")
+            ET.SubElement(bloco_s,'NUM_SERIE').text = dados.get("sn_sensor","") if dados else ""
+            ET.SubElement(bloco_s, "TAG").text = dados.get("tag_sensor", "") if dados else ""
+            ET.SubElement(bloco_s, "DESCRICAO").text = dados.get('tipo_sensor', "") if dados else ""
+            ET.SubElement(bloco_s, "COMPRIMENTO", UNIDADE_ENG='mm').text = "NI"
+            ET.SubElement(bloco_s, 'DIAMETRO', UNIDADE_ENG='mm').text = "NI"
 
-    min_el = ET.SubElement(faixa, "MIN", UNIDADE_ENG="kPa")
-    min_el.text = str(dados.get("inmin_range", "")) if dados else ""
+        bloco_t = ET.SubElement(root,"TRANSMISSOR")
+        ET.SubElement(bloco_t, "NUM_SERIE").text = dados.get('sn_instrumento') if dados else ""
+        ET.SubElement(bloco_t, "TAG").text = dados.get('tag') if dados else ""
+        ET.SubElement(bloco_t, 'DESCRICAO').text = dados.get('categoria', "") if dados else ""
+        ET.SubElement(bloco_t, 'FABRICANTE').text = dados.get('fabricante', "") if dados else ""
+        ET.SubElement(bloco_t, 'MODELO').text = dados.get('modelo', "") if dados else ""
+        faixa = ET.SubElement(bloco_t, "FAIXA_NOMINAL")
+        min_el = ET.SubElement(faixa ,"MIN", UNIDADE_ENG="°C")
+        min_el.text = str(dados.get("inmin_range", "")) if dados else ""
+        max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="°C")
+        max_el.text = str(dados.get("inmax_range", "")) if dados else ""
 
-    max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="kPa")
-    max_el.text = str(dados.get("inmax_range", "")) if dados else ""
-    return bloco
 
+        
+    
+    
+        return 
+
+
+    elif instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
+        pass
+    
+    else:
+        bloco = ET.SubElement(root, "INSTRUMENTO_PRESSÃO")
+        ET.SubElement(bloco, "NUM_SERIE").text = dados.get("sn_instrumento","") if dados else ""
+        ET.SubElement(bloco, 'TAG').text = dados.get("tag", "") if dados else ""
+        ET.SubElement(bloco, "DESCRICAO").text = dados.get("categoria", "") if dados else ""
+        ET.SubElement(bloco, "FABRICANTE").text = dados.get('fabricante', "") if dados else ""
+        ET.SubElement(bloco, "MODELO").text = dados.get('modelo', "") if dados else ""
+        faixa = ET.SubElement(bloco, "FAIXA_NOMINAL")
+        min_el = ET.SubElement(faixa, "MIN", UNIDADE_ENG="kPa")
+        min_el.text = str(dados.get("inmin_range", "")) if dados else ""
+        max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="kPa")
+        max_el.text = str(dados.get("inmax_range", "")) if dados else ""
+        
 
 # FAIXA NOMINNAL
 def criar_faixa_nominal(dados):
@@ -191,7 +230,7 @@ def criar_data_calibracao(root, dados):
     el = ET.SubElement(root, "DATA_CALIBRACAO")
     el.text = data_xs_date(dados.get("data", "")) if dados else ""
 
-# tipo transmissor
+# tipo transmissor de pressão
 def tipo_transmissor_pressao(dados):
     categoria = dados.get("categoria", "") if dados else ""
     el = ET.Element("TIPO_TRANSMISSOR_PRESSAO")
@@ -212,10 +251,6 @@ def criar_identificacao_padroes(dados=None):
 
         ET.SubElement(padrao, "DESCRICAO").text = p.get("tipo", "")
 
-        ET.SubElement(padrao, "FABRICANTE").text
-
-        ET.SubElement(padrao, "MODELO").text 
-
         ET.SubElement(padrao, "IDENTIFICADOR").text = p.get("identificacao", "")
 
         cert = ET.SubElement(padrao, "CERTIFICADO_PADRAO")
@@ -228,7 +263,6 @@ def criar_identificacao_padroes(dados=None):
     return bloco
 
 # Faixa calibrada
-
 def criar_faixa_calibrada(dados, unidade_eng=None):
     
     faixa = ET.Element("FAIXA_CALIBRADA")
@@ -241,9 +275,8 @@ def criar_faixa_calibrada(dados, unidade_eng=None):
 
     return faixa
 
-
-
-def gerar_pontos_calibracao(results1, results2, unidade_eng):
+# gerar pontos calibração pressão
+def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
     pontos = ET.Element("PONTOS_DE_CALIBRACAO")
 
     for bruto, resultado in zip(results1, results2):
@@ -297,6 +330,138 @@ def gerar_pontos_calibracao(results1, results2, unidade_eng):
 
     return pontos
 
+def gerar_pontos_calibracao_termometro(registros, unidade_eng):
+    pontos = ET.Element("PONTOS_DE_CALIBRACAO")
+
+    for reg in registros:
+        ponto = ET.SubElement(pontos, "PONTO_DE_CALIBRACAO")
+
+        # -------------------------------
+        # VALOR_REFERENCIA
+        # -------------------------------
+        ET.SubElement(
+            ponto,
+            "VALOR_REFERENCIA",
+            UNIDADE_ENG=unidade_eng
+        ).text = str(reg.get("valor_referencia_c", "NI"))
+
+        # -------------------------------
+        # VALOR_INDICADO
+        # -------------------------------
+        valor_indicado = ET.SubElement(ponto, "VALOR_INDICADO")
+
+        ET.SubElement(
+            valor_indicado,
+            "VALOR",
+            UNIDADE_ENG=unidade_eng
+        ).text = str(reg.get("media_leituras_c", "NI"))
+
+        inc = ET.SubElement(
+            valor_indicado,
+            "INCERTEZA_EXP",
+            UNIDADE_ENG=unidade_eng,
+            K=str(reg.get("k", "NI")),
+            GRAU_LIBERDADE=str(reg.get("veff", "NI"))
+        )
+        inc.text = str(reg.get("incerteza_c", "NI"))
+
+        # -------------------------------
+        # ERRO
+        # -------------------------------
+        ET.SubElement(
+            ponto,
+            "ERRO",
+            UNIDADE_ENG=unidade_eng
+        ).text = str(reg.get("tendencia_c", "NI"))
+
+    return pontos
+
+#escrever_pontos_calibracao
+def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
+    instrumento = dados.get("categoria", "").upper()
+
+    if instrumento in ("TERMÔMETRO DIGITAL", "TERMÔMETRO ANALÓGICO", 'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA', ):
+
+    
+        cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
+        cal_as_found.append(
+            criar_faixa_calibrada(dados, unidade_eng)
+        )
+
+        if pontos.get("results1"):
+            cal_as_found.append(
+                gerar_pontos_calibracao_termometro(
+                    pontos["results1"],
+                    unidade_eng
+                )
+            )
+            escrever_indicadores_calibracao(
+                cal_as_found,
+                dados,
+                unidade_eng
+            )
+
+        if pontos.get("results2"):
+            cal_as_left = ET.SubElement(root, "CALIBRACAO_AS_LEFT")
+            cal_as_left.append(
+                criar_faixa_calibrada(dados, unidade_eng)
+            )
+            cal_as_left.append(
+                gerar_pontos_calibracao_termometro(
+                    pontos["results2"],
+                    unidade_eng
+                )
+            )
+            escrever_indicadores_calibracao(
+                    cal_as_left,
+                    dados,
+                    unidade_eng
+                )
+
+
+
+
+    elif instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
+        pass
+    else:
+        cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
+        cal_as_found.append(
+        criar_faixa_calibrada(dados, unidade_eng))
+
+        if pontos.get("tabela1") == "AS FOUND":
+            cal_as_found.append(
+                gerar_pontos_calibracao_pressao(
+                    pontos.get("results1", []),
+                    pontos.get("results2", []),
+                    unidade_eng
+                )
+            )
+        
+        escrever_indicadores_calibracao(
+            cal_as_found,
+            dados,
+            unidade_eng
+        )
+
+
+        if pontos.get("tabela2") == "AS LEFT":
+            cal_as_left = ET.SubElement(root, "CALIBRACAO_AS_LEFT")
+            cal_as_left.append(
+                criar_faixa_calibrada(dados, unidade_eng)
+            )
+            cal_as_left.append(
+                gerar_pontos_calibracao_pressao(
+                    pontos.get("results_left_bruto", []),
+                    pontos.get("results_left_resultados", []),
+                    unidade_eng
+                )
+            )
+        
+            escrever_indicadores_calibracao(
+                cal_as_left,
+                dados,
+                unidade_eng
+            )
 
 
 def indicadores_globais(dados, unidade_eng="NI"):
@@ -365,15 +530,23 @@ def indicadores_globais(dados, unidade_eng="NI"):
     elementos.append(rep)
 
     return elementos
-    
+
+def escrever_indicadores_calibracao(calibracao_el, dados, unidade_eng):
+    for el in indicadores_globais(dados, unidade_eng):
+        calibracao_el.append(el) 
    
-# =====================================================
-# XML COMPLETO
-# =====================================================
 
-def gerar_xml_certificado_pressao(informacoes: dict, pontos: list) -> ET.Element:
-    root = ET.Element("CERTIFICADO_CALIBRACAO_PRESSAO")
+def gerar_xml_certificado(informacoes: dict, pontos: list) -> ET.Element:
+    instrumento = informacoes.get("categoria", "").upper()
+   
+    if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
+        root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA")
+    elif instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
+        root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA_TE")
+    else:
+        root = ET.Element("CERTIFICADO_CALIBRACAO_PRESSAO")
 
+    # Blocos iguais   
     criar_identificacao_certificado(root,informacoes)
     root.append(criar_laboratorio())
     root.append(criar_cliente(informacoes))
@@ -382,45 +555,14 @@ def gerar_xml_certificado_pressao(informacoes: dict, pontos: list) -> ET.Element
     root.append(criar_identificacao_padroes(informacoes))    
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
-    root.append(criar_identificacao_instrumento(informacoes))
+    criar_identificacao_instrumento(informacoes, root)
     criar_data_calibracao(root,infomacoes)
-    root.append(tipo_transmissor_pressao(infomacoes))
-    
-    
 
-    calibracoes = ET.SubElement(root, "CALIBRACOES")
     unidade_eng = definir_unidade_eng(pontos.get("categoria", ""))
-
-    cal_as_found = ET.SubElement(calibracoes, "CALIBRACAO_AS_FOUND")
+    cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
     cal_as_found.append(
     criar_faixa_calibrada(informacoes, unidade_eng))
-
-    if pontos.get("tabela1") == "AS FOUND":
-        cal_as_found.append(
-            gerar_pontos_calibracao(
-                pontos.get("results1", []),
-                pontos.get("results2", []),
-                unidade_eng
-            )
-        )
-
-    # AS LEFT (somente se houver dados reais)
-    cal_as_left = ET.SubElement(calibracoes, "CALIBRACAO_AS_LEFT")
-
-    if pontos.get("tabela2") == "AS LEFT":
-        cal_as_left.append(
-            criar_faixa_calibrada(informacoes, unidade_eng)
-        )
-        cal_as_left.append(
-            gerar_pontos_calibracao(
-                pontos.get("results_left_bruto", []),
-                pontos.get("results_left_resultados", []),
-                unidade_eng
-            )
-        )
-
-    for el in indicadores_globais(infomacoes, unidade_eng):
-        root.append(el)
+    escrever_pontos_calibracao(infomacoes,pontos,root,unidade_eng)
 
     return root
 
@@ -431,13 +573,13 @@ def gerar_xml_certificado_pressao(informacoes: dict, pontos: list) -> ET.Element
 
 if __name__ == "__main__":
 
-    caminho_pdf = "xml_model\\24-ODS-95-PRE-974_27PT2001.pdf"
+    caminho_pdf = "xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"
 
-    infomacoes = extrair_campos(extrair_texto("xml_model\\24-ODS-95-PRE-974_27PT2001.pdf"))
+    infomacoes = extrair_campos(extrair_texto("xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"))
     print(infomacoes)
     dados_tabela = processar_pdf(caminho_pdf)
     print(f'\n{dados_tabela}')
-    xml_root = gerar_xml_certificado_pressao(infomacoes, dados_tabela)
+    xml_root = gerar_xml_certificado(infomacoes, dados_tabela)
 
     xml_bruto = ET.tostring(xml_root, encoding="utf-8")
     xml_formatado = minidom.parseString(xml_bruto).toprettyxml(indent="  ", encoding="utf-8")

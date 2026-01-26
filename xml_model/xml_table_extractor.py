@@ -198,11 +198,11 @@ def ajustar_transmissor_temperatura_eletrico(categoria, tabelas):
                 continue
 
             registros.append({
-                "referencia": to_float(linha[0]),
-                "media_celsius": to_float(linha[1]),
+                "valor_referencia_c": to_float(linha[0]),
+                "media_leituras_c": to_float(linha[1]),
                 "media_mA": to_float(linha[2]),
-                "erro": to_float(linha[3]),
-                "incerteza": to_valor_eng(linha[4]),
+                "tendencia_c": to_float(linha[3]),
+                "incerteza_c": to_valor_eng(linha[4]),
                 "k": to_valor_eng(linha[5]),
                 "veff": to_valor_eng(linha[6]) if len(linha) > 6 else None
             })
@@ -295,6 +295,48 @@ def ajustar_pt100(categoria, tabelas):
     return resultado
 
 
+def ajustar_termometro_digital_analogico(categoria, tabelas):
+    """
+    Ajuste para certificados de:
+    - Termômetro Digital
+    - Termômetro Analógico
+
+    Suporta:
+    - AS FOUND
+    - AS LEFT (se existir)
+
+    Estrutura esperada das tabelas:
+    Reference | Reading Medium | Deviation | Uncertainty | k | Veff
+    """
+
+    resultado = {"categoria": categoria}
+    idx = 1
+
+    for tipo in ("AS_FOUND", "AS_LEFT", "RESULTADOS"):
+        tabela = tabelas.get(tipo)
+        if not tabela or len(tabela) <= 1:
+            continue
+
+        registros = []
+
+        for linha in tabela[1:]:
+            if len(linha) < 6:
+                continue
+
+            registros.append({
+                "valor_referencia_c": to_float(linha[0]),
+                "media_leituras_c": to_float(linha[1]),
+                "tendencia_c": to_valor_eng(linha[2]),
+                "incerteza_c": to_valor_eng(linha[3]),
+                "k": to_valor_eng(linha[4]),
+                "veff": to_valor_eng(linha[5])
+            })
+
+        resultado[f"tabela{idx}"] = tipo.replace("_", " ")
+        resultado[f"results{idx}"] = registros
+        idx += 1
+
+    return resultado
 # =====================================================
 # PROCESSAMENTO PRINCIPAL
 # =====================================================
@@ -332,6 +374,13 @@ def processar_pdf(pdf_path):
             "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS"
         ]):
             return ajustar_pt100(categoria, classificacao)
+        
+        elif any(c in categoria for c in [
+            "TERMÔMETRO DIGITAL",
+            "TERMÔMETRO ANALÓGICO",
+        ]):
+            return ajustar_termometro_digital_analogico(categoria, classificacao)
+            
 
         else:
             raise ValueError(f"Categoria não suportada: {categoria}")

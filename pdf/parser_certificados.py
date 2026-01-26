@@ -487,8 +487,49 @@ def extrair_modelo(texto):
 
     return padrao.group(1).strip() if padrao else None
 
+
+def extrair_tag_sensor(texto):
+    """
+    Extrai a TAG do sensor localizada no bloco 'Sensor Information'
+    """
+
+    if not texto:
+        return None
+
+    padrao = re.search(
+        r"Sensor Information[\s\S]*?(?:Tag|TAG|Sensor Tag)\s*[:\-]?\s*([A-Z0-9\-_/]+)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if padrao:
+        return padrao.group(1).strip()
+
+    return None
+
+def extrair_tipo_sensor(texto):
+    """
+    Extrai o tipo do sensor (PT-BR) a partir do campo 'Sensor Type',
+    retornando o texto após a barra (/).
+    """
+
+    if not texto:
+        return None
+
+    match = re.search(
+        r"Sensor Type\s*:\s*.*?/\s*([^\n\r]+)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).strip()
+
+    return None
+
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
+    tag_sen = extrair_tag_sensor(texto)
     sn_inst, sn_sensor = extrair_sn(texto)
     certificado = extrair_certificado(texto)
     categoria = extrair_categoria_intrumento(texto)
@@ -510,11 +551,14 @@ def extrair_campos(texto: str) -> dict:
     proced= obter_procedimento_por_categoria(categoria)
     fab = extrair_fabricante(texto)
     model = extrair_modelo(texto)
+    tip_sens = extrair_tipo_sensor(texto)
 
     return {
         "tag": tag,
         "sn_instrumento": sn_inst,
         "sn_sensor": sn_sensor,
+        "tag_sensor": tag_sen,
+        "tipo_sensor": tip_sens,
         "certificado": certificado,
         "categoria": categoria,
         'cliente': cliente,
