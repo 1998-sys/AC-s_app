@@ -279,59 +279,44 @@ SIGNATARIOS_VALIDOS = [
     "Marcus Fioravante",
 ]
 
-
-def normalizar_nome(nome):
-    nome = unicodedata.normalize("NFKD", nome)
-    nome = "".join(c for c in nome if not unicodedata.combining(c))
-    return nome.lower().strip()
-
-def extrair_assinaturas(texto, lista_signatarios):
-    resultado = {
-        "signatario": None,
-        "executante": None
-    }
-
+def extrair_assinaturas(texto):
     if not texto:
-        return resultado
+        return None
 
-    # normaliza texto
-    texto = re.sub(r'\s+', ' ', texto)
+    texto_limpo = texto.replace("\r", "\n")
 
-    # extrai TODOS os nomes possíveis (2+ palavras)
-    nomes_encontrados = re.findall(
-        r'[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)+',
-        texto
+    padrao = re.search(
+        r"\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-zÁÉÍÓÚÂÊÔÃÕÇà-ú\s]+?)\s*\n\s*"
+        r"(Signatory|Signatário|Calibration\s+Executor|Executor\s+da\s+Calibração)",
+        texto_limpo,
+        flags=re.IGNORECASE
     )
 
-    # normaliza lista
-    lista_norm = {
-        normalizar_nome(nome): nome for nome in lista_signatarios
+    return padrao.group(1).strip() if padrao else None
+
+def separar_signatario(assinaturas_raw, signatarios_validos):
+    if not assinaturas_raw:
+        return {
+            "signatario": None,
+            "executante": None
+        }
+
+    texto = " ".join(assinaturas_raw.split())  # normaliza espaços
+
+    for signatario in signatarios_validos:
+        if signatario in texto:
+            executante = texto.replace(signatario, "").strip()
+
+            return {
+                "signatario": signatario,
+                "executante": executante if executante else None
+            }
+
+    # se nenhum signatário válido for encontrado
+    return {
+        "signatario": None,
+        "executante": texto
     }
-
-    nomes_validos = []
-
-    for nome in nomes_encontrados:
-        nome_norm = normalizar_nome(nome)
-        if nome_norm in lista_norm:
-            nomes_validos.append(lista_norm[nome_norm])
-        else:
-            nomes_validos.append(nome)
-
-    # identifica signatário
-    for nome in nomes_validos:
-        if normalizar_nome(nome) in lista_norm:
-            resultado["signatario"] = lista_norm[normalizar_nome(nome)]
-            break
-
-    # executante = o outro nome
-    if resultado["signatario"]:
-        for nome in nomes_validos:
-            if normalizar_nome(nome) != normalizar_nome(resultado["signatario"]):
-                resultado["executante"] = nome
-                break
-
-    return resultado
-
 
 def extrair_condicoes_ambientais(texto):
     resultado = {
@@ -433,7 +418,7 @@ MAPA_PROCEDIMENTOS = [{
     "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no banho térmico e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas, com intervalos de 1 minuto. A calibração foi realizado conforme procedimento 7.2 TM-001 Temperature Meter with Sensor, , no qual esta de acordo aos requisitos da norma NBR 14610"
 },
 {
-    "categorias": [ "TERMORRESISTÊNCIA PT-100 - 2 FIOS", "TERMORRESISTÊNCIA PT-100 - 3 FIOS", "TERMORRESISTÊNCIA PT-100 - 4 FIOS", ],
+    "categorias": [ "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS", ],
     "procedimento": "7.2 TM-006 Thermoresistances",
     "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no bloco seco e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas. A calibração foi realizado conforme procedimento 7.2 TM-006 Thermoresistances, no qual esta de acordo aos requisitos da norma  NBR 13772"
 }]
@@ -545,7 +530,7 @@ def extrair_campos(texto: str) -> dict:
     curva_de_calibracao = extrair_curva_calibracao(texto)
     cliente = extrair_nome_cliente(texto)
     endereco_cli= endereco_cliente(texto)
-    exe_sig = extrair_assinaturas(texto, SIGNATARIOS_VALIDOS)
+    exe_sig = separar_signatario(extrair_assinaturas(texto), SIGNATARIOS_VALIDOS)
     condicoes_amb = extrair_condicoes_ambientais(texto)
     padroes = extrair_padroes(texto)
     proced= obter_procedimento_por_categoria(categoria)
