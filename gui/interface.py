@@ -14,6 +14,7 @@ try:
     from pdf.parser_certificados import extrair_campos
     from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
     from xml_model.xml_generator import gerar_xml_calibracao, normalizar_certificado, tag_te
+    from xml_model.xml_table_extractor import processar_pdf
     from data.utils_db import (
         buscar_instrumento_por_tag,
         buscar_por_sn_instrumento,
@@ -189,6 +190,9 @@ class App(ctk.CTk):
 
             self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
 
+            self.pontos_calibracao_petro = processar_pdf(caminho)
+            
+
             def continuar(dados):
                 self.processar_comparacao(dados)
             if "ORIGEM" in (dados_pdf.get("local") or "").upper():
@@ -272,7 +276,6 @@ class App(ctk.CTk):
         ).pack(fill="x", pady=(10, 0))
 
     def processar_comparacao(self, dados_pdf):
-        print(dados_pdf)
         tag = dados_pdf["tag"].upper()
         dados_pdf["tag"] = tag
         registro = buscar_instrumento_por_tag(tag)
@@ -301,21 +304,20 @@ class App(ctk.CTk):
                 if issue.blocking: ok = False; break
         if ok:
             try:
-                caminho_ac = gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual)
-                cliente = (dados_pdf.get("cliente") or "").upper()
+                gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual, self.pontos_calibracao, self.certificado_te_atual, self.pontos_calibracao_petro)
+                # cliente = (dados_pdf.get("cliente") or "").upper()
 
-                if "PRIO" in cliente:
-                    caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
-                    print(dados_pdf, self.pontos_calibracao)
-                    gerar_xml_calibracao(
-                        dados_pdf,
-                        self.pontos_calibracao,
-                        str(caminho_xml),
-                        self.certificado_te_atual
-                    )
+                # if "PRIO" in cliente:
+                #     caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
+                    
+                #     gerar_xml_calibracao(
+                #         dados_pdf,
+                #         self.pontos_calibracao,
+                #         str(caminho_xml),
+                #         self.certificado_te_atual
+                #     )
         
-                print(dados_pdf, self.pontos_calibracao)
-    
+                
                 messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
                 if "TT" in dados_pdf.get("tag", "").upper():
                     self.certificado_te_atual = None

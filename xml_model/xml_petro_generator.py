@@ -3,12 +3,12 @@ import calendar
 from xml.dom import minidom
 import os
 from datetime import datetime
+from pathlib import Path
 
-from xml_table_extractor import processar_pdf
+from xml_model.xml_table_extractor import processar_pdf
 from pdf.parser_certificados import extrair_campos
 from pdf.extrator import extrair_texto
 from xml_model.xml_generator import normalizar_certificado
-
 
 
 
@@ -70,24 +70,6 @@ def definir_unidade_eng(categoria):
     return "NI"
     
 
-def obter_procedimento_por_categoria(categoria_instrumento):
-    if not categoria_instrumento:
-        return None
-
-    categoria_norm = categoria_instrumento.lower()
-
-    for item in MAPA_PROCEDIMENTOS:
-        for cat in item["categorias"]:
-            if cat.lower() in categoria_norm:
-                return {
-                    "procedimento": item["procedimento"],
-                    "descricao": item["descricao"],
-                    "observacao": item["observacao"]
-                }
-
-    return None
-
-
 def criar_identificacao_certificado(root, dados=None):
     el = ET.SubElement(root, "NUMERO_CERTIFICADO")
     el.text = normalizar_certificado(
@@ -147,34 +129,6 @@ def criar_condicoes_ambientais(dados=None):
     umid_var.set("UNIDADE_ENG", "NI")
 
     return bloco
-
-
-MAPA_PROCEDIMENTOS = [{
-    "categorias": [ "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA", "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA" ],
-    "procedimento": "7.2 TM-005  Pressure Transmitters",
-    "descricao": "A calibração consistiu na medição de quatro vezes cada ponto de pressão (dois ciclos de carga e descaga) comparando com um padrão, na sua posição de trabalho e utilizando o procedimento 7.2 TM-005  Pressure Transmitters"
-},
-{
-    "categorias": [ "MANOMETRO ANALÓGICO", "MANOMETRO DIGITAL", "MANOMETRO DIGITAL ABSOLUTO", "MANOMETRO DIFERENCIAL ANALÓGICO", "MANOMETRO DIFERENCIAL DIGITAL" ],
-    "procedimento": "7.2 TM-002 Manometers",
-    "descricao": "A calibração consistiu na medição de quatro vezes cada ponto de pressão (dois ciclos de carga e descaga) comparando com um padrão, na sua posição de trabalho e utilizando o procedimento 7.2 TM-002 Manometers"
-},
-{
-    "categorias": ["TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA"],
-    "procedimento": "7.2 TM-004 Temperature Transmitter",
-    "descricao": "A calibração consistiu na medição de três vezes cada ponto calibrado em um ciclo de subida e outro de descida, conforme o procedimento 7.2 TM-004 Temperature Transmitter"
-},
-{
-    "categorias": [ "TERMÔMETRO ANALÓGICO", "TERMÔMETRO DIGITAL", ],
-    "procedimento": "7.2 TM-001 Temperature Meter with Sensor",
-    "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no banho térmico e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas, com intervalos de 1 minuto. A calibração foi realizado conforme procedimento 7.2 TM-001 Temperature Meter with Sensor, , no qual esta de acordo aos requisitos da norma NBR 14610"
-},
-{
-    "categorias": [ "TERMORRESISTÊNCIA PT-100 - 2 FIOS", "TERMORRESISTÊNCIA PT-100 - 3 FIOS", "TERMORRESISTÊNCIA PT-100 - 4 FIOS", ],
-    "procedimento": "7.2 TM-006 Thermoresistances",
-    "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no bloco seco e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas. A calibração foi realizado conforme procedimento 7.2 TM-006 Thermoresistances, no qual esta de acordo aos requisitos da norma  NBR 13772"
-}]
-
 
 def criar_procedimento(dados=None):
     bloco = ET.Element("PROCEDIMENTO_CALIBRACAO")
@@ -495,7 +449,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
 
 
 
-    elif instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS": 
+    elif instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
         
         # --- CASO 1: só RESULTADOS → AS FOUND ---
         if pontos.get("tabela1") == "RESULTADOS" and not pontos.get("tabela2"):
@@ -668,12 +622,12 @@ def escrever_indicadores_calibracao(calibracao_el, dados, unidade_eng):
         calibracao_el.append(el) 
    
 
-def gerar_xml_certificado(informacoes: dict, pontos: list) -> ET.Element:
+def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     instrumento = informacoes.get("categoria", "").upper()
    
     if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
         root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA")
-    elif instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS": 
+    elif instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS" or instrumento == 'TERMORRESISTÊNCIA PT-100 - 4 FIOS': 
         root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA_TE")
     else:
         root = ET.Element("CERTIFICADO_CALIBRACAO_PRESSAO")
@@ -682,43 +636,45 @@ def gerar_xml_certificado(informacoes: dict, pontos: list) -> ET.Element:
     criar_identificacao_certificado(root,informacoes)
     root.append(criar_laboratorio())
     root.append(criar_cliente(informacoes))
-    sig_ex(root, infomacoes)
+    sig_ex(root, informacoes)
     root.append(criar_condicoes_ambientais(informacoes))
     root.append(criar_identificacao_padroes(informacoes))    
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
     criar_identificacao_instrumento(informacoes, root)
-    criar_data_calibracao(root,infomacoes)
+    criar_data_calibracao(root,informacoes)
     unidade_eng = definir_unidade_eng(pontos.get("categoria", ""))
-    #cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
-    #cal_as_found.append(
-    #criar_faixa_calibrada(informacoes, unidade_eng))
-    escrever_pontos_calibracao(infomacoes,pontos,root,unidade_eng)
-   
+    escrever_pontos_calibracao(informacoes,pontos,root,unidade_eng)
 
-    return root
+    xml_str = ET.tostring(root, encoding="utf-8")
+    parsed = minidom.parseString(xml_str)
+    pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
+
+    Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
+    with open(caminho_saida, "wb") as f:
+        f.write(pretty_xml)
+
+    return caminho_saida
 
 
-# =====================================================
-# EXECUÇÃO
-# =====================================================
 
-if __name__ == "__main__":
 
-    caminho_pdf = "xml_model\\24-ODS-95-TEM-897_27TE2001.pdf"
+# if __name__ == "__main__":
 
-    infomacoes = extrair_campos(extrair_texto("xml_model\\24-ODS-95-TEM-897_27TE2001.pdf"))
-    print(infomacoes)
-    dados_tabela = processar_pdf(caminho_pdf)
-    print(f'\n{dados_tabela}')
-    xml_root = gerar_xml_certificado(infomacoes, dados_tabela)
+#     caminho_pdf = "xml_model\\IMPORT GAS\\26-ODS-95-PRE-027-27PT6501.pdf"
 
-    xml_bruto = ET.tostring(xml_root, encoding="utf-8")
-    xml_formatado = minidom.parseString(xml_bruto).toprettyxml(indent="  ", encoding="utf-8")
+#     infomacoes = extrair_campos(extrair_texto("xml_model\\IMPORT GAS\\26-ODS-95-PRE-027-27PT6501.pdf"))
+#     print(infomacoes)
+#     dados_tabela = processar_pdf(caminho_pdf)
+#     print(f'\n{dados_tabela}')
+#     xml_root = gerar_xml_certificado(infomacoes, dados_tabela)
 
-    caminho_xml = gerar_caminho_xml(caminho_pdf)
-    with open(caminho_xml, "wb") as f:
-        f.write(xml_formatado)
+#     xml_bruto = ET.tostring(xml_root, encoding="utf-8")
+#     xml_formatado = minidom.parseString(xml_bruto).toprettyxml(indent="  ", encoding="utf-8")
 
-    print("XML gerado com sucesso em:")
-    print(caminho_xml)
+#     caminho_xml = gerar_caminho_xml(caminho_pdf)
+#     with open(caminho_xml, "wb") as f:
+#         f.write(xml_formatado)
+
+#     print("XML gerado com sucesso em:")
+#     print(caminho_xml)

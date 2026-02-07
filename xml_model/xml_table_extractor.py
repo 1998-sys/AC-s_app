@@ -347,16 +347,17 @@ def processar_pdf(pdf_path):
         categoria = extrair_categoria_intrumento(
             extrair_texto_pagina(pdf, 0)
         ).upper()
+        print(f"Categoria extraída: {categoria}")
 
         tabelas = extrair_tabelas_pagina_2(pdf)
         classificacao = classificar_tabelas(tabelas)
         
         
 
-        if "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
+        if "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" in categoria or 'TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA' in categoria:
             return ajustar_transmissor_pressao_eletrico(categoria, classificacao)
 
-        elif "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
+        elif "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria or "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
             return ajustar_transmissor_temperatura_eletrico(categoria, classificacao)
 
         elif any(c in categoria for c in [
@@ -371,7 +372,9 @@ def processar_pdf(pdf_path):
         elif any(c in categoria for c in [
             "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS",
             "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS",
-            "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS"
+            "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS",
+            'TERMORRESISTÊNCIA PT-100 - 4 FIOS',
+            'Termorresistência PT-100 - 4 Fios'
         ]):
             return ajustar_pt100(categoria, classificacao)
         
@@ -390,5 +393,6 @@ def processar_pdf(pdf_path):
 # TESTE
 # =====================================================
 
-#caminho_pdf = "xml_model\\25-ODS-37-PRE-555_044-PT-1020A.pdf"
+#caminho_pdf = "xml_model\\ACID GAS VENT\\26-ODS-95-PRE-015-28PT3507.pdf"
 #resultado = processar_pdf(caminho_pdf)
+#print(resultado)
