@@ -187,6 +187,7 @@ class App(ctk.CTk):
         try:
             texto = extrair_texto(caminho)
             dados_pdf = extrair_campos(texto)
+            print(dados_pdf)
 
             self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
 

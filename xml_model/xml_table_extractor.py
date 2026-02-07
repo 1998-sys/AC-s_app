@@ -10,9 +10,22 @@ if ROOT_DIR not in sys.path:
 from pdf.parser_certificados import extrair_categoria_intrumento
 
 
+
 # =====================================================
 # CONVERSÕES
 # =====================================================
+
+def normalizar_categoria(txt: str) -> str:
+    if not txt:
+        return ""
+
+    substituicoes = {
+        "‐": "-",  
+        "–": "-",  
+        "—": "-",  
+        "-": "-",  
+    }
+
 
 def to_float(valor):
     if valor is None:
@@ -347,6 +360,7 @@ def processar_pdf(pdf_path):
         categoria = extrair_categoria_intrumento(
             extrair_texto_pagina(pdf, 0)
         ).upper()
+        
         print(f"Categoria extraída: {categoria}")
 
         tabelas = extrair_tabelas_pagina_2(pdf)
@@ -357,7 +371,7 @@ def processar_pdf(pdf_path):
         if "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" in categoria or 'TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA' in categoria:
             return ajustar_transmissor_pressao_eletrico(categoria, classificacao)
 
-        elif "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria or "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
+        elif "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
             return ajustar_transmissor_temperatura_eletrico(categoria, classificacao)
 
         elif any(c in categoria for c in [
@@ -370,11 +384,9 @@ def processar_pdf(pdf_path):
             return ajustar_manometros(categoria, classificacao)
 
         elif any(c in categoria for c in [
-            "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS",
-            "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS",
-            "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS",
-            'TERMORRESISTÊNCIA PT-100 - 4 FIOS',
-            'Termorresistência PT-100 - 4 Fios'
+            "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
+            'TERMORRESISTÊNCIA PT-100 - 3 FIOS',
+            'TERMORRESISTÊNCIA PT-100 - 4 FIOS'
         ]):
             return ajustar_pt100(categoria, classificacao)
         
