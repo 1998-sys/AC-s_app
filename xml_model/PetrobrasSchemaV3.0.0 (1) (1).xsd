@@ -1,0 +1,2088 @@
+<xs:schema id="CalibracaoPetrobras" targetNamespace="http://Petrobras/Medicao/Calibracao" xmlns="http://Petrobras/Medicao/Calibracao" 
+		xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+
+<!-- O que mudou na Versão 3.0.0: -->
+<!-- 1) Criação do novo modelo de XML de Calibração de Trena -->
+
+<!-- Observação 1: As seguintes variáveis com ficarão mantidas como opcionais por tempo indetermindado: -->
+<!-- "FATOR_MEDIO_DO_MEDIDOR" nos XMLs de calibração In Loco e Externa de Medidores de Vazão -->
+<!-- "INCERTEZA", "TIPO_TRANSMISSOR_PRESSAO" e "TIPO_PRESSAO" nos  XMLs de calibração de Pressão -->
+
+<!-- Observação 2: A Informação "EQUIPAMENTO_TIPO_MVS" passará a ser obrigatória nos XMLs de calibração de Pressão e de Temperatura a partir de 01/07/2026 -->
+
+
+	<!-- Listas Globais -->
+	<xs:simpleType name="t_grandeza">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="Adimensional" />
+			<xs:enumeration value="Comprimento" />
+			<xs:enumeration value="Frequência" />
+			<xs:enumeration value="Massa" />
+			<xs:enumeration value="Massa Específica" />
+			<xs:enumeration value="Densidade" />
+			<xs:enumeration value="Porcentagem" />
+			<xs:enumeration value="Pressão" />
+			<xs:enumeration value="Temperatura" />
+			<xs:enumeration value="Tempo" />
+			<xs:enumeration value="Vazão" />
+			<xs:enumeration value="Velocidade" />
+			<xs:enumeration value="Volume" />
+			<xs:enumeration value="Área" />
+			<xs:enumeration value="Ângulo" />
+			<xs:enumeration value="Rugosidade" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_material">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="Aço Carbono" />
+			<xs:enumeration value="Aço Galvanizado" />
+			<xs:enumeration value="Aço Inox" />
+			<xs:enumeration value="Aço Inox 316" />
+			<xs:enumeration value="Duplex" />
+			<xs:enumeration value="Monel" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_decimal"> 
+		<xs:union> 
+			<xs:simpleType> 
+				<xs:restriction base="xs:decimal"/> 
+			</xs:simpleType> 
+			<xs:simpleType> 
+				<xs:restriction base="xs:string"> 
+					<xs:enumeration value="NI"/> 
+				</xs:restriction> 
+			</xs:simpleType> 
+		</xs:union> 
+	</xs:simpleType> 
+
+	<xs:simpleType name="t_unidade">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="ºC" />
+			<xs:enumeration value="°C" />
+			<xs:enumeration value="mA" />
+			<xs:enumeration value="kPa" />
+			<xs:enumeration value="kgf/cm2" />
+			<xs:enumeration value="kgf/cm²" />
+			<xs:enumeration value="mmH2O" />
+			<xs:enumeration value="%" />
+			<xs:enumeration value="mm" />
+			<xs:enumeration value="mm/mmºC" />
+			<xs:enumeration value="mm/mm°C" />
+			<xs:enumeration value="µm" />
+			<xs:enumeration value="º" />
+			<xs:enumeration value="°" />
+			<xs:enumeration value="cP" />
+			<xs:enumeration value="kg/m3" />
+			<xs:enumeration value="m3/h" />
+			<xs:enumeration value="m³/h" />			
+			<xs:enumeration value="kg/h" />
+			<xs:enumeration value="m3" />
+			<xs:enumeration value="m³" />
+			<xs:enumeration value="pulsos/m3" />
+			<xs:enumeration value="pulsos/m³" />
+			<xs:enumeration value="p/m3" />
+			<xs:enumeration value="p/m³" />
+			<xs:enumeration value="&quot;" />
+			<xs:enumeration value="cSt" />
+			<xs:enumeration value="mm2/s" />
+			<xs:enumeration value="mm²/s" />
+			<xs:enumeration value="Hz" />
+			<xs:enumeration value="NI" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_estado">		
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="Sim" />
+			<xs:enumeration value="Não" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_aprovado">		
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="Sim" />
+			<xs:enumeration value="Não" />
+			<xs:enumeration value="NI" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_norma">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="ISO 5167:1980" />
+			<xs:enumeration value="ISO 5167-2:2003" />
+			<xs:enumeration value="ISO 5167-2:2022" />
+			<xs:enumeration value="ABNT NBR ISO 5167-2:2011" />
+			<xs:enumeration value="AGA3-2:1991" />
+			<xs:enumeration value="AGA3-2:2000" />
+			<xs:enumeration value="AGA3-2:2016" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_lista_medidor_vazao">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="CORIOLIS" />
+			<xs:enumeration value="DESLOCAMENTO POSITIVO" />
+			<xs:enumeration value="MAGNÉTICO" />
+			<xs:enumeration value="TURBINA" />
+			<xs:enumeration value="ULTRASSÔNICO" />
+			<xs:enumeration value="V-CONE" />
+			<xs:enumeration value="PROVADOR" />
+		</xs:restriction>
+	</xs:simpleType>
+
+
+	<!--Definição das informações associadas à inspeção de trechos retos. -->
+	<xs:simpleType name="t_condicionador_fluxo">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="19 tubos" />
+			<xs:enumeration value="Zanker" />
+			<xs:enumeration value="Nenhum" />
+		</xs:restriction>
+	</xs:simpleType>
+
+
+	<xs:simpleType name="t_lista_componente">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="TRECHO JUSANTE" />
+			<xs:enumeration value="TRECHO MONTANTE" />
+			<xs:enumeration value="PORTA PLACA" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!--Parâmetros de pressão. -->
+	<xs:simpleType name="t_tipo_transmissor_pressao">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="diferencial" />
+			<xs:enumeration value="estática" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="t_tipo_pressao">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="manométrica" />
+			<xs:enumeration value="absoluta" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="t_valor_decimal_eng">
+		<xs:simpleContent>
+			<xs:extension base="t_decimal">
+				<xs:attribute name="UNIDADE_ENG" type="t_unidade" use="required" />
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+
+	<xs:simpleType name="t_grau_de_liberdade"> 
+		<xs:union> 
+			<xs:simpleType> 
+				<xs:restriction base="xs:decimal"/> 
+			</xs:simpleType> 
+			<xs:simpleType> 
+				<xs:restriction base="xs:string"> 
+					<xs:enumeration value="infinito"/> 
+					<xs:enumeration value="Infinito"/>
+					<xs:enumeration value="INFINITO"/>
+					<xs:enumeration value="NI"/> 
+				</xs:restriction> 
+			</xs:simpleType> 
+		</xs:union> 
+	</xs:simpleType> 
+
+
+	<xs:complexType name="t_valor_decimal_eng_com_k">
+		<xs:simpleContent>
+			<xs:extension base="t_decimal">
+				<xs:attribute name="UNIDADE_ENG" type="t_unidade" use="required" />
+				<xs:attribute name="K" type="t_decimal" use="required"/>
+				<xs:attribute name="GRAU_LIBERDADE" type="t_grau_de_liberdade" use="required"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_decimal_eng_com_incert">
+		<xs:sequence>
+			<xs:element name="VALOR" type="t_valor_decimal_eng" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com unidade de engenharia.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="INCERTEZA_EXP" type="t_valor_decimal_eng_com_k" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com incerteza do valor declarado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_decimal_com_incert">
+		<xs:sequence>
+			<xs:element name="VALOR" type="t_decimal" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal sem unidade de engenharia. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="INCERTEZA_EXP" type="t_valor_decimal_eng_com_k" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com incerteza do valor declarado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_decimal_eng_com_variabilidade">
+		<xs:sequence>
+			<xs:element name="VALOR" type="t_valor_decimal_eng" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com unidade de engenharia.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="VARIABILIDADE" type="t_valor_decimal_eng" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal contendo a variabilidade do valor declarado. Utilizado para condições ambientais, na qual é observada uma variabilidade durante calibrações.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_decimal_eng_com_incert_opcionais_aprovado">
+		<xs:sequence>
+			<xs:element name="VALOR" type="t_valor_decimal_eng" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com unidade de engenharia.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="INCERTEZA_EXP" type="t_valor_decimal_eng_com_k" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com incerteza do valor declarado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="APROVADO" type="t_aprovado">
+				<xs:annotation>
+					<xs:documentation>
+						Indica se o valor declarado está dentro ou fora de requisitos limites.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_decimal_eng_com_incert_aprovado">
+		<xs:sequence>
+			<xs:element name="VALOR" type="t_valor_decimal_eng" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com unidade de engenharia.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="INCERTEZA_EXP" type="t_valor_decimal_eng_com_k" >
+				<xs:annotation>
+					<xs:documentation>
+						Valor decimal com incerteza do valor declarado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="APROVADO" type="t_aprovado">
+				<xs:annotation>
+					<xs:documentation>
+						Indica se o valor declarado está dentro ou fora de requisitos limites.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="t_string_nao_vazio">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+
+	<xs:complexType name="t_empresa">
+		<!--Definição das informações de cliente e laboratório-->
+		<xs:sequence>
+			<xs:element name="NOME" type="t_string_nao_vazio"/>
+			<xs:element name="ENDERECO" type="t_string_nao_vazio" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name = "t_laboratorio">	
+		<xs:complexContent>
+			<xs:extension base="t_empresa">
+				<xs:sequence>
+					<xs:element name="ACREDITACAO" type="t_string_nao_vazio"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name = "t_cliente">
+		<xs:complexContent>
+			<xs:extension base="t_empresa">
+				<xs:sequence>
+					<xs:element name="UNIDADE_OPERACIONAL" type="t_string_nao_vazio">
+						<xs:annotation>
+							<xs:documentation>
+								Instalação do cliente onde o instrumento opera.
+							</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_condicoes_ambientais">
+		<!--Definição das informações ambientais do local na qual a calibração é realizada-->
+		<xs:sequence>
+			<xs:element name="TEMPERATURA" type="t_valor_decimal_eng_com_variabilidade" minOccurs="0"/>
+			<xs:element name="PRESSAO" type="t_valor_decimal_eng_com_variabilidade" minOccurs="0"/>
+			<xs:element name="UMIDADE_RELATIVA" type="t_valor_decimal_eng_com_variabilidade" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_faixa">
+		<!--Definição das informações de Faixa de calibração,operação ou de medição-->
+		<xs:sequence>
+			<xs:element name="MIN" type="t_valor_decimal_eng"/>
+			<xs:element name="MAX" type="t_valor_decimal_eng" />
+			<xs:element name="RESOLUCAO" type="t_valor_decimal_eng" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Indica a resolução de leitura do instrumento calibrado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_observacoes">
+		<!--Definição genérica da estrutura utilizada para permitir que comentários sejam incorporados nas várias seções do XML -->
+		<xs:sequence>
+			<xs:element minOccurs="0" maxOccurs="unbounded" name="OBSERVACAO" type="t_string_nao_vazio"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_procedimento_calibracao">
+		<!--Definição das informações do procedimento/método que foi utilizado para calibração dos instrumentos/medidores. As
+		referências podem ser normas, regulamentos ou procedimentos internos.-->
+		<xs:sequence>
+			<xs:element name="IDENTIFICADOR" type="t_string_nao_vazio" />
+			<xs:element name="DESCRICAO" type="t_string_nao_vazio" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_fluido">
+		<!--Definição das informações do Fluido que foi utilizado para calibração. -->
+		<xs:sequence>
+			<xs:element name="DESCRICAO" type="t_string_nao_vazio" />
+			<xs:element name="VISCOSIDADE" type="t_valor_decimal_eng"/>
+			<xs:element name="TEMPERATURA" type="t_valor_decimal_eng"/>
+			<xs:element name="PRESSAO" type="t_valor_decimal_eng"/>
+			<xs:element name="MASSA_ESPECIFICA" type="t_valor_decimal_eng"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_padrao">
+		<!--Definição das informações referentes aos padrões utilizados para calibração -->
+		<xs:sequence>
+			<xs:element name="DESCRICAO" type="t_string_nao_vazio" />
+			<xs:element name="FABRICANTE" type="t_string_nao_vazio" minOccurs="0"/>
+			<xs:element name="MODELO" type="t_string_nao_vazio" minOccurs="0"/>
+			<xs:element name="IDENTIFICADOR" type="t_string_nao_vazio" />
+			<xs:element name="CERTIFICADO_PADRAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="LABORATORIO" type="t_string_nao_vazio" />
+						<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio" />
+						<xs:element name="DATA_CALIBRACAO" type="xs:date" minOccurs="0"/>
+						<xs:element name="VALIDADE" type="xs:date" />
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_resultados_calibracao_medidores_vazao">
+		<!--Definição das informações referentes aos padrões utilizados para calibração -->
+		<xs:sequence>
+			<xs:element name="DESCRICAO" type="t_string_nao_vazio" />
+			<xs:element name="FABRICANTE" type="t_string_nao_vazio" minOccurs="0"/>
+			<xs:element name="MODELO" type="t_string_nao_vazio" minOccurs="0"/>
+			<xs:element name="NUM_SERIE" type="t_string_nao_vazio" />
+			<xs:element name="CERTIFICADO_PADRAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="LABORATORIO" type="t_string_nao_vazio" />
+						<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio" />
+						<xs:element name="DATA_CALIBRACAO" type="xs:date" minOccurs="0"/>
+						<xs:element name="VALIDADE" type="xs:date" />
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_medidor_N1">
+		<xs:sequence>
+			<xs:element name="NUM_SERIE" type="t_string_nao_vazio">
+				<xs:annotation>
+					<xs:documentation>
+						Número de série do instrumento.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="TAG" type="t_string_nao_vazio" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Tag do instrumento.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="DESCRICAO" type="t_string_nao_vazio" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Descrição do instrumento.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_medidor_N2">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N1">
+				<xs:sequence>
+					<xs:element name="FABRICANTE" type="t_string_nao_vazio">
+						<xs:annotation>
+							<xs:documentation>
+								Fabricante do instrumento.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="MODELO" type="t_string_nao_vazio">
+						<xs:annotation>
+							<xs:documentation>
+								Modelo do instrumento.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_medidor_N3">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N2">
+				<xs:sequence>
+					<xs:element name="FAIXA_NOMINAL" type="t_faixa">
+						<xs:annotation>
+							<xs:documentation>
+								Faixa nominal do instrumento.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_medidor_N4_inLoco">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N3">
+				<xs:sequence>
+					<xs:element name="DATA_CALIBRACAO" type="xs:date" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Data de calibração do medidor
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+
+	<xs:complexType name="t_medidor_N4">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N3">
+				<xs:sequence>
+					<xs:element name="DATA_CALIBRACAO" type="xs:date">
+						<xs:annotation>
+							<xs:documentation>
+								Data de calibração do medidor
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="t_medidor_pressao">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N4">
+				<xs:sequence>
+					<xs:element name="TIPO_TRANSMISSOR_PRESSAO" type="t_tipo_transmissor_pressao" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Indica aplicação do transmissor de pressão no processo (diferencial / estática).
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="TIPO_PRESSAO" type="t_tipo_pressao" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Indica tipo de pressão que medida pelo instrumento (absoluta / manométrica).
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="EQUIPAMENTO_TIPO_MVS" type="t_estado" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Indica se o equipamento calibrado é do tipo MVS (Sim / Não).
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_pressao">
+						<xs:annotation>
+							<xs:documentation>
+								Resultados de calibração as found.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_pressao" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Resultados de calibração as left.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="t_medidor_temperatura_TE_base">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N1">
+				<xs:sequence>
+					<xs:element name="COMPRIMENTO" type="t_valor_decimal_eng">
+						<xs:annotation>
+							<xs:documentation>
+								Comprimento da sonda do sensor.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="DIAMETRO" type="t_valor_decimal_eng">
+						<xs:annotation>
+							<xs:documentation>
+								Diâmetro do sensor.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_medidor_temperatura_TE_completo">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_temperatura_TE_base">
+				<xs:sequence>
+					<xs:element name="DATA_CALIBRACAO" type="xs:date">
+						<xs:annotation>
+							<xs:documentation>
+									Data de calibração do sensor.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_temperatura">
+						<xs:annotation>
+							<xs:documentation>
+									Resultados de calibração as found.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_temperatura" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+									Resultados de calibração as left.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+
+	<!--Definição das informações associadas ao medidor MVS-->
+	<xs:complexType name="t_medidor_MVS">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N2">
+				<xs:sequence>
+					<xs:element name="PRESSAO_DIFERENCIAL">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="DATA_CALIBRACAO" type="xs:date">
+									<xs:annotation>
+										<xs:documentation>
+											Data de calibração do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="FAIXA_NOMINAL" type="t_faixa">
+									<xs:annotation>
+										<xs:documentation>
+											Faixa nominal do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_pressao">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as found.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_pressao" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as left.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="PRESSAO_ESTATICA">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="DATA_CALIBRACAO" type="xs:date">
+									<xs:annotation>
+										<xs:documentation>
+											Data de calibração do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="FAIXA_NOMINAL" type="t_faixa">
+									<xs:annotation>
+										<xs:documentation>
+											Faixa nominal do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_pressao">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as found.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_pressao" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as left.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="TEMPERATURA">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="ELEMENTO_SENSOR" type="t_medidor_temperatura_TE_base" minOccurs='0'/>
+								<xs:element name="DATA_CALIBRACAO" type="xs:date">
+									<xs:annotation>
+										<xs:documentation>
+											Data de calibração do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="FAIXA_NOMINAL" type="t_faixa">
+									<xs:annotation>
+										<xs:documentation>
+											Faixa nominal do instrumento.
+										</xs:documentation>
+									</xs:annotation> 
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_temperatura">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as found.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+								<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_temperatura" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>
+											Resultados de calibração as left.
+										</xs:documentation>
+									</xs:annotation> 					
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+
+	<!--Definição das informações associadas a medidores de temperatura-->
+	<xs:complexType name="t_medidor_temperatura_transmissor">
+		<xs:sequence>
+			<xs:element name="ELEMENTO_SENSOR" type="t_medidor_temperatura_TE_base" minOccurs='0'/>
+			<xs:element name="TRANSMISSOR" type="t_medidor_N3"/>
+			<xs:element name="DATA_CALIBRACAO" type="xs:date">
+				<xs:annotation>
+					<xs:documentation>
+						Data de calibração do sensor.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="EQUIPAMENTO_TIPO_MVS" type="t_estado" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Indica se o equipamento calibrado é do tipo MVS (Sim / Não).
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao_temperatura">
+				<xs:annotation>
+					<xs:documentation>
+						Resultados de calibração as found.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao_temperatura" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Resultados de calibração as left.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+
+	<!--Definição das informações associadas a medidores de vazão-->
+	<xs:complexType name="t_medidor_mestre">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N4_inLoco">
+				<xs:sequence>
+					<xs:element name="TIPO" type="t_lista_medidor_vazao">
+						<xs:annotation>
+							<xs:documentation>
+								Tipo do medidor de vazão.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="DIAMETRO_NOMINAL" type="t_valor_decimal_eng" >
+						<xs:annotation>
+							<xs:documentation>
+								Diâmetro nominal do medidor de vazão.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio" >
+						<xs:annotation>
+							<xs:documentation>
+								Número do certificado de calibração do medidor.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<!--Definição das informações associadas a medidores de vazão-->
+	<xs:complexType name="t_provador">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N2">
+				<xs:sequence>
+					<xs:element name="TIPO" type="t_lista_medidor_vazao">
+						<xs:annotation>
+							<xs:documentation>
+								Tipo do provador.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="VOLUME_NOMINAL_BASE" type="t_valor_decimal_eng" >
+						<xs:annotation>
+							<xs:documentation>
+								Diâmetro nominal do provador.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="DATA_CALIBRACAO" type="xs:date">
+						<xs:annotation>
+							<xs:documentation>
+								Data de calibração do sensor.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio" >
+						<xs:annotation>
+							<xs:documentation>
+								Número do certificado de calibração do provador.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<!--Definição das informações associadas a medidores de vazão-->
+	<xs:complexType name="t_medidor_vazao">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N4">
+				<xs:sequence>
+					<xs:element name="TIPO" type="t_lista_medidor_vazao">
+						<xs:annotation>
+							<xs:documentation>
+								Tipo do medidor de vazão.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="DIAMETRO_NOMINAL" type="t_valor_decimal_eng" >
+						<xs:annotation>
+							<xs:documentation>
+								Diâmetro nominal do medidor de vazão.
+							</xs:documentation>
+						</xs:annotation> 
+					</xs:element>
+					<xs:element name="FATOR_K_DO_MEDIDOR" type="t_valor_decimal_eng">
+						<xs:annotation>
+							<xs:documentation>
+								K-FACTOR nominal do medidor, em pulsos por m3.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_FOUND" type="t_calibracao">
+						<xs:annotation>
+							<xs:documentation>
+								Resultados de calibração as found.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="CALIBRACAO_AS_LEFT" type="t_calibracao" minOccurs='0'>
+						<xs:annotation>
+							<xs:documentation>
+								Resultados de calibração as left.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>					
+					<xs:element name="TABELA_LINEARIZACAO" type="t_linearizacao" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Tabela de correlação de fatores de calibração com vazão para curva de linearização.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>					
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<!--Definição da tabela da curva de linearização de calibração -->
+	<xs:complexType name="t_linearizacao">
+		<xs:sequence>
+			<xs:element name="FATOR_DO_MEDIDOR_IMPLEMENTADO" type="t_decimal" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Valor do Fator do Medidor a ser implementado se a curva de linearização adotar K-FACTOR. Aplicável somente para curva de K-FACTOR.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PONTOS_DA_CURVA">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DA_CURVA" type = "t_ponto_curva" minOccurs='1' maxOccurs='unbounded'>
+							<xs:annotation>
+								<xs:documentation>
+									Ponto da curva de linearização do medidor de vazão.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<!--Definição das informações associadas à geração do XML através do XML Generator.-->
+	<xs:complexType name="t_dados_geracao_xml">
+		<xs:sequence>
+			<xs:element name="TEMPLATE_NAME" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Nome do template de geração do XML.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TEMPLATE_FILE" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Caminho do template de geração do XML.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DATA_SOURCE_FILE" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Caminho do arquivo fonte dos dados do XML.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="COMPLETENESS_INDEX" type="xs:decimal">
+				<xs:annotation>
+					<xs:documentation>
+						Índice de completeza do XML.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="GENERATOR_VERSION" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Versão do gerador do XML.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="GENERATION_DATETIME" type="xs:dateTime">
+				<xs:annotation>
+					<xs:documentation>
+						Data e hora de geração.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<!--Definição de um certificado de calibração completo. O XML enviado deverá conter um elemento do tipo t_certificado.-->
+	<xs:complexType name="t_certificado">
+		<xs:sequence>
+			<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio">
+				<xs:annotation>
+					<xs:documentation>
+						Número de identificação do certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NUMERO_CERTIFICADO_REVISADO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Número de identificação do certificado que está sendo revisado (versão que antecede imediatamente a versão atual), caso este certificado seja uma revisão. Deve ficar em branco caso não esteja revisando algum certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DATA_EMISSAO" type="xs:date" >
+				<xs:annotation>
+					<xs:documentation>
+						Data de emissão do certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="LABORATORIO" type="t_laboratorio" >
+				<xs:annotation>
+					<xs:documentation>
+						Informações do laboratório onde a calibração é realizada.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CLIENTE" type="t_cliente" >
+				<xs:annotation>
+					<xs:documentation>
+						Informações do cliente da calibração.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TECNICO_SIGNATARIO" type="t_string_nao_vazio" />
+			<xs:element name="TECNICO_EXECUTANTE" type="t_string_nao_vazio" />
+			<xs:element name="CONDICOES_AMBIENTAIS" type="t_condicoes_ambientais"/>
+			<xs:element name="PADROES">
+				<xs:complexType >
+					<xs:sequence>
+						<xs:element name="PADRAO" minOccurs="1" maxOccurs="unbounded" type="t_padrao"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="PROCEDIMENTO_CALIBRACAO" type="t_procedimento_calibracao" />
+			<xs:element name="OBSERVACOES" type="t_observacoes"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_componente_trecho">
+		<xs:sequence>
+			<xs:element name="NUM_SERIE" type="t_string_nao_vazio"> 
+				<xs:annotation>
+					<xs:documentation>
+						Número de série do componente to trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="TIPO" type="t_lista_componente">
+				<xs:annotation>
+					<xs:documentation>
+						Tipo do componente to trecho reto.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_trecho">
+		<xs:sequence>
+			<xs:element name="DATA_INSPECAO" type="xs:date" >
+				<xs:annotation>
+					<xs:documentation>
+						Data de inspeção do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="NUM_SERIE" type="t_string_nao_vazio" >
+				<xs:annotation>
+					<xs:documentation>
+						Número de série do segmento do trecho reto em qual foi medido o diâmetro externo.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="TAG" type="t_string_nao_vazio" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Tag do trecho reto do segmento do trecho reto em qual foi medido o diâmetro externo.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="TIPO_COMPONENTE" type="t_lista_componente">
+				<xs:annotation>
+					<xs:documentation>
+						Tipo do componente do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="MATERIAL" type="t_material" >
+				<xs:annotation>
+					<xs:documentation>
+						Material do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="COEF_DILATACAO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Coeficiente de dilatação do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="NORMA_AVALIACAO" type="t_norma" >
+				<xs:annotation>
+					<xs:documentation>
+						Norma utlizada para inspeção do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="DIAMETRO_TUBULACAO" type="t_valor_decimal_eng"> 
+				<xs:annotation>
+					<xs:documentation>
+						Diâmetro nominal do trecho.
+					</xs:documentation>
+				</xs:annotation>	
+			</xs:element>
+			<xs:element name="DIAMETRO_TRECHO_COND_REF" type="t_valor_decimal_eng_com_incert_aprovado"> 
+				<xs:annotation>
+					<xs:documentation>
+						Diâmetro trecho na posição definida na norma nas condições de referência. AGA-3: 1'' a montante da face da placa; ISO-5167: 0,5D a montante da face da placa.
+					</xs:documentation>
+				</xs:annotation>	
+			</xs:element>			
+			<xs:element name="TIPO_CONDICIONADOR_FLUXO" type="t_condicionador_fluxo" >
+				<xs:annotation>
+					<xs:documentation>
+						Tipo do condicionador de fluxo utilizado.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_dimensional_trecho">
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="TRECHO_RETO" type="t_trecho">
+						<xs:annotation>
+							<xs:documentation>
+								Informações de inspeção dimensional específicas do trecho reto com medição de diâmetro a ser utilizado no computador de vazão.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="DEMAIS_COMPONENTES">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="COMPONENTE" type="t_componente_trecho" minOccurs='0' maxOccurs='unbounded'>
+									<xs:annotation>
+										<xs:documentation>
+											Informações dos demais componentes do trecho reto.
+										</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_ciclos">
+		<xs:sequence>
+			<xs:element name="VALOR_INDICADO_ASCENDENTE" type="t_valor_decimal_eng"/>
+			<xs:element name="VALOR_INDICADO_DESCENDENTE" type="t_valor_decimal_eng"/>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_ponto_calibracao_pressao">
+		<!--Definição das informações de corridas de calibração. Todos os resltados asfound e asleft serão declaradas utilizando essa estrutura.-->
+		<xs:sequence>
+			<xs:element name="VALOR_REFERENCIA" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Valor de referência para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CICLO_1" type="t_ciclos"/>
+			<xs:element name="CICLO_2" type="t_ciclos" />
+			<xs:element name="CICLO_3" type="t_ciclos" minOccurs="0"/>
+			<xs:element name="CICLO_4" type="t_ciclos" minOccurs="0"/>
+			<xs:element name="CICLO_5" type="t_ciclos" minOccurs="0"/>
+			<xs:element name="INCERTEZA" type="t_valor_decimal_eng_com_k"/>
+			<xs:element name="ERRO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Erro é a diferença entre o valor indicado e o valor de referência. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_calibracao_pressao">
+		<xs:sequence>
+			<xs:element name="FAIXA_CALIBRADA" type="t_faixa">
+				<xs:annotation>
+					<xs:documentation>
+						Valores mínimos e máximos de calibração do instrumento.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PONTOS_DE_CALIBRACAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DE_CALIBRACAO" type="t_ponto_calibracao_pressao" minOccurs="1" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									Ponto de calibração do medidor em determinado ponto de operação.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ERRO_FIDUCIAL" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Maior erro de medição da curva de calibração do instrumento pela amplitude da faixa calibrada.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="INCERTEZA" type="t_valor_decimal_eng_com_k" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Maior incerteza de medição da curva de calibração do instrumento.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="HISTERESE" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Diferença máxima em um dos ciclos de medição pela amplitude da faixa calibrada. 
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="REPETIBILIDADE" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Diferença máxima das indicações do medidor entre os ciclos de medição pela amplitude da faixa calibrada. A comparação deve ser feita entre medições realizadas no mesmo sentido de aplicação da pressão: crescente ou decrescente.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_pressao">
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="INSTRUMENTO_PRESSAO" type="t_medidor_pressao">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do medidor de pressão sendo calibrado.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_mvs">
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="INSTRUMENTO_MVS" type="t_medidor_MVS">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do instrumento MVS sendo calibrado.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_temperatura_TE">
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element  name="ELEMENTO_SENSOR_TEMPERATURA" type="t_medidor_temperatura_TE_completo">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do medidor de temperatura sendo calibrado.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_ponto_calibracao_temperatura">
+		<!--Definição das informações de corridas de calibração. Todos os resltados asfound e asleft serão declaradas utilizando essa estrutura.-->
+		<xs:sequence>
+			<xs:element name="VALOR_REFERENCIA" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Valor de referência para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="VALOR_INDICADO" type="t_valor_decimal_eng_com_incert">
+				<xs:annotation>
+					<xs:documentation>
+						Valor indicado para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ERRO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Erro é a diferença entre o valor indicado e o valor de referência. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_calibracao_temperatura">
+		<xs:sequence>
+			<xs:element name="FAIXA_CALIBRADA" type="t_faixa">
+				<xs:annotation>
+					<xs:documentation>
+						Valores mínimos e máximos de calibração do instrumento.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PONTOS_DE_CALIBRACAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DE_CALIBRACAO" type="t_ponto_calibracao_temperatura" minOccurs="1" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									Ponto de calibração do medidor em determinado ponto de operação.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ERRO_FIDUCIAL" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Maior erro de medição da curva de calibração do instrumento dividido pela amplitude da faixa calibrada.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="INCERTEZA" type="t_valor_decimal_eng_com_k">
+				<xs:annotation>
+					<xs:documentation>
+						Maior incerteza de medição da curva de calibração do instrumento.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>				
+			<xs:element name="REPETIBILIDADE" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Diferença máxima das indicações do medidor entre os ciclos de medição pela amplitude da faixa calibrada. A comparação deve ser feita entre medições realizadas no mesmo sentido de aplicação da variável medida: crescente ou decrescente.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_temperatura">
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="INSTRUMENTO_TEMPERATURA" type="t_medidor_temperatura_transmissor">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do medidor de temperatura sendo calibrado.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_valor_med_e_individuais">
+		<xs:sequence>
+			<xs:element name="VALOR_MEDIO" type="t_valor_decimal_eng_com_incert_aprovado"/> <!-- Espessura E da placa. Deve ser avaliado conforme itens 5.1.5.2 e 5.1.8.4 da ISO-5167 -->
+			<xs:element name="MEDIDA_INDIVIDUAL" type="t_valor_decimal_eng" maxOccurs="4">
+				<xs:annotation>
+					<xs:documentation>
+						Valor de medição indivual, sendo possível no máximo 4 valores.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<!--Definição das informações associadas à inspeção de placas de orifício. -->
+	<xs:complexType name="t_placa">
+		<!-- Para os campos "aprovado", o valor 0 significa não, e 1 significa sim. -->
+		<xs:sequence>
+			<xs:element name="DATA_INSPECAO" type="xs:date" >
+				<xs:annotation>
+					<xs:documentation>
+						Data de inspeção do trecho reto.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="NUM_SERIE" type="t_string_nao_vazio" >
+				<xs:annotation>
+					<xs:documentation>
+						Número de série da placa de orifício.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="TAG" type="t_string_nao_vazio" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Tag da placa de orifício.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="MATERIAL" type="t_material" >
+				<xs:annotation>
+					<xs:documentation>
+						Material da placa de orifício.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="COEF_DILATACAO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Coeficiente de dilatação da placa de orifício.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="NORMA_AVALIACAO" type="t_norma" >
+				<xs:annotation>
+					<xs:documentation>
+						Norma de inspeção da placa de orifício.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="DIAMETRO_TUBULACAO" type="t_valor_decimal_eng"> <!-- D - Diâmetro interno a 20ºC da tubulação na qual a placa será instalada Deve ser avaliado conforme item 5.3.1 da ISO-516-->
+				<xs:annotation>
+					<xs:documentation>
+						Diâmetro do orifício conforme itens 5.1.8 e 5.3.1 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation>	
+			</xs:element>
+			<xs:element name="DIAMETRO_ORIF_COND_REF" type="t_valor_med_e_individuais"> <!-- Valor do diâmetro interno d da placa de orifício. Deve ser avaliado conforme itens 5.1.8 e 5.3.1 ISO-5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Diâmetro do orifício conforme itens 5.1.8 e 5.3.1 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation>	
+			</xs:element>			
+			<xs:element name="BETA" type="xs:decimal"> <!-- Beta da placa de orifício. Deve ser avaliado conforme item 5.3.1 ISO-5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Beta do orifício conforme item 5.3.1 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation>	
+			</xs:element>			
+			<xs:element name="CIRCULARIDADE_ORIF" type="t_valor_decimal_eng_com_incert_aprovado"> <!-- Valor da circularidade do orifício d. Deve ser avaliado conforme item 5.1.8.3 da ISO-5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Circularidade do orifício conforme item 5.1.8.3 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ESPESSURA_ORIFICIO" type="t_valor_med_e_individuais"> <!-- Espessura e do orifício. Deve ser avaliado conforme itens 5.1.5.1 e 5.1.8.3 da ISO-5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Comprimento furo conforme itens 5.1.5.1 e 5.1.8.3 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="ESPESSURA_PLACA" type="t_valor_med_e_individuais"> <!-- Espessura E da placa. Deve ser avaliado conforme itens 5.1.5.2 e 5.1.8.4 da ISO-5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Espessura da placa conforme itens 5.1.5.2 e 5.1.8.4 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="RUGOSIDADE_MONTANTE" type="t_valor_decimal_eng_com_incert_aprovado"> <!-- Rugosidade a montante da placa. Deve ser avaliada conforme item 5.1.3.2 da ISO 5167 e item 4.2 da AGA3-2-->
+				<xs:annotation>
+					<xs:documentation>
+						Rugosidade a montante conforme item 5.1.3.2 da ISO 5167 e item 4.2 da AGA3-2.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="RUGOSIDADE_JUSANTE" type="t_valor_decimal_eng_com_incert_aprovado" minOccurs="0"> <!-- Rugosidade a jusante da placa. Deve ser avaliada conforme item 4.2 da AGA3-2 -->
+				<xs:annotation>
+					<xs:documentation>
+						Rugosidade a jusante conforme item 4.2 da AGA3-2.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="PLANEZA_MONTANTE" type="t_valor_decimal_eng_com_incert_aprovado"> <!--Deve ser avaliada conforme item 5.1.3.2 da ISO 5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Planeza da placa conforme item 5.1.3.2 ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="ANGULO_DE_CHANFRO" type="t_valor_decimal_eng_com_incert_aprovado"> <!-- Deve ser avaliada conforme item 5.1.6.2 da ISO 5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Ângulo de chanfro conforme item 5.1.6.2 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ANGULO_BORDA_G" type="t_valor_decimal_eng_com_incert_aprovado"> <!-- ºG Deve ser avaliada conforme item 5.1.7.3 da ISO 5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Ângulo de borda G conforme item 5.1.7.3 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="RAIO_BORDA_G" type="t_valor_decimal_eng_com_incert_aprovado" minOccurs="0"> <!-- Somente deve ser medida caso o diâmetro do orifício for inferior a 25mm, conforme item 5.1.7.2 da ISO 5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Raio medido da Borda G conforme item 5.1.7.2 da ISO 5167, caso o diâmetro do orifício seja menor que 25mm.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="EXCENTRICIDADE" type="t_valor_decimal_eng_com_incert_aprovado" minOccurs="0"> <!-- Deve ser avaliada conforme item 5.1.2.1 da ISO 5167 -->
+				<xs:annotation>
+					<xs:documentation>
+						Excentricidade conforme iten 5.1.2.1 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="BORDA_G_SEM_DANOS" type="t_aprovado"> <!-- Deve ser avaliada conforme item 5.1.7.1 da ISO 5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Borda G sem danos conforme item 5.1.7.1 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="BORDA_G_AFIADA" type="t_aprovado"> <!-- Deve ser avaliada conforme item 5.1.7.2 da ISO 5167-->
+				<xs:annotation>
+					<xs:documentation>
+						Borda G afiada conforme item 5.1.7.2 da ISO 5167.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_dimensional_placa">
+		<!--Definição das informações associadas ao certificado de inspeção de placas de orifício.-->
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="PLACA_ORIFICIO" type="t_placa">
+						<xs:annotation>
+							<xs:documentation>
+								Informações de inspeção dimensional específicas de uma placa de orifício.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_padrao_calibracao_inloco">
+		<xs:sequence>
+			<xs:element name="MEDIDOR_MESTRE" type="t_medidor_mestre" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Medidor mestre utilizado para calibração.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PROVADOR" type="t_provador" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Provador utilizado para calibração.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+
+	<xs:complexType name="t_calibracao_inloco">
+		<xs:sequence>
+			<xs:element name="FAIXA_CALIBRADA" type="t_faixa">
+				<xs:annotation>
+					<xs:documentation>
+						Valores mínimos e máximos de calibração do medidor.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="FATOR_MEDIO_DO_MEDIDOR" type="t_decimal" minOccurs='0'>
+				<xs:annotation>
+					<xs:documentation>
+						Valor Médio do Fator do medidor (Meter Factor) para toda Faixa Calibrada.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="PONTOS_DE_CALIBRACAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DE_CALIBRACAO" type = "t_ponto_calibracao" minOccurs='1' maxOccurs='unbounded'>
+							<xs:annotation>
+								<xs:documentation>
+									Ponto de calibração do medidor em determinada vazão.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_inloco_medidor_vazao">
+		<!--Definição das informações associadas ao certificado de calibração de medidor de vazão inloco.-->
+		<xs:sequence>
+			<xs:element name="NUMERO_CERTIFICADO" type="t_string_nao_vazio">
+				<xs:annotation>
+					<xs:documentation>
+						Número de identificação do certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NUMERO_CERTIFICADO_REVISADO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Número de identificação do certificado que está sendo revisado (versão que antecede imediatamente a versão atual), caso este certificado seja uma revisão. Deve ficar em branco caso não esteja revisando algum certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DATA_EMISSAO" type="xs:date" >
+				<xs:annotation>
+					<xs:documentation>
+						Data de emissão do certificado.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CLIENTE" >
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="AGENTE_REGULADO" type="t_string_nao_vazio" />
+						<xs:element name="CAMPO" type="t_string_nao_vazio" />
+						<xs:element name="UNIDADE" type="t_string_nao_vazio" />
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="TECNICO_RESPONSAVEL" type="t_string_nao_vazio" />
+			<xs:element name="FLUIDO_CALIBRACAO" type="t_fluido">
+				<xs:annotation>
+					<xs:documentation>
+						Informações do fluido utilizado na calibração.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PADRAO_CALIBRACAO" type="t_padrao_calibracao_inloco">
+				<xs:annotation>
+					<xs:documentation>
+						Informações do padrão utilizado para calibração do medidor de vazão.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="MEDIDOR_VAZAO" type="t_medidor_vazao">
+				<xs:annotation>
+					<xs:documentation>
+						Informações do medidor de vazão sendo calibrado.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Informações do arquivo XML.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+
+	<xs:complexType name="t_ponto_calibracao">
+		<!--Definição das informações de corridas de calibração. Todos os resultados asfound e asleft serão declaradas utilizando essa estrutura.-->
+		<xs:sequence>
+			<xs:element name="VAZAO_CALIBRADA" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Vazão de referência para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="TEMPERATURA_MEDIDOR" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Temperatura média de calibração do medidor sendo calibrado para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="TEMPERATURA_PADRAO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Temperatura média de calibração do medidor padrão para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="PRESSAO_MEDIDOR" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Pressão média de calibração do medidor sendo calibrado para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="PRESSAO_PADRAO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Pressão média de calibração do medidor padrão para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="VOLUME_MEDIDOR" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Volume médio de calibração do medidor sendo calibrado para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="VOLUME_PADRAO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Volume médio de calibração do medidor padrão para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="REPETIBILIDADE" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Repetibilidade calculada para o ponto de calibração. Deve-se calcular a repetibilidade considerando apenas o número de corridas sucessivas solicitado pela Petrobras. 
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="DESVIO_MEDIO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Desvio médio/erro sistemático para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="FATOR_DO_MEDIDOR" type="t_valor_decimal_com_incert">
+				<xs:annotation>
+					<xs:documentation>
+						Fator do medidor (Meter Factor) para o respectivo ponto de calibração. Deve-se calcular considerando apenas as corridas utilizadas no cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="QUANTIDADE_DE_CORRIDAS" type="xs:nonNegativeInteger">
+				<xs:annotation>
+					<xs:documentation>
+						Quantidade de corridas consecutivas consideradas para cálculo de repetibilidade.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_calibracao">
+		<xs:sequence>
+			<xs:element name="FAIXA_CALIBRADA" type="t_faixa">
+				<xs:annotation>
+					<xs:documentation>
+						Valores mínimos e máximos de calibração do medidor.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="FATOR_MEDIO_DO_MEDIDOR" type="t_decimal" minOccurs='0'>
+				<xs:annotation>
+					<xs:documentation>
+						Valor Médio do Fator do medidor (Meter Factor) para toda Faixa Calibrada.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>
+			<xs:element name="PONTOS_DE_CALIBRACAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DE_CALIBRACAO" type = "t_ponto_calibracao" minOccurs='1' maxOccurs='unbounded'>
+							<xs:annotation>
+								<xs:documentation>
+									Ponto de calibração do medidor em determinada vazão.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_certificado_calibracao_externa_medidor_vazao">
+		<!--Definição das informações associadas ao certificado de calibração de medidor de vazão em laboratório externo.-->
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="FLUIDO_CALIBRACAO" type="t_fluido">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do fluido utilizado na calibração.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="MEDIDOR_VAZAO" type="t_medidor_vazao">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do medidor de vazão sendo calibrado.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	
+	<xs:complexType name="t_ponto_curva">
+		<!--Definição das informações de um ponto da curva de linearização da calibração.-->
+		<xs:sequence>
+			<xs:element name="VAZAO_CALIBRADA" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Vazão de referência para o ponto da curva de linearização. 
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="FREQUENCIA" type="t_valor_decimal_eng" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Frequência do sinal do medidor de vazão convertida a partir da vazão de referência do ponto da curva de linearização.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="FATOR_DO_MEDIDOR" type="t_decimal">
+				<xs:annotation>
+					<xs:documentation>
+						Fator do medidor (Meter Factor) para o ponto da curva de linearização.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="FATOR_K_DO_MEDIDOR" type="t_valor_decimal_eng" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						K-FACTOR a ser adotado para o ponto da curva de linearização.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+		</xs:sequence>
+	</xs:complexType>
+
+
+
+	<!--Definição das informações associadas à calibração de trena. -->
+	<xs:complexType name="t_ponto_calibracao_trena">
+		<xs:sequence>
+			<xs:element name="VALOR_REFERENCIA" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Valor de referência para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="VALOR_INDICADO" type="t_valor_decimal_eng_com_incert">
+				<xs:annotation>
+					<xs:documentation>
+						Valor indicado para o ponto de calibração. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ERRO" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Erro é a diferença entre o valor indicado e o valor de referência. 
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_calibracao_trena">
+		<xs:sequence>
+			<xs:element name="FAIXA_CALIBRADA" type="t_faixa">
+				<xs:annotation>
+					<xs:documentation>
+						Valores mínimos e máximos de calibração da trena.
+					</xs:documentation>
+				</xs:annotation> 					
+			</xs:element>
+			<xs:element name="PONTOS_DE_CALIBRACAO">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="PONTO_DE_CALIBRACAO" type="t_ponto_calibracao_trena" minOccurs="1" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									Tomada de leitura da trena.
+								</xs:documentation>
+							</xs:annotation> 					
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ERRO_FIDUCIAL" type="t_valor_decimal_eng">
+				<xs:annotation>
+					<xs:documentation>
+						Maior erro de medição do ensaio.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+			<xs:element name="INCERTEZA" type="t_valor_decimal_eng_com_k" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>
+						Maior incerteza de medição do ensaio.
+					</xs:documentation>
+				</xs:annotation> 
+			</xs:element>	
+		</xs:sequence>
+	</xs:complexType>
+
+
+	<xs:complexType name="t_trena">
+		<xs:complexContent>
+			<xs:extension base="t_medidor_N4">
+				<xs:sequence>
+					<xs:element name="CALIBRACAO" type="t_calibracao_trena">
+						<xs:annotation>
+							<xs:documentation>
+								Resultados de calibração.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+
+	<xs:complexType name="t_certificado_calibracao_trena">
+		<!--Definição das informações associadas ao certificado de calibração de trena.-->
+		<xs:complexContent>
+			<xs:extension base="t_certificado">
+				<xs:sequence>
+					<xs:element name="TRENA" type="t_trena">
+						<xs:annotation>
+							<xs:documentation>
+								Informações de calibração específicas de trenas.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+					<xs:element name="XML_GENERATION_INFO" type="t_dados_geracao_xml" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>
+								Informações do arquivo XML.
+							</xs:documentation>
+						</xs:annotation> 					
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	
+
+	<!-- Instâncias
+	Dependendo da ferramenta utilizada para validar algum tipo de arquivo XML, pode ser necessário deixar apenas um elemento sem comentário.
+	-->
+	<xs:element name="CERTIFICADO_INSPECAO_TRECHO_RETO" type="t_certificado_dimensional_trecho"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_PRESSAO" type="t_certificado_calibracao_pressao"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_TEMPERATURA_TE" type="t_certificado_calibracao_temperatura_TE"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_MVS" type="t_certificado_calibracao_mvs"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_INLOCO_MEDIDOR_VAZAO" type="t_certificado_calibracao_inloco_medidor_vazao"/>
+	<xs:element name="CERTIFICADO_INSPECAO_PLACA_ORIFICIO" type="t_certificado_dimensional_placa"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_TEMPERATURA" type="t_certificado_calibracao_temperatura"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO" type="t_certificado_calibracao_externa_medidor_vazao"/>
+	<xs:element name="CERTIFICADO_CALIBRACAO_TRENA" type="t_certificado_calibracao_trena"/>
+
+</xs:schema>

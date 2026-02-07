@@ -239,7 +239,7 @@ def criar_identificacao_instrumento(dados, root):
 
 
     else:
-        bloco = ET.SubElement(root, "INSTRUMENTO_PRESSÃO")
+        bloco = ET.SubElement(root, "INSTRUMENTO_PRESSAO")
         ET.SubElement(bloco, "NUM_SERIE").text = dados.get("sn_instrumento","") if dados else ""
         ET.SubElement(bloco, 'TAG').text = dados.get("tag", "") if dados else ""
         ET.SubElement(bloco, "DESCRICAO").text = dados.get("categoria", "") if dados else ""
@@ -679,30 +679,59 @@ def escrever_indicadores_calibracao(calibracao_el, dados, unidade_eng):
    
 
 def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
-    instrumento = normalizar_categoria(informacoes.get("categoria", "").upper())
+    instrumento = normalizar_categoria(
+        informacoes.get("categoria", "").upper()
+    )
     unidade_eng = obter_unidade_eng(informacoes)
 
-   
-    if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
-        root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA")
-    elif instrumento == 'TERMORRESISTÊNCIA PT-100 - 2 FIOS' or instrumento == 'TERMORRESISTÊNCIA PT-100 - 3 FIOS'or instrumento == 'TERMORRESISTÊNCIA PT-100 - 4 FIOS': 
-        root = ET.Element("CERTIFICADO_CALIBRACAO_TEMPERATURA_TE")
-    else:
-        root = ET.Element("CERTIFICADO_CALIBRACAO_PRESSAO")
+    NAMESPACE = "http://www.petrobras.com.br/schema/certificado"
+    XSI = "http://www.w3.org/2001/XMLSchema-instance"
 
-    # Blocos iguais   
-    criar_identificacao_certificado(root,informacoes)
+    ET.register_namespace("", NAMESPACE)
+    ET.register_namespace("xsi", XSI)
+
+    if instrumento in (
+        "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TERMÔMETRO ANALÓGICO",
+        "TERMÔMETRO DIGITAL",
+    ):
+        root_tag = "CERTIFICADO_CALIBRACAO_TEMPERATURA"
+
+    elif instrumento in (
+        "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
+        "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
+    ):
+        root_tag = "CERTIFICADO_CALIBRACAO_TEMPERATURA_TE"
+
+    else:
+        root_tag = "CERTIFICADO_CALIBRACAO_PRESSAO"
+
+    root = ET.Element(
+        f"{{{NAMESPACE}}}{root_tag}",
+        {
+            f"{{{XSI}}}schemaLocation":
+                f"{NAMESPACE} PetrobrasSchemaV3.0.0.xsd"
+        }
+    )
+
+    criar_identificacao_certificado(root, informacoes)
     root.append(criar_laboratorio())
     root.append(criar_cliente(informacoes))
     sig_ex(root, informacoes)
     root.append(criar_condicoes_ambientais(informacoes))
-    root.append(criar_identificacao_padroes(informacoes))    
+    root.append(criar_identificacao_padroes(informacoes))
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
     criar_identificacao_instrumento(informacoes, root)
-    criar_data_calibracao(root,informacoes)
-    
-    escrever_pontos_calibracao(informacoes,pontos,root,unidade_eng)
+    criar_data_calibracao(root, informacoes)
+
+    escrever_pontos_calibracao(
+        informacoes,
+        pontos,
+        root,
+        unidade_eng
+    )
 
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)
@@ -713,4 +742,3 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
         f.write(pretty_xml)
 
     return caminho_saida
-
