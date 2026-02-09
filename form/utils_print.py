@@ -1,6 +1,7 @@
 from form.utils_print_PRIO import gerar_ac_prio
 from form.utils_print_ORIGEM import gerar_ac_origem
 from form.utils_print_YINSON import gerar_ac_yinson
+from form.utils_print_YINSON_ATLANTA import gerar_ac_yinson_atlanta
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from pathlib import Path
@@ -9,19 +10,32 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     dados_pdf = dados
 
     cliente = dados.get("cliente", "").upper()
+    local = dados.get("local", "").upper()
     if "ORIGEM ENERGIA ALAGOAS S.A." in cliente:
         print(">>> GERANDO AC ORIGEM <<<")
         dados_pdf = dados
-        return gerar_ac_origem(dados_pdf, caminho_pdf_atual) 
-    elif "YINSON" in cliente :
+        return gerar_ac_origem(dados_pdf, caminho_pdf_atual)
+    
+    elif "YINSON" in cliente and "atlanta" not in local.lower():
         print(">>> GERANDO AC YINSON <<<")
         dados_pdf = dados
-        gerar_xml_certificado(
-                        dados_pdf,
-                        dados_xml_petro,
-                        Path(caminho_pdf_atual).with_suffix(".xml"),
-                    )
+        # gerar_xml_certificado(
+        #                 dados_pdf,
+        #                 dados_xml_petro,
+        #                 Path(caminho_pdf_atual).with_suffix(".xml"),
+        #             )
         return gerar_ac_yinson(dados_pdf, caminho_pdf_atual)
+    elif "YINSON" in cliente and local == "FPSO ATLANTA":
+        print(">>> GERANDO AC YINSON - FPSO ATLANTA <<<")
+        dados_pdf = dados
+        # gerar_xml_certificado(
+        #                 dados_pdf,
+        #                 dados_xml_petro,
+        #                 Path(caminho_pdf_atual).with_suffix(".xml"),
+        #             )
+        return gerar_ac_yinson_atlanta(dados_pdf, caminho_pdf_atual)
+    
+    
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
         gerar_xml_calibracao(
