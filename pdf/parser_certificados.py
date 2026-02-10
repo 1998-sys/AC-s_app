@@ -512,11 +512,21 @@ def extrair_tipo_sensor(texto):
 
     return None
 
+def extrair_codigo_ods(certificado: str) -> str | None:
+    if not certificado:
+        return None
+
+    padrao = r"ODS\s*[‐-–—-]\s*(\d+)"
+    m = re.search(padrao, certificado.upper())
+    return m.group(1) if m else None
+
+
 def extrair_campos(texto: str) -> dict:
     tag = extrair_tag(texto)
     tag_sen = extrair_tag_sensor(texto)
     sn_inst, sn_sensor = extrair_sn(texto)
     certificado = extrair_certificado(texto)
+    cod = extrair_codigo_ods(extrair_certificado(texto))
     categoria = extrair_categoria_intrumento(texto)
     calibration_loc = calibration_location(texto)
     data_cal, report_date = extrair_datas(texto)
@@ -545,6 +555,7 @@ def extrair_campos(texto: str) -> dict:
         "tag_sensor": tag_sen,
         "tipo_sensor": tip_sens,
         "certificado": certificado,
+        "cod_certificado": cod,
         "categoria": categoria,
         'cliente': cliente,
         "local_calibracao": calibration_loc,

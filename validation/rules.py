@@ -523,7 +523,6 @@ CMC_REGRAS = {
 
 
 
-
 def regra_cmc(ctx):
     tag = ctx.pdf.get("tag")
     categoria = ctx.pdf.get("categoria")
@@ -608,3 +607,4 @@ def regra_cmc(ctx):
 
         return None
     
+
