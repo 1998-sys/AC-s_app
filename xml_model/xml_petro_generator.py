@@ -728,15 +728,6 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
     criar_identificacao_instrumento(informacoes, pontos, root)
-    # criar_data_calibracao(root, informacoes)
-
-    # escrever_pontos_calibracao(
-    #     informacoes,
-    #     pontos,
-    #     root,
-    #     unidade_eng
-    # )
-
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)
     pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
