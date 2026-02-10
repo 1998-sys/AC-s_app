@@ -22,7 +22,7 @@ try:
         atualizar_sn_sensor,
         atualizar_range
     )
-    from form.utils_print import gerar_ac_escolha
+    from form.utils_print import gerar_ac_escolha , obter_caminho_ac
     from validation.engine import ValidationEngine
     from validation.context import ValidationContext
 except ImportError as e:
@@ -175,7 +175,14 @@ class App(ctk.CTk):
             font=(FONT_FAMILY, 10)
         ).pack(expand=True)
 
-    
+    def confirmar_sobrescrita(self, caminho_pdf):
+        if not os.path.exists(caminho_pdf):
+            return True
+
+        return messagebox.askyesno(
+            "Arquivo já existe",
+            f"O arquivo abaixo já existe:\n\n{os.path.basename(caminho_pdf)}\n\nDeseja sobrescrever?"
+        )
     def selecionar_pdf(self):
         caminho = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
         if not caminho: return
@@ -305,8 +312,24 @@ class App(ctk.CTk):
                 if issue.blocking: ok = False; break
         if ok:
             try:
-                gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual, self.pontos_calibracao, self.certificado_te_atual, self.pontos_calibracao_petro)
-                
+                caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
+
+                if not self.confirmar_sobrescrita(caminho_ac):
+                        messagebox.showinfo(
+                            "Operação cancelada",
+                            "A Análise Crítica não foi sobrescrita."
+                        )
+                        self.exibir_resultado(dados_pdf, registro)
+                        return
+
+                gerar_ac_escolha(
+                        dados_pdf,
+                        self.caminho_pdf_atual,
+                        self.pontos_calibracao,
+                        self.certificado_te_atual,
+                        self.pontos_calibracao_petro
+                    )
+
                 messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
                 if "TT" in dados_pdf.get("tag", "").upper():
                     self.certificado_te_atual = None
