@@ -202,19 +202,21 @@ def observacoes():
     ET.SubElement(bloco, "OBSERVACAO").text = "A reprodução deste documento somente poderá ser feita integralmente, sem qualquer alteração."
     return bloco
 
-def criar_identificacao_instrumento(dados, root):
+def criar_identificacao_instrumento(dados, pontos ,root):
+    informações = dados
     instrumento = normalizar_categoria(dados.get("categoria", "").upper())
     sn_sensor = dados.get("sn_sensor", "")
     if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
+        bloco_instr = ET.SubElement(root, "INSTRUMENTO_TEMPERATURA")
         if sn_sensor != None:
-            bloco_s = ET.SubElement(root,"ELEMENTO_SENSOR")
+            bloco_s = ET.SubElement(bloco_instr,"ELEMENTO_SENSOR")
             ET.SubElement(bloco_s,'NUM_SERIE').text = dados.get("sn_sensor","") if dados else ""
             ET.SubElement(bloco_s, "TAG").text = dados.get("tag_sensor", "") if dados else ""
             ET.SubElement(bloco_s, "DESCRICAO").text = dados.get('tipo_sensor', "") if dados else ""
             ET.SubElement(bloco_s, "COMPRIMENTO", UNIDADE_ENG='mm').text = "NI"
             ET.SubElement(bloco_s, 'DIAMETRO', UNIDADE_ENG='mm').text = "NI"
 
-        bloco_t = ET.SubElement(root,"TRANSMISSOR")
+        bloco_t = ET.SubElement(bloco_instr,"TRANSMISSOR")
         ET.SubElement(bloco_t, "NUM_SERIE").text = dados.get('sn_instrumento') if dados else ""
         ET.SubElement(bloco_t, "TAG").text = dados.get('tag') if dados else ""
         ET.SubElement(bloco_t, 'DESCRICAO').text = dados.get('categoria', "") if dados else ""
@@ -226,7 +228,11 @@ def criar_identificacao_instrumento(dados, root):
         max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="°C")
         max_el.text = str(dados.get("inmax_range", "")) if dados else ""
 
-        return 
+        criar_data_calibracao(bloco_instr, informações)
+        escrever_pontos_calibracao(informações, pontos, bloco_instr, obter_unidade_eng(dados))
+
+
+        
 
 
     elif instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
@@ -236,6 +242,8 @@ def criar_identificacao_instrumento(dados, root):
         ET.SubElement(bloco, "DESCRICAO").text = dados.get("categoria", "") if dados else ""
         ET.SubElement(bloco, "COMPRIMENTO", UNIDADE_ENG='mm').text = str(dados.get("rod_length")) if dados else ""
         ET.SubElement(bloco, 'DIAMETRO', UNIDADE_ENG='mm').text = str(dados.get('probe_diameter') if dados else "")
+        criar_data_calibracao(bloco, informações)
+        escrever_pontos_calibracao(informações, pontos, bloco, obter_unidade_eng(dados))
 
 
     else:
@@ -250,6 +258,8 @@ def criar_identificacao_instrumento(dados, root):
         min_el.text = str(dados.get("inmin_range", "")) if dados else ""
         max_el = ET.SubElement(faixa, "MAX", UNIDADE_ENG="kPa")
         max_el.text = str(dados.get("inmax_range", "")) if dados else ""
+        criar_data_calibracao(bloco, informações)
+        escrever_pontos_calibracao(informações, pontos, bloco, obter_unidade_eng(dados))
         
 
 # FAIXA NOMINNAL
@@ -684,11 +694,11 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     )
     unidade_eng = obter_unidade_eng(informacoes)
 
-    NAMESPACE = "http://www.petrobras.com.br/schema/certificado"
-    XSI = "http://www.w3.org/2001/XMLSchema-instance"
+    NAMESPACE = "http://Petrobras/Medicao/Calibracao"
+    
 
-    ET.register_namespace("", NAMESPACE)
-    ET.register_namespace("xsi", XSI)
+    ET.register_namespace("cal", NAMESPACE)
+    
 
     if instrumento in (
         "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
@@ -707,13 +717,7 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     else:
         root_tag = "CERTIFICADO_CALIBRACAO_PRESSAO"
 
-    root = ET.Element(
-        f"{{{NAMESPACE}}}{root_tag}",
-        {
-            f"{{{XSI}}}schemaLocation":
-                f"{NAMESPACE} PetrobrasSchemaV3.0.0.xsd"
-        }
-    )
+    root = ET.Element(f"{{{NAMESPACE}}}{root_tag}")
 
     criar_identificacao_certificado(root, informacoes)
     root.append(criar_laboratorio())
@@ -723,15 +727,15 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     root.append(criar_identificacao_padroes(informacoes))
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
-    criar_identificacao_instrumento(informacoes, root)
-    criar_data_calibracao(root, informacoes)
+    criar_identificacao_instrumento(informacoes, pontos, root)
+    # criar_data_calibracao(root, informacoes)
 
-    escrever_pontos_calibracao(
-        informacoes,
-        pontos,
-        root,
-        unidade_eng
-    )
+    # escrever_pontos_calibracao(
+    #     informacoes,
+    #     pontos,
+    #     root,
+    #     unidade_eng
+    # )
 
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)

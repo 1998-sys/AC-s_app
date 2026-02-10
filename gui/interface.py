@@ -306,18 +306,6 @@ class App(ctk.CTk):
         if ok:
             try:
                 gerar_ac_escolha(dados_pdf, self.caminho_pdf_atual, self.pontos_calibracao, self.certificado_te_atual, self.pontos_calibracao_petro)
-                # cliente = (dados_pdf.get("cliente") or "").upper()
-
-                # if "PRIO" in cliente:
-                #     caminho_xml = Path(str(caminho_ac).replace("_AC", "")).with_suffix(".xml")
-                    
-                #     gerar_xml_calibracao(
-                #         dados_pdf,
-                #         self.pontos_calibracao,
-                #         str(caminho_xml),
-                #         self.certificado_te_atual
-                #     )
-        
                 
                 messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
                 if "TT" in dados_pdf.get("tag", "").upper():

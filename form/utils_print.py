@@ -19,11 +19,11 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     elif "YINSON" in cliente and "atlanta" not in local.lower():
         print(">>> GERANDO AC YINSON <<<")
         dados_pdf = dados
-        # gerar_xml_certificado(
-        #                 dados_pdf,
-        #                 dados_xml_petro,
-        #                 Path(caminho_pdf_atual).with_suffix(".xml"),
-        #             )
+        gerar_xml_certificado(
+                        dados_pdf,
+                        dados_xml_petro,
+                        Path(caminho_pdf_atual).with_suffix(".xml"),
+                    )
         return gerar_ac_yinson(dados_pdf, caminho_pdf_atual)
     elif "YINSON" in cliente and local == "FPSO ATLANTA":
         print(">>> GERANDO AC YINSON - FPSO ATLANTA <<<")
