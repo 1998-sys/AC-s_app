@@ -11,10 +11,6 @@ from pdf.parser_certificados import extrair_categoria_intrumento
 
 
 
-# =====================================================
-# CONVERSÕES
-# =====================================================
-
 def normalizar_categoria(txt: str) -> str:
     if not txt:
         return ""
@@ -87,9 +83,6 @@ def pegar_primeiro_valor(valor):
     return str(valor).split("/")[0].strip()
 
 
-# =====================================================
-# EXTRAÇÃO PDF
-# =====================================================
 
 def extrair_texto_pagina(pdf, indice):
     try:
@@ -139,9 +132,6 @@ def classificar_tabelas(tabelas):
     return classificacao
 
 
-# =====================================================
-# AJUSTES POR CATEGORIA
-# =====================================================
 
 def ajustar_transmissor_pressao_eletrico(categoria, tabelas):
     resultado = {"categoria": categoria}
@@ -350,9 +340,7 @@ def ajustar_termometro_digital_analogico(categoria, tabelas):
         idx += 1
 
     return resultado
-# =====================================================
-# PROCESSAMENTO PRINCIPAL
-# =====================================================
+
 
 def processar_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -401,10 +389,3 @@ def processar_pdf(pdf_path):
             raise ValueError(f"Categoria não suportada: {categoria}")
 
 
-# =====================================================
-# TESTE
-# =====================================================
-
-#caminho_pdf = "xml_model\\ACID GAS VENT\\26-ODS-95-PRE-015-28PT3507.pdf"
-#resultado = processar_pdf(caminho_pdf)
-#print(resultado)

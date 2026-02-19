@@ -183,6 +183,7 @@ class App(ctk.CTk):
             "Arquivo já existe",
             f"O arquivo abaixo já existe:\n\n{os.path.basename(caminho_pdf)}\n\nDeseja sobrescrever?"
         )
+    
     def selecionar_pdf(self):
         caminho = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
         if not caminho: return

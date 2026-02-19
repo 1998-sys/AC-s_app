@@ -1,5 +1,7 @@
 from validation.issue import ValidationIssue
+from datetime import datetime, timedelta
 import unicodedata
+import holidays
 from data.utils_db import (
     atualizar_sn,
     atualizar_sn_sensor,
@@ -47,6 +49,22 @@ def to_float(value):
     except Exception:
         return None
 
+def contar_dias_uteis(data_inicial, data_final):
+    br_feriados = holidays.Brazil()
+
+    dias_uteis = 0
+    data_atual = data_inicial
+
+    while data_atual < data_final:
+        data_atual += timedelta(days=1)
+
+        if (
+            data_atual.weekday() < 5  # Segunda a sexta
+            and data_atual.date() not in br_feriados
+        ):
+            dias_uteis += 1
+
+    return dias_uteis
 
 # TAG vs SN (MVS ou divergente)
 def regra_tag_vs_sn(ctx):
@@ -267,7 +285,6 @@ def regra_local_fpso(ctx):
         message=f"Verifique o local informado: ({ctx.pdf.get('local')})",
         blocking=True
     )
-
 
 # RANGE indicado x calibrado
 def regra_rangein(ctx):
@@ -522,7 +539,6 @@ CMC_REGRAS = {
     }
 
 
-
 def regra_cmc(ctx):
     tag = ctx.pdf.get("tag")
     categoria = ctx.pdf.get("categoria")
@@ -607,4 +623,95 @@ def regra_cmc(ctx):
 
         return None
     
+
+def regra_classe(ctx):
+    classe_raw = ctx.pdf.get("classe")
+    if not classe_raw or classe_raw == "NA":
+        return None
+    classe = classe_raw.strip().upper().replace(" ", "")
+
+    classes_validas = [
+        "FISCAL",
+        "APROPRIAÇÃO",
+        "TRANSFERÊNCIADECUSTÓDIA",
+        "OPERACIONAL"
+    ]
+
+    if classe not in classes_validas:
+        return ValidationIssue(
+            key="classe_invalida",
+            title="Classe inválida",
+            message=f"Classe informada nao compatível: {classe_raw}",
+            blocking=True
+        )
+
+    return None
+
+
+def data_proxcal(ctx):
+    data_atual_str = ctx.pdf.get("data")
+    data_prox_cal_str = ctx.pdf.get("proxima_cal")
+
+    if not data_prox_cal_str:
+        return None
+
+    try:
+        data_atual = datetime.strptime(data_atual_str, "%d/%m/%Y")
+        data_prox_cal = datetime.strptime(data_prox_cal_str, "%d/%m/%Y")
+    except ValueError:
+        return None
+
+    if data_prox_cal < data_atual:
+        return ValidationIssue(
+            key="data_proxima_calibracao",
+            title="Data de próxima calibração inválida",
+            message=(
+                f"Data de calibração: {data_atual_str}\n"
+                f"Data de próxima calibração: {data_prox_cal_str}\n\n"
+                "A data de próxima calibração não pode ser anterior à data de calibração."
+            ),
+            blocking=True
+        )
+    return None
+
+
+def prazo_emissao(ctx):
+    data_cal_str = ctx.pdf.get("data")
+    data_emissao_str = ctx.pdf.get("report_date")
+    cliente = ctx.pdf.get("cliente").upper()
+
+    if not data_cal_str or not data_emissao_str or not cliente:
+        return None
+
+    try:
+        data_cal = datetime.strptime(data_cal_str, "%d/%m/%Y")
+        data_emissao = datetime.strptime(data_emissao_str, "%d/%m/%Y")
+    except ValueError:
+        return None
+
+    if cliente == "PRIO":
+        prazo = 3
+    elif cliente in ["YINSON", "ORIGEM ENERGIA ALAGOAS S.A."]:
+        prazo = 10
+    else:
+        return None  
+
+    dias_uteis = contar_dias_uteis(data_cal, data_emissao)
+    print(dias_uteis)
+
+    if dias_uteis > prazo:
+        return ValidationIssue(
+            key="prazo_emissao",
+            title="Prazo de emissão excedido",
+            message=(
+                f"Cliente: {cliente}\n"
+                f"Data calibração: {data_cal_str}\n"
+                f"Data emissão: {data_emissao_str}\n"
+                f"Dias úteis decorridos: {dias_uteis}\n\n"
+                f"O prazo máximo permitido é de {prazo} dias úteis."
+            ),
+            blocking=True
+        )
+
+    return None
 

@@ -5,3 +5,4 @@ venv/
 instrumentos.db
 build/
 dist/
+pdf_primario_terc/

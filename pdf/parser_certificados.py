@@ -8,8 +8,15 @@ def calibration_location(texto):
     return m.group(1).strip() if m else None
 
 def extrair_categoria_intrumento(texto):
-    padrão = r"Objeto da Calibração\s*:\s*([^\n\r]+)"
-    m = re.search(padrão, texto)
+    padrao = r"Objeto da Calibração\s*:\s*([^\n\r]+)"
+    m = re.search(padrao, texto, re.IGNORECASE)
+    valor = m.group(1).strip() if m else ""
+    return valor if valor else "NA"
+
+
+def extrair_metering_class(texto):
+    padrao = r"Metering\s*Class:\s*(.*?)\s*(?=System\s*Description:|[\r\n]|$)"
+    m = re.search(padrao, texto, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
 def extrair_curva_calibracao(texto):
@@ -113,6 +120,17 @@ def extrair_datas(texto):
         m_cal.group(2) if m_cal else None,
         m_rep.group(2) if m_rep else None
     )
+
+
+def data_proxima_calibracao(texto):
+    padrao = (
+        r"(Next\s*Calibration|Próxima\s*Calibração)\s*:\s*"
+        r"(\d{2}/\d{2}/\d{4})"
+    )
+
+    m = re.search(padrao, texto, flags=re.IGNORECASE)
+
+    return m.group(2) if m else None
 
 def extrair_nome_cliente(texto):
     m = re.search(
@@ -530,7 +548,9 @@ def extrair_campos(texto: str) -> dict:
     categoria = extrair_categoria_intrumento(texto)
     calibration_loc = calibration_location(texto)
     data_cal, report_date = extrair_datas(texto)
+    prox_cal = data_proxima_calibracao(texto)
     local = extrair_local(texto)
+    cla = extrair_metering_class(texto)
     sistema = extrair_sistema(texto)
     resolucao=extrair_resolucao(texto)
     min_range, max_range = extrair_range_calibrado(texto)
@@ -560,8 +580,10 @@ def extrair_campos(texto: str) -> dict:
         'cliente': cliente,
         "local_calibracao": calibration_loc,
         "data": data_cal,
+        "proxima_cal": prox_cal,
         "local": local,
         "sistema": sistema,
+        "classe": cla,
         "report_date": report_date,
         "min_range": min_range,
         "max_range": max_range,
