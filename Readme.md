@@ -31,16 +31,20 @@ Software desenvolvido para **analisar certificados de calibração (PDF)** de in
   - Diâmetro e comprimento da haste  
   - Localização  
   - Range de calibração e range indicado  
-  - Erro fiducial e incerteza global (PT e DPT)  
+  - Erro fiducial e incerteza global (PT e DPT) 
+  - CMC
+  - Classificação (FISCAL, APROPRIAÇÃO, TRASNFERÊNCIA DE CUSTÓDIA, OPERACIONAL) - EXCLUSIVO CERTIFICADO PRIO
+  - VALIDAÇÃO PRÓXIMA DATA DE CALIBRAÇÃO - EXCLUSIVO CERTIFICADO PRIO
+  - VALIDAÇÃO DO PRAZO DE EMISSÃO DO CERTIFICADO DE ACORDO COM AS REGRAS DO CLIENTE.
 
 - 🔄 Atualização automática do banco quando autorizada  
 - ✍️ Atualização manual via interface gráfica  
-- 📑 Geração automática da **Análise Crítica (PDF)**  
+- 📑 Geração automática da **Análise Crítica (PDF)**  (PRIO, ORIGEM, YINSON)
   - Utiliza o template `TemplateAC.xlsx`  
   - Exporta para PDF via Excel  
 
 - 🧾 Geração automática do **XML**
-  - Preenchimento do modelo XML com dados do certificado e do instrumento  
+  - Preenchimento do modelo XML com dados do certificado e do instrumento (PRIO E PETROBRAS)  
 
 ---
 
