@@ -13,7 +13,6 @@ def extrair_categoria_intrumento(texto):
     valor = m.group(1).strip() if m else ""
     return valor if valor else "NA"
 
-
 def extrair_metering_class(texto):
     padrao = r"Metering\s*Class:\s*(.*?)\s*(?=System\s*Description:|[\r\n]|$)"
     m = re.search(padrao, texto, re.IGNORECASE)
@@ -121,7 +120,6 @@ def extrair_datas(texto):
         m_rep.group(2) if m_rep else None
     )
 
-
 def data_proxima_calibracao(texto):
     padrao = (
         r"(Next\s*Calibration|Próxima\s*Calibração)\s*:\s*"
@@ -174,7 +172,6 @@ def extrair_sistema(texto):
 
     sistema = re.sub(r"\s+", " ", m.group(1)).strip()
 
-    # 🔒 remove Periodicity / Periodicidade se vier colado no sistema
     sistema = re.sub(
         r"\b(Periodicity|Periodicidade)\b.*$",
         "",
@@ -439,7 +436,14 @@ MAPA_PROCEDIMENTOS = [{
     "categorias": [ "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS", 'Termorresistência PT-100 - 4 Fios'],
     "procedimento": "7.2 TM-006 Thermoresistances",
     "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no bloco seco e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas. A calibração foi realizado conforme procedimento 7.2 TM-006 Thermoresistances, no qual esta de acordo aos requisitos da norma  NBR 13772"
-}]
+},
+{
+    "categorias": ['PLACA DE ORIFICIO'],
+    "procedimento": "TM-003 Dimensional Measurement",
+    "descricao": "As medições foram relizadas através da comparação direta utilizando-se equipamentos de medição convencionais. Os parâmetros e a quantidade de medições executadas no artefato estão em conformidade com TM-003 Dimensional Measurement, baseado na AGA 3, Parte 2, de 2000"
+},
+
+]
 
 def obter_procedimento_por_categoria(categoria_instrumento):
     if not categoria_instrumento:

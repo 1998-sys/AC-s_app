@@ -679,6 +679,8 @@ def prazo_emissao(ctx):
     data_cal_str = ctx.pdf.get("data")
     data_emissao_str = ctx.pdf.get("report_date")
     cliente = ctx.pdf.get("cliente").upper()
+    certificado = ctx.pdf.get("certificado").upper().replace(" ", "")
+   
 
     if not data_cal_str or not data_emissao_str or not cliente:
         return None
@@ -699,7 +701,7 @@ def prazo_emissao(ctx):
     dias_uteis = contar_dias_uteis(data_cal, data_emissao)
     print(dias_uteis)
 
-    if dias_uteis > prazo:
+    if dias_uteis > prazo and "REV" not in certificado:
         return ValidationIssue(
             key="prazo_emissao",
             title="Prazo de emissão excedido",

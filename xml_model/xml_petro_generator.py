@@ -303,7 +303,7 @@ def criar_identificacao_padroes(dados=None):
 
         cert = ET.SubElement(padrao, "CERTIFICADO_PADRAO")
 
-        ET.SubElement(cert, "LABORATORIO").text = "NI" # Essa informação não está no PDF
+        ET.SubElement(cert, "LABORATORIO").text = p.get('procedimento_calib', '')
 
         ET.SubElement(cert, "NUMERO_CERTIFICADO").text = p.get("certificado", "")
 

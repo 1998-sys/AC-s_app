@@ -1,0 +1,82 @@
+import re
+from pdf.extrator import extrair_texto
+from pdf.parser_certificados import (extrair_certificado, extrair_datas, extrair_nome_cliente, endereco_cliente, extrair_local,
+SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_ambientais, extrair_padroes, extrair_sn,
+extrair_tag, obter_procedimento_por_categoria)
+
+
+texto = extrair_texto("pdf\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf")
+
+def extrair_item(texto):
+   
+    matches = re.findall(r'Item:\s*(.+)', texto, re.IGNORECASE)
+    if not matches:
+        return None
+    if len(matches) >= 2:
+        return matches[1].strip()
+    return matches[0].strip()
+
+def material(texto):
+    padrao = r"Material:[ \t]*([^\n\r-]+)"
+    matches = re.findall(padrao, texto)
+    return matches[-1].strip() if matches else None
+
+def coeficiente_dilatacao(texto):
+    padrao = r"Coefficient:\s*([0-9.,]+)"
+    m = re.search(padrao, texto, re.IGNORECASE)
+    
+    if m:
+        valor = m.group(1).strip()
+        return valor.replace(",", ".")
+    
+    return None
+
+def diametro_tubo(texto):
+    padrao = r"Nominal Pipe Ø \(Dm\):[ \t]*([0-9]+[.,][0-9]+)"
+    m = re.search(padrao, texto)
+    
+    if m:
+        valor = m.group(1).strip()
+        return valor.replace(",", ".")
+    
+    return None
+
+
+
+def extrair_campos_po(texto):
+    inst = extrair_item(texto)
+    certificado = extrair_certificado(texto)
+    data_cal, report_date = extrair_datas(texto)
+    nome_cliente = extrair_nome_cliente(texto)
+    endereco_cli = endereco_cliente(texto)
+    unidade = extrair_local(texto)
+    exec_sig = separar_signatario(extrair_assinaturas(texto), SIGNATARIOS_VALIDOS)
+    cond_amb = extrair_condicoes_ambientais(texto)
+    padroes = extrair_padroes(texto)
+    sn_inst, _ = extrair_sn(texto)
+    tag = extrair_tag(texto)
+    material_placa = material(texto)
+    coef = coeficiente_dilatacao(texto)
+    diametro_t = diametro_tubo(texto)
+    procediment = obter_procedimento_por_categoria(inst)
+
+    return {
+        'certificado': certificado,
+        'instrumento': inst,
+        'data_calibracao': data_cal,
+        'report_date': report_date,
+        'cliente': nome_cliente,
+        'endereco_cliente': endereco_cli,
+        'local': nome_cliente,
+        'exec_sig': exec_sig,
+        'cond_amb': cond_amb,
+        'padroes_utilizados': padroes,
+        'sn_inst': sn_inst,
+        'tag': tag,
+        'material': material_placa,
+        'coef': coef,
+        'norma': 'ISO 5167-2:2022',
+        'diametro_tubo': diametro_t,
+        'procedimento': procediment
+    }
+
