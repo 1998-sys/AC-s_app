@@ -1,6 +1,6 @@
 import re
 from pdf.extrator import extrair_texto
-
+from xml_model.xml_generator import normalizar_certificado
 
 texto = extrair_texto("xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf")
 
@@ -38,6 +38,26 @@ def extrair_valores_d(texto_pdf: str):
     }
 
     return resultados
+
+
+
+
+
+def extrair_numero_evaluation(texto_pdf: str):
+    padrao = re.compile(
+        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.0]?\s*([A-Z0-9\- ]+?)\s*-?\s*ER\b',
+        flags=re.IGNORECASE
+    )
+
+    match = padrao.search(texto_pdf)
+
+    if match:
+        numero = match.group(1).strip()
+        numero = normalizar_certificado(numero)
+        return numero
+
+    return None
+
 
 def extrair_beta(texto_pdf: str) -> str:
     padrao = re.compile(
@@ -244,6 +264,7 @@ def extrair_valores_e(texto_pdf: str):
     return resultados
 
 def extrair_campos_er(texto):
+    num_er = extrair_numero_evaluation(texto)
     result_diam = resultado_diametro(texto)
     valores_diam = extrair_valores_d(texto)
     bt=extrair_beta(texto)
@@ -258,6 +279,7 @@ def extrair_campos_er(texto):
     valores_esp_e = extrair_valores_e(texto)
    
     return {
+        'Numero_Evaluation': num_er,
         'Diametro_Interno': result_diam,
         'valores_d_interno': valores_diam,
         'Beta': bt,

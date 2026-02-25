@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from xml_model.xml_generator import normalizar_certificado
 
 
 def calibration_location(texto):
@@ -102,7 +103,7 @@ def extrair_sn(texto):
 
 def extrair_certificado(texto):
     m = re.search(r"Nº\s*([^\n]+)", texto)
-    return m.group(1).strip() if m else None
+    return normalizar_certificado(m.group(1).strip()) if m else None
 
 def extrair_datas(texto):
     m_cal = re.search(
