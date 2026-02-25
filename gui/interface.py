@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 from pdf.utils_parser import select_extract
 from core.dispatcher import Dispatcher
+import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -23,6 +24,7 @@ try:
         atualizar_sn_sensor,
         atualizar_range
     )
+    from xml_model.xml_extractor_PO import extrair_valores_medidos
     from xml_model.xml_petro_po import gerar_xml_certificado_po
     from form.utils_print import gerar_ac_escolha , obter_caminho_ac
     from validation.engine import ValidationEngine
@@ -203,12 +205,13 @@ class App(ctk.CTk):
     def _processar_pdf_thread(self, caminho):
         try:
             dados_pdf, tipo = select_extract(caminho)
-
-        # Envia para o dispatcher
             self.dispatcher.dispatch(tipo, caminho, dados_pdf)
 
+        
         except Exception as e:
-            self.after(0, lambda: messagebox.showerror("Erro no PDF", str(e)))
+            traceback.print_exc()  # mostra erro REAL no console
+            self.after(0, lambda e=e: messagebox.showerror("Erro no PDF", str(e)))
+
         
     def solicitar_dados_origem(self, dados_pdf, callback):
         win = ctk.CTkToplevel(self)
@@ -298,11 +301,11 @@ class App(ctk.CTk):
             tag = tag.upper()
             dados_pdf["tag"] = tag
         else:
-            # 🔹 Para placa, normaliza se existir (mas não bloqueia)
+           
             if tag:
                 dados_pdf["tag"] = tag.upper()
 
-        # 🔹 Busca somente se for secundário
+        
         registro = None
         reg_sn = None
         if not is_placa:
@@ -312,7 +315,7 @@ class App(ctk.CTk):
         if tag_te(dados_pdf.get("tag")):
             self.certificado_te_atual = normalizar_certificado(dados_pdf.get("certificado"))
 
-        # 🔹 Criação do contexto
+        
         ctx = ValidationContext(
             dados_pdf=dados_pdf,
             registro=registro,
@@ -344,9 +347,6 @@ class App(ctk.CTk):
 
         if ok:
             try:
-                # =========================
-                # 🔵 FLUXO PLACA
-                # =========================
                 if tipo_instrumento == "placa_orificio":
                     if not self.caminho_pdf_atual:
                         messagebox.showerror("Erro", "Caminho do PDF não encontrado para gerar XML.")
@@ -355,18 +355,14 @@ class App(ctk.CTk):
                     caminho_saida = self.caminho_pdf_atual.replace(".pdf", ".xml")
                     gerar_xml_certificado_po(
                         informacoes=dados_pdf,
-                        valores_medidos=self.dados_certificado_atual,
+                        valores_medidos=extrair_valores_medidos(self.caminho_pdf_atual),
                         valores_er=self.dados_report_atual,
                         caminho_saida=caminho_saida
                     )
                     messagebox.showinfo("Sucesso", "XML da Placa de Orifício gerado com sucesso!")
-
-                    # ✅ Resetar variável de placa para o próximo certificado
                     self.dados_report_atual = None
 
-                # =========================
-                # 🟢 FLUXO SECUNDÁRIO
-                # =========================
+                
                 else:
                     caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
                     if not self.confirmar_sobrescrita(caminho_ac):

@@ -1,4 +1,4 @@
-from validation.rules import (
+from validation.rules_sec import (
     regra_tag_vs_sn,
     regra_novo_instrumento,
     regra_sn_instrumento,
@@ -22,10 +22,8 @@ from validation.rules import (
 class ValidationEngine:
     def __init__(self):
 
-        # 🔹 Reservado para o futuro
         self.common_rules = []
 
-        # 🔹 Regras de secundário (seu conjunto atual)
         self.secundario_rules = [
             regra_tag_vs_sn,
             regra_novo_instrumento,
@@ -42,22 +40,22 @@ class ValidationEngine:
             prazo_emissao
         ]
 
-        # 🔹 Regras exclusivas de placa
+   
         self.placa_rules = [
-            # adicionar aqui
+        
         ]
 
     def run(self, context):
         issues = []
 
-        # Sempre começa com common (mesmo vazio)
+        
         rules_to_run = list(self.common_rules)
 
-        # Seleção por tipo
+      
         if context.tipo_instrumento == "placa_orificio":
             rules_to_run += self.placa_rules
         else:
-            # fallback padrão = secundário
+            
             rules_to_run += self.secundario_rules
 
         for rule in rules_to_run:

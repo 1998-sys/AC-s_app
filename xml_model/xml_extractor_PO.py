@@ -94,6 +94,7 @@ def extrair_valores_medidos(caminho_pdf):
                                 "veff": veff
                             }
 
-                            break  # evita múltiplos matches na mesma linha
+                            break  
+     
 
     return resultado
