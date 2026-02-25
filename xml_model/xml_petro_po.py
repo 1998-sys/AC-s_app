@@ -97,7 +97,7 @@ def criar_identificacao_po(dados, valores_medidos, valores_er, root):
     
 
 
-def gerar_xml_certificado(informacoes, valores_medidos, valores_er, caminho_saida):
+def gerar_xml_certificado_po(informacoes, valores_medidos, valores_er, caminho_saida):
     NAMESPACE = "http://Petrobras/Medicao/Calibracao"
     
     ET.register_namespace("cal", NAMESPACE)
@@ -128,13 +128,14 @@ def gerar_xml_certificado(informacoes, valores_medidos, valores_er, caminho_said
 
 
 
-caminho_pdf = 'xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf'
-caminho_er = 'xml_model\\25-ODS-70-DIM-074-ER_CS-PO-19-11-0147.pdf'
-informacoes = extrair_campos_po(extrair_texto(caminho_pdf))
-val = extrair_valores_medidos(caminho_pdf)
-print(informacoes)
-print('\n*3')
-print(val)
-valores_er = extrair_campos_er(extrair_texto(caminho_er))
-print(valores_er)
-gerar_xml_certificado(informacoes, val, valores_er, caminho_pdf.replace(".pdf", ".xml").replace("pdf\\", "xml\\"))
+#caminho_pdf = 'xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf'
+#caminho_er = 'xml_model\\25-ODS-70-DIM-074-ER_CS-PO-19-11-0147.pdf'
+#texto= print(extrair_texto(caminho_pdf))
+#informacoes = extrair_campos_po(extrair_texto(caminho_pdf))
+#val = extrair_valores_medidos(caminho_pdf)
+##print(informacoes)
+#print('\n*3')
+#print(val)
+#valores_er = extrair_campos_er(extrair_texto(caminho_er))
+#print(valores_er)
+#gerar_xml_certificado_po(informacoes, val, valores_er, caminho_pdf.replace(".pdf", ".xml").replace("pdf\\", "xml\\"))

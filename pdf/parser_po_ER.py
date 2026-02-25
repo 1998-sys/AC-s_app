@@ -2,8 +2,8 @@ import re
 from pdf.extrator import extrair_texto
 
 
-texto = extrair_texto("xml_model\\25-ODS-70-DIM-074-ER_CS-PO-19-11-0147.pdf")
-print(texto)
+texto = extrair_texto("xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf")
+
 
 def resultado_diametro(texto):
     texto = re.sub(r'\s+', ' ', texto)

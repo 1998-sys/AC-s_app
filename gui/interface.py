@@ -5,7 +5,8 @@ import os
 import sys
 from pathlib import Path
 from PIL import Image
-
+from pdf.utils_parser import select_extract
+from core.dispatcher import Dispatcher
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -22,6 +23,7 @@ try:
         atualizar_sn_sensor,
         atualizar_range
     )
+    from xml_model.xml_petro_po import gerar_xml_certificado_po
     from form.utils_print import gerar_ac_escolha , obter_caminho_ac
     from validation.engine import ValidationEngine
     from validation.context import ValidationContext
@@ -54,6 +56,8 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        self.dispatcher = Dispatcher(self)
+
         # Configurações de Janela
         self.title("Ac's Generator")
         self.geometry("420x800")
@@ -66,6 +70,11 @@ class App(ctk.CTk):
         self.pontos_calibracao = []
         self.caminho_pdf_atual = None
         self.certificado_te_atual = None
+
+        self.dados_certificado_atual = None
+        self.dados_report_atual = None
+        self.tipo_instrumento_atual = None
+
 
         self._build_ui()
 
@@ -193,30 +202,14 @@ class App(ctk.CTk):
 
     def _processar_pdf_thread(self, caminho):
         try:
-            texto = extrair_texto(caminho)
-            dados_pdf = extrair_campos(texto)
-            print(dados_pdf)
+            dados_pdf, tipo = select_extract(caminho)
 
-            self.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
+        # Envia para o dispatcher
+            self.dispatcher.dispatch(tipo, caminho, dados_pdf)
 
-            self.pontos_calibracao_petro = processar_pdf(caminho)
-            
-
-            def continuar(dados):
-                self.processar_comparacao(dados)
-            if "ORIGEM" in (dados_pdf.get("local") or "").upper():
-                self.after(
-                    0,
-                    lambda: self.solicitar_dados_origem(dados_pdf, continuar)
-                )
-            else:
-                self.after(
-                    0,
-                    lambda: continuar(dados_pdf)
-                )
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Erro no PDF", str(e)))
-
+        
     def solicitar_dados_origem(self, dados_pdf, callback):
         win = ctk.CTkToplevel(self)
         win.title("Dados Complementares")
@@ -285,59 +278,120 @@ class App(ctk.CTk):
         ).pack(fill="x", pady=(10, 0))
 
     def processar_comparacao(self, dados_pdf):
-        tag = dados_pdf["tag"].upper()
-        dados_pdf["tag"] = tag
-        registro = buscar_instrumento_por_tag(tag)
-        reg_sn = buscar_por_sn_instrumento(dados_pdf.get("sn_instrumento"))
+        if not dados_pdf:
+            messagebox.showerror("Erro interno", "Dados do certificado estão vazios.")
+            return
+
+        # 🔎 Detecta tipo de instrumento
+        is_placa = self.dados_report_atual is not None
+        print(f"is_placa: {is_placa}\n*3")
+
+        tipo_instrumento = "placa_orificio" if is_placa else "secundario"
+
+        tag = dados_pdf.get("tag")
+
+        # 🔹 TAG obrigatória apenas para secundário
+        if not is_placa:
+            if not tag:
+                messagebox.showerror("Erro", "TAG não encontrada no certificado.")
+                return
+            tag = tag.upper()
+            dados_pdf["tag"] = tag
+        else:
+            # 🔹 Para placa, normaliza se existir (mas não bloqueia)
+            if tag:
+                dados_pdf["tag"] = tag.upper()
+
+        # 🔹 Busca somente se for secundário
+        registro = None
+        reg_sn = None
+        if not is_placa:
+            registro = buscar_instrumento_por_tag(tag)
+            reg_sn = buscar_por_sn_instrumento(dados_pdf.get("sn_instrumento"))
 
         if tag_te(dados_pdf.get("tag")):
-            self.certificado_te_atual = normalizar_certificado(
-                dados_pdf.get("certificado"))
+            self.certificado_te_atual = normalizar_certificado(dados_pdf.get("certificado"))
 
-        ctx = ValidationContext(dados_pdf=dados_pdf, registro=registro, reg_sn=reg_sn, 
-                                tag_base_pdf=extrair_tag_base(tag), 
-                                tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None, 
-                                pontos=self.pontos_calibracao)
+        # 🔹 Criação do contexto
+        ctx = ValidationContext(
+            dados_pdf=dados_pdf,
+            registro=registro,
+            reg_sn=reg_sn,
+            tag_base_pdf=extrair_tag_base(tag) if tag else None,
+            tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None,
+            pontos=self.pontos_calibracao,
+            tipo_instrumento=tipo_instrumento,
+            dados_report=self.dados_report_atual
+        )
+
         engine = ValidationEngine()
         issues = engine.run(ctx)
+
         ok = True
         for issue in issues:
             if issue.action:
-                if messagebox.askyesno(issue.title, f"{issue.message}\n\nDeseja aplicar a correção/inclusão?"): 
+                if messagebox.askyesno(issue.title, f"{issue.message}\n\nDeseja aplicar a correção/inclusão?"):
                     issue.action()
                 else:
                     ok = False
-                    if issue.blocking: break
+            if issue.blocking:
+                break
             else:
                 messagebox.showwarning(issue.title, issue.message)
-                if issue.blocking: ok = False; break
+                if issue.blocking:
+                    ok = False
+                    break
+
         if ok:
             try:
-                caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
+                # =========================
+                # 🔵 FLUXO PLACA
+                # =========================
+                if tipo_instrumento == "placa_orificio":
+                    if not self.caminho_pdf_atual:
+                        messagebox.showerror("Erro", "Caminho do PDF não encontrado para gerar XML.")
+                        return
 
-                if not self.confirmar_sobrescrita(caminho_ac):
-                        messagebox.showinfo(
-                            "Operação cancelada",
-                            "A Análise Crítica não foi sobrescrita."
-                        )
+                    caminho_saida = self.caminho_pdf_atual.replace(".pdf", ".xml")
+                    gerar_xml_certificado_po(
+                        informacoes=dados_pdf,
+                        valores_medidos=self.dados_certificado_atual,
+                        valores_er=self.dados_report_atual,
+                        caminho_saida=caminho_saida
+                    )
+                    messagebox.showinfo("Sucesso", "XML da Placa de Orifício gerado com sucesso!")
+
+                    # ✅ Resetar variável de placa para o próximo certificado
+                    self.dados_report_atual = None
+
+                # =========================
+                # 🟢 FLUXO SECUNDÁRIO
+                # =========================
+                else:
+                    caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
+                    if not self.confirmar_sobrescrita(caminho_ac):
+                        messagebox.showinfo("Operação cancelada", "A Análise Crítica não foi sobrescrita.")
                         self.exibir_resultado(dados_pdf, registro)
                         return
 
-                gerar_ac_escolha(
+                    gerar_ac_escolha(
                         dados_pdf,
                         self.caminho_pdf_atual,
                         self.pontos_calibracao,
                         self.certificado_te_atual,
                         self.pontos_calibracao_petro
                     )
+                    messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
 
-                messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
-                if "TT" in dados_pdf.get("tag", "").upper():
-                    self.certificado_te_atual = None
+                    if dados_pdf.get("tag") and "TT" in dados_pdf.get("tag").upper():
+                        self.certificado_te_atual = None
+
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
-                print(e, Exception)
-        self.exibir_resultado(dados_pdf, registro)
+                import traceback
+                traceback.print_exc()
+            finally:
+                self.exibir_resultado(dados_pdf, registro)
 
     def exibir_resultado(self, dados_pdf, registro):
         for w in self.result_frame.winfo_children():

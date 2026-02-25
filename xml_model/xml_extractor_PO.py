@@ -1,7 +1,7 @@
 import pdfplumber
 import unicodedata
 import re
-from xml_table_extractor import to_valor_eng
+from xml_model.xml_table_extractor import to_valor_eng
 
 
 def normalizar_unidade(unidade):

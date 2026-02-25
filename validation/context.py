@@ -6,9 +6,11 @@ class ValidationContext:
         reg_sn,
         tag_base_pdf,
         tag_base_sn,
-        pontos=None   
+        pontos=None,
+        tipo_instrumento=None,
+        dados_report=None
     ):
-        
+
         self.pdf = dados_pdf
         self.db = registro
         self.reg_sn = reg_sn
@@ -16,15 +18,28 @@ class ValidationContext:
         self.tag_base_pdf = tag_base_pdf
         self.tag_base_sn = tag_base_sn
 
-        self.mvs = False
-
-       
+        # 🔹 Pontos continuam iguais
         self.pontos_calibracao = pontos or []
 
-        
+        # 🔹 Novo tipo primeiro (IMPORTANTE)
+        self.tipo_instrumento = tipo_instrumento
+
+        # 🔹 Tipo legado (compatível com fluxo antigo)
         self.tipo = self._obter_tipo()
 
+        # 🔹 Dados do report (placa)
+        self.report = dados_report
+
+        self.mvs = False
+
     def _obter_tipo(self):
-        if not self.pontos_calibracao:
-            return None
-        return self.pontos_calibracao[0].get("tipo")
+
+        
+        if self.tipo_instrumento:
+            return self.tipo_instrumento
+
+       
+        if isinstance(self.pontos_calibracao, list) and self.pontos_calibracao:
+            return self.pontos_calibracao[0].get("tipo")
+
+        return None

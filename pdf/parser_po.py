@@ -5,7 +5,7 @@ SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_
 extrair_tag, obter_procedimento_por_categoria)
 
 
-texto = extrair_texto("pdf\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf")
+
 
 def extrair_item(texto):
    

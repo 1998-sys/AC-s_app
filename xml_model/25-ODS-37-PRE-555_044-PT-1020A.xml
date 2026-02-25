@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Calibracion>
+  <NroCertificado>25-ODS-37-PRE-555</NroCertificado>
+  <FechaDeCalibracion>21/12/2025</FechaDeCalibracion>
+  <FechaEmisionCertificado>22/12/2025</FechaEmisionCertificado>
+  <Instalacao>FPSO Frade</Instalacao>
+  <Tipo>PT</Tipo>
+  <Serial>0196703</Serial>
+  <FajaInicial>0,00</FajaInicial>
+  <FajaFinal>1400,00</FajaFinal>
+  <InLoco>1</InLoco>
+  <AsLeft>0</AsLeft>
+  <CalcularValorNominal>0</CalcularValorNominal>
+  <TAG>044-PT-1020A</TAG>
+  <GrillaAsFound>
+    <ValorNominal>-0,027</ValorNominal>
+    <MediaInstrumento>-1,530</MediaInstrumento>
+    <Tendencia>1,510</Tendencia>
+    <Incerteza>0,000</Incerteza>
+    <K>0,00</K>
+  </GrillaAsFound>
+  <GrillaAsFound>
+    <ValorNominal>350,067</ValorNominal>
+    <MediaInstrumento>348,768</MediaInstrumento>
+    <Tendencia>1,345</Tendencia>
+    <Incerteza>0,560</Incerteza>
+    <K>2,01</K>
+  </GrillaAsFound>
+  <GrillaAsFound>
+    <ValorNominal>700,160</ValorNominal>
+    <MediaInstrumento>699,057</MediaInstrumento>
+    <Tendencia>1,022</Tendencia>
+    <Incerteza>0,560</Incerteza>
+    <K>2,01</K>
+  </GrillaAsFound>
+  <GrillaAsFound>
+    <ValorNominal>1050,253</ValorNominal>
+    <MediaInstrumento>1049,355</MediaInstrumento>
+    <Tendencia>0,987</Tendencia>
+    <Incerteza>0,560</Incerteza>
+    <K>2,00</K>
+  </GrillaAsFound>
+  <GrillaAsFound>
+    <ValorNominal>1400,347</ValorNominal>
+    <MediaInstrumento>1399,652</MediaInstrumento>
+    <Tendencia>0,730</Tendencia>
+    <Incerteza>0,560</Incerteza>
+    <K>2,00</K>
+  </GrillaAsFound>
+</Calibracion>
