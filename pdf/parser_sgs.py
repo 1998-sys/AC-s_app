@@ -4,9 +4,9 @@ from xml_model.xml_cromato import xml_cromatografia
 
 
 
-caminho = 'xml_model\\0173.23 Rev 00_07-03-23_PETRORIO_BRAVO_SEP TEST (TBMT-10HP) 3.pdf'
 
-cromato_texto = extrair_texto(caminho)
+
+
 
 
 
@@ -220,6 +220,4 @@ def extrair_campos_cromato(texto):
     }
 
 
-campos_cromato = extrair_campos_cromato(cromato_texto)
-print(campos_cromato)
-xml_cromatografia(caminho,campos_cromato)
+

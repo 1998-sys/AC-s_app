@@ -2,7 +2,7 @@ import re
 from pdf.extrator import extrair_texto
 from xml_model.xml_generator import normalizar_certificado
 
-texto = extrair_texto("xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.pdf")
+
 
 
 def resultado_diametro(texto):

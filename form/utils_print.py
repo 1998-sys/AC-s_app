@@ -49,12 +49,23 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
+        
+        xml_destino_padrao = Path(caminho_pdf_atual).with_suffix(".xml")
+        xml_destino_petro  = Path(caminho_pdf_atual).with_name(f"{Path(caminho_pdf_atual).stem}_petro.xml")
+
+        
         gerar_xml_calibracao(
-                        dados_pdf,
-                        dados_xml_prio,
-                        Path(caminho_pdf_atual).with_suffix(".xml"),
-                        certificado_te
-                    )
+            dados_pdf,
+            dados_xml_prio,
+            xml_destino_padrao,
+            certificado_te
+
+                )
+        gerar_xml_certificado(
+            dados_pdf,
+            dados_xml_petro,
+            xml_destino_petro,
+        )
         return gerar_ac_prio(dados_pdf, caminho_pdf_atual)
     
 
