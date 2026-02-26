@@ -58,12 +58,12 @@ def extrair_valores_medidos(caminho_pdf):
                 if not tabela or len(tabela) < 2:
                     continue
 
-                # Verifica se é a tabela correta pelo cabeçalho
+               
                 cabecalho = " ".join(str(c) for c in tabela[0] if c)
                 if "Measured Avg" not in cabecalho:
                     continue
 
-                # Percorre linhas ignorando cabeçalho
+                
                 for linha in tabela[1:]:
 
                     if not linha or len(linha) < 6:
@@ -71,7 +71,7 @@ def extrair_valores_medidos(caminho_pdf):
 
                     descricao = normalizar_texto(linha[0])
 
-                    # Ordena por tamanho da chave (evita colisão de substring)
+                   
                     for chave_pdf, chave_final in sorted(
                         mapa_chaves.items(),
                         key=lambda x: len(x[0]),

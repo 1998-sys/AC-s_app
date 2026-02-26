@@ -8,7 +8,8 @@ class ValidationContext:
         tag_base_sn,
         pontos=None,
         tipo_instrumento=None,
-        dados_report=None
+        dados_report=None,
+        valores_medidos=None
     ):
 
         self.pdf = dados_pdf
@@ -18,17 +19,13 @@ class ValidationContext:
         self.tag_base_pdf = tag_base_pdf
         self.tag_base_sn = tag_base_sn
 
-        # 🔹 Pontos continuam iguais
         self.pontos_calibracao = pontos or []
-
-        # 🔹 Novo tipo primeiro (IMPORTANTE)
         self.tipo_instrumento = tipo_instrumento
 
-        # 🔹 Tipo legado (compatível com fluxo antigo)
         self.tipo = self._obter_tipo()
 
-        # 🔹 Dados do report (placa)
         self.report = dados_report
+        self.valores_medidos = valores_medidos
 
         self.mvs = False
 

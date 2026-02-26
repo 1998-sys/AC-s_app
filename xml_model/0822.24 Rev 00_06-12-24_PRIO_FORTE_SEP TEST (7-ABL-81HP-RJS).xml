@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CROMATOGRAFIA>
+  <CABECALHO>
+    <EMPRESA>SGS</EMPRESA>
+    <CERTIFICADO>0822.24 Rev. 00</CERTIFICADO>
+  </CABECALHO>
+  <COMPOSICAOGASES>
+    <COMPONENTE rotulo="C₁">
+      <NOME>Metano</NOME>
+      <MOLPCT>87,660</MOLPCT>
+      <INCERTEZA>0,080</INCERTEZA>
+    </COMPONENTE>
+    <COMPONENTE rotulo="CO2">
+      <NOME>Dióxido de Carbono</NOME>
+      <MOLPCT>4,740</MOLPCT>
+      <INCERTEZA>0,050</INCERTEZA>
+    </COMPONENTE>
+    <COMPONENTE rotulo="iC4">
+      <NOME>iso-Butano</NOME>
+      <MOLPCT>0,320</MOLPCT>
+      <INCERTEZA>0,004</INCERTEZA>
+    </COMPONENTE>
+    <COMPONENTE rotulo="nC4">
+      <NOME>n-Butano</NOME>
+      <MOLPCT>0,607</MOLPCT>
+      <INCERTEZA>0,008</INCERTEZA>
+    </COMPONENTE>
+    <COMPONENTE rotulo="iC5">
+      <NOME>iso-Pentano</NOME>
+      <MOLPCT>0,218</MOLPCT>
+      <INCERTEZA>0,003</INCERTEZA>
+    </COMPONENTE>
+    <COMPONENTE rotulo="nC5">
+      <NOME>n-Pentano</NOME>
+      <MOLPCT>0,293</MOLPCT>
+      <INCERTEZA>0,005</INCERTEZA>
+    </COMPONENTE>
+  </COMPOSICAOGASES>
+  <PROPRIEDADESCONDICAOPADRAO>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Poder Calorífico Superior (kJ/m³)</NOME>
+      <VALOR>39300</VALOR>
+      <INCERTEZA>100</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Poder Calorífico Inferior (kJ/m³)</NOME>
+      <VALOR>35502</VALOR>
+      <INCERTEZA>96</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Fator de Compressibilidade</NOME>
+      <VALOR>0,9974</VALOR>
+      <INCERTEZA>0,0001</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Peso Molecular Total (g/mol)</NOME>
+      <VALOR>19,3850</VALOR>
+      <INCERTEZA>0,0660</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE>
+      <NOME>Viscosidade do Gás (cP) (2)</NOME>
+      <VALOR>0,0108</VALOR>
+      <INCERTEZA>0,00001</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 20765">
+      <NOME>Coeficiente Adiabático</NOME>
+      <VALOR>1,2806</VALOR>
+      <INCERTEZA>0,0004</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Densidade (kg/m³)</NOME>
+      <VALOR>0,8080</VALOR>
+      <INCERTEZA>0,0028</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Densidade Relativa</NOME>
+      <VALOR>0,6707</VALOR>
+      <INCERTEZA>0,0023</INCERTEZA>
+    </PROPRIEDADE>
+  </PROPRIEDADESCONDICAOPADRAO>
+  <PROPRIEDADESCONDICOESAMOSTRAGEM>
+    <PROPRIEDADE referencia="ISO 20765">
+      <NOME>Densidade (kg/m³)</NOME>
+      <VALOR>5,7410</VALOR>
+      <INCERTEZA>0,0180</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Densidade relativa (kg/m³)</NOME>
+      <VALOR>0,6760</VALOR>
+      <INCERTEZA>0,0020</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 20765">
+      <NOME>Coeficiente Adiabático</NOME>
+      <VALOR>1,2773</VALOR>
+      <INCERTEZA>0,0004</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="(2)">
+      <NOME>Viscosidade do gás (cP)</NOME>
+      <VALOR>0,0122</VALOR>
+      <INCERTEZA>0,00001</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 20765">
+      <NOME>Fator de Compressibilidade</NOME>
+      <VALOR>0,9873</VALOR>
+      <INCERTEZA>0,0001</INCERTEZA>
+    </PROPRIEDADE>
+    <PROPRIEDADE referencia="ISO 6976">
+      <NOME>Índice de Wobbe (kJ/m³)</NOME>
+      <VALOR>47950</VALOR>
+      <INCERTEZA>90</INCERTEZA>
+    </PROPRIEDADE>
+  </PROPRIEDADESCONDICOESAMOSTRAGEM>
+</CROMATOGRAFIA>

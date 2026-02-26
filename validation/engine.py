@@ -12,10 +12,10 @@ from validation.rules_sec import (
     regra_classe,
     data_proxcal,
     prazo_emissao,
+)
 
-    # Futuras regras de placa
-    # regra_beta_ratio,
-    # regra_evaluation,
+from validation.rules_po import (
+    comparar_evaluation_certificado
 )
 
 
@@ -42,7 +42,7 @@ class ValidationEngine:
 
    
         self.placa_rules = [
-        
+        comparar_evaluation_certificado
         ]
 
     def run(self, context):
@@ -52,8 +52,9 @@ class ValidationEngine:
         rules_to_run = list(self.common_rules)
 
       
-        if context.tipo_instrumento == "placa_orificio":
+        if context.pdf.get("instrumento") == "Placa de Orificio":
             rules_to_run += self.placa_rules
+            print('entrou em placa')
         else:
             
             rules_to_run += self.secundario_rules

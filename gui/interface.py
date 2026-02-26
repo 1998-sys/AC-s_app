@@ -203,14 +203,23 @@ class App(ctk.CTk):
         Thread(target=self._processar_pdf_thread, args=(caminho,), daemon=True).start()
 
     def _processar_pdf_thread(self, caminho):
+       
         try:
             dados_pdf, tipo = select_extract(caminho)
+
+            if tipo == "cromatografia":
+                from xml_model.xml_cromato import xml_cromatografia
+                xml_path = xml_cromatografia(caminho, dados_pdf)  # gera .xml ao lado do PDF
+                self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}"))
+                self.after(0, lambda: self.exibir_resultado(dados_pdf, None))
+                return  # sai aqui para não acionar dispatcher/validações
+
             self.dispatcher.dispatch(tipo, caminho, dados_pdf)
 
-        
         except Exception as e:
-            traceback.print_exc()  # mostra erro REAL no console
-            self.after(0, lambda e=e: messagebox.showerror("Erro no PDF", str(e)))
+                traceback.print_exc()
+                self.after(0, lambda e=e: messagebox.showerror("Erro no PDF", str(e)))
+
 
         
     def solicitar_dados_origem(self, dados_pdf, callback):
@@ -285,15 +294,13 @@ class App(ctk.CTk):
             messagebox.showerror("Erro interno", "Dados do certificado estão vazios.")
             return
 
-        # 🔎 Detecta tipo de instrumento
-        is_placa = self.dados_report_atual is not None
+        is_placa = dados_pdf.get("instrumento") == "Placa de Orificio"
         print(f"is_placa: {is_placa}\n*3")
 
         tipo_instrumento = "placa_orificio" if is_placa else "secundario"
 
         tag = dados_pdf.get("tag")
 
-        # 🔹 TAG obrigatória apenas para secundário
         if not is_placa:
             if not tag:
                 messagebox.showerror("Erro", "TAG não encontrada no certificado.")
@@ -324,11 +331,13 @@ class App(ctk.CTk):
             tag_base_sn=extrair_tag_base(registro["tag"]) if registro else None,
             pontos=self.pontos_calibracao,
             tipo_instrumento=tipo_instrumento,
-            dados_report=self.dados_report_atual
+            dados_report=self.dados_report_atual,
+            valores_medidos = extrair_valores_medidos(self.caminho_pdf_atual)
         )
 
         engine = ValidationEngine()
         issues = engine.run(ctx)
+
 
         ok = True
         for issue in issues:
@@ -352,12 +361,12 @@ class App(ctk.CTk):
                         messagebox.showerror("Erro", "Caminho do PDF não encontrado para gerar XML.")
                         return
 
-                    caminho_saida = self.caminho_pdf_atual.replace(".pdf", ".xml")
+                    caminho_said = self.caminho_pdf_atual.replace(".pdf", ".xml")
                     gerar_xml_certificado_po(
                         informacoes=dados_pdf,
                         valores_medidos=extrair_valores_medidos(self.caminho_pdf_atual),
                         valores_er=self.dados_report_atual,
-                        caminho_saida=caminho_saida
+                        caminho_saida=caminho_said
                     )
                     messagebox.showinfo("Sucesso", "XML da Placa de Orifício gerado com sucesso!")
                     self.dados_report_atual = None
