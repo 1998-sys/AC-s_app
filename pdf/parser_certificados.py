@@ -434,7 +434,7 @@ MAPA_PROCEDIMENTOS = [{
     "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no banho térmico e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas, com intervalos de 1 minuto. A calibração foi realizado conforme procedimento 7.2 TM-001 Temperature Meter with Sensor, , no qual esta de acordo aos requisitos da norma NBR 14610"
 },
 {
-    "categorias": [ "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS", 'Termorresistência PT-100 - 4 Fios'],
+    "categorias": [ "TERMORRESISTÊNCIA PT‐100 ‐ 2 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 3 FIOS", "TERMORRESISTÊNCIA PT‐100 ‐ 4 FIOS", 'Termorresistência PT-100 - 4 Fios', 'Termorresistência PT-100 - 3 Fios', 'Termorresistência PT-100 - 2 Fios'],
     "procedimento": "7.2 TM-006 Thermoresistances",
     "descricao": "O sensor do instrumento e o sensor padrão de referência foram introduzidos no bloco seco e a calibração foi realizada através da comparação direta entre as indicações do instrumento e do padrão de referência. As medições foram realizadas após a estabilização, confirmada pelas leituras do padrão em 3 séries de medições alternadas. A calibração foi realizado conforme procedimento 7.2 TM-006 Thermoresistances, no qual esta de acordo aos requisitos da norma  NBR 13772"
 },
@@ -445,6 +445,8 @@ MAPA_PROCEDIMENTOS = [{
 },
 
 ]
+
+'Termorresistência PT-100 - 3 Fios'
 
 def obter_procedimento_por_categoria(categoria_instrumento):
     if not categoria_instrumento:

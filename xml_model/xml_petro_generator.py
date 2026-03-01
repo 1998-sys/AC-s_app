@@ -364,21 +364,33 @@ def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
             ).text = str(bruto.get(desc, "NI"))
 
         # INCERTEZA (vem do results2)
+        valor_incerteza = (
+            resultado.get("incerteza_ma")
+            if resultado.get("incerteza_ma") is not None
+            else resultado.get("incerteza_kpa", "NI")
+        )
+
         inc = ET.SubElement(
             ponto,
             "INCERTEZA",
             UNIDADE_ENG=unidade_incerteza,
-            K=str(resultado.get("k", "NI")),
+            K=str(resultado.get('k', "NI")),
             GRAU_LIBERDADE=str(resultado.get("veff", "NI"))
         )
-        inc.text = str(resultado.get("incerteza_ma", "NI"))
+        inc.text = str(valor_incerteza)
 
         # ERRO (vem do results2)
+        valor_tendencia = (
+            resultado.get("tendencia_ma")
+            if resultado.get("tendencia_ma") is not None
+            else resultado.get("tendencia_kpa", "NI")
+        )
+
         ET.SubElement(
             ponto,
             "ERRO",
             UNIDADE_ENG=unidade_erro
-        ).text = str(resultado.get("tendencia_ma", "NI"))
+        ).text = str(valor_tendencia)
 
 
     return pontos
@@ -481,7 +493,7 @@ def gerar_pontos_calibracao_pt100(resultados, unidade_eng="°C"):
 #escrever_pontos_calibracao
 def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
     instrumento = normalizar_categoria(dados.get("categoria", "").upper())
-
+   
 
     if instrumento in ("TERMÔMETRO DIGITAL", "TERMÔMETRO ANALÓGICO", 'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA', ):
 
