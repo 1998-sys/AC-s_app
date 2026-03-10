@@ -2,7 +2,7 @@ import re
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import (extrair_certificado, extrair_datas, extrair_nome_cliente, endereco_cliente, extrair_local,
 SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_ambientais, extrair_padroes, extrair_sn,
-extrair_tag, obter_procedimento_por_categoria)
+extrair_tag, obter_procedimento_por_categoria, extrair_tag)
 
 
 
@@ -41,9 +41,17 @@ def diametro_tubo(texto):
     
     return None
 
+def tag_placa(texto):
+    padrao = r"TAG:\s*([A-Z0-9\-]+)"
+    m = re.search(padrao, texto)
 
+    if m:
+        return m.group(1).strip()
+
+    return None
 
 def extrair_campos_po(texto):
+    #print(texto)
     inst = extrair_item(texto)
     certificado = extrair_certificado(texto)
     data_cal, report_date = extrair_datas(texto)
@@ -54,7 +62,7 @@ def extrair_campos_po(texto):
     cond_amb = extrair_condicoes_ambientais(texto)
     padroes = extrair_padroes(texto)
     sn_inst, _ = extrair_sn(texto)
-    tag = extrair_tag(texto)
+    tag = tag_placa(texto)
     material_placa = material(texto)
     coef = coeficiente_dilatacao(texto)
     diametro_t = diametro_tubo(texto)

@@ -24,6 +24,7 @@ def criar_identificacao_po(dados, valores_medidos, valores_er, root):
     bloco_instr = ET.SubElement(root, "PLACA_ORIFICIO")
     ET.SubElement(bloco_instr,'DATA_INSPECAO').text = data_xs_date(dados.get("data_calibracao","")) if dados else ""
     ET.SubElement(bloco_instr,'NUM_SERIE').text = dados.get("sn_inst","") if dados else ""
+    ET.SubElement(bloco_instr,'TAG').text = dados.get("tag","") if dados else ""
     ET.SubElement(bloco_instr,'MATERIAL').text = dados.get("material","") if dados else ""
     ET.SubElement(bloco_instr,'COEF_DILATACAO', UNIDADE_ENG="mm/mm°C").text = dados.get("coef","") if dados else ""
     ET.SubElement(bloco_instr,'NORMA_AVALIACAO').text = "ISO 5167-2:2022"

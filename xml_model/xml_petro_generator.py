@@ -144,7 +144,7 @@ def criar_identificacao_certificado(root, dados=None):
         dados.get("report_date", "")
     ) if dados else ""
 
-# FALTA COLETAR SIGNATÁRIO e EXECUTOR
+
 def sig_ex(root, dados=None):
     el = ET.SubElement(root, "TECNICO_SIGNATARIO")
     el.text = dados.get("exec_sig", {}).get("signatario", "") if dados else ""
