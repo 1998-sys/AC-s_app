@@ -52,7 +52,6 @@ class PlacaProcessor(BaseProcessor):
             daemon=True
         ).start()
 
-    # ✅ AGORA ESTÁ DENTRO DA CLASSE
     def _processar_report(self, caminho_certificado, caminho_report):
         try:
             texto_report = extrair_texto(caminho_report)

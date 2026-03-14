@@ -7,7 +7,6 @@ class SecundarioProcessor(BaseProcessor):
 
     def processar(self, caminho, dados_pdf):
 
-        # Extração de pontos
         self.app.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
         self.app.pontos_calibracao_petro = processar_pdf(caminho)
 

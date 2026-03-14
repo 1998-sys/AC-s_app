@@ -209,10 +209,10 @@ class App(ctk.CTk):
 
             if tipo == "cromatografia":
                 from xml_model.xml_cromato import xml_cromatografia
-                xml_path = xml_cromatografia(caminho, dados_pdf)  # gera .xml ao lado do PDF
+                xml_path = xml_cromatografia(caminho, dados_pdf)  
                 self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}"))
                 self.after(0, lambda: self.exibir_resultado(dados_pdf, None))
-                return  # sai aqui para não acionar dispatcher/validações
+                return  
 
             self.dispatcher.dispatch(tipo, caminho, dados_pdf)
 
@@ -295,8 +295,6 @@ class App(ctk.CTk):
             return
 
         is_placa = dados_pdf.get("instrumento") == "Placa de Orificio"
-        print(f"is_placa: {is_placa}\n*3")
-
         tipo_instrumento = "placa_orificio" if is_placa else "secundario"
 
         tag = dados_pdf.get("tag")
@@ -347,6 +345,8 @@ class App(ctk.CTk):
                 else:
                     ok = False
             if issue.blocking:
+                messagebox.showerror(issue.title, issue.message)
+                ok = False
                 break
             else:
                 messagebox.showwarning(issue.title, issue.message)
@@ -397,6 +397,7 @@ class App(ctk.CTk):
                 traceback.print_exc()
             finally:
                 self.exibir_resultado(dados_pdf, registro)
+
 
     def exibir_resultado(self, dados_pdf, registro):
         for w in self.result_frame.winfo_children():
