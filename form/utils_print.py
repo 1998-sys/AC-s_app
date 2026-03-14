@@ -1,4 +1,5 @@
 from form.utils_print_PRIO import gerar_ac_prio
+from form.utils_print_PRIO_PO import gerar_ac_prio_po
 from form.utils_print_ORIGEM import gerar_ac_origem
 from form.utils_print_YINSON import gerar_ac_yinson
 from form.utils_print_YINSON_ATLANTA import gerar_ac_yinson_atlanta
@@ -60,6 +61,8 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             valores_er=dados_report,
             caminho_saida=caminho_saida
         )
+
+        return gerar_ac_prio_po(dados, caminho_pdf_atual)
     
     
     elif "PRIO" in cliente:
@@ -82,17 +85,5 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             xml_destino_petro,
         )
         return gerar_ac_prio(dados_pdf, caminho_pdf_atual)
-    
-    # elif "PRIO" in cliente and instrumento == "PLACA DE ORIFICIO":
-    #     print('placa prio')
-    #     caminho_saida = Path(caminho_pdf_atual).with_suffix(".xml")
 
-    #     gerar_xml_certificado_po(
-    #         informacoes=dados,
-    #         valores_medidos=extrair_valores_medidos(caminho_pdf_atual),
-    #         valores_er=dados_report,
-    #         caminho_saida=caminho_saida
-    #     )
-            
-
-        return
+        
