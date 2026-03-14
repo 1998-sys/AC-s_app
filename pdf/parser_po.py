@@ -51,7 +51,6 @@ def tag_placa(texto):
     return None
 
 def extrair_campos_po(texto):
-    #print(texto)
     inst = extrair_item(texto)
     certificado = extrair_certificado(texto)
     data_cal, report_date = extrair_datas(texto)
@@ -71,6 +70,7 @@ def extrair_campos_po(texto):
     return {
         'certificado': certificado,
         'instrumento': inst,
+        'sn_inst': sn_inst,
         'data_calibracao': data_cal,
         'report_date': report_date,
         'cliente': nome_cliente,

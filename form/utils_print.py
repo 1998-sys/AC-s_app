@@ -4,6 +4,8 @@ from form.utils_print_YINSON import gerar_ac_yinson
 from form.utils_print_YINSON_ATLANTA import gerar_ac_yinson_atlanta
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
+from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
+
 from pathlib import Path
 import os
 
@@ -16,11 +18,12 @@ def obter_caminho_ac(dados, caminho_pdf_original):
     return os.path.join(pasta_saida, nome_pdf)
 
 
-def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro):
+def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report):
     dados_pdf = dados
 
     cliente = dados.get("cliente", "").upper()
     local = dados.get("local", "").upper()
+    instrumento = dados.get("instrumento", "").upper()
     
     if "ORIGEM ENERGIA ALAGOAS S.A." in cliente:
         print(">>> GERANDO AC ORIGEM <<<")
@@ -46,6 +49,18 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
                     )
         return gerar_ac_yinson_atlanta(dados_pdf, caminho_pdf_atual)
     
+
+    elif "PRIO" in cliente and instrumento == "PLACA DE ORIFICIO":
+        print('placa prio')
+        caminho_saida = Path(caminho_pdf_atual).with_suffix(".xml")
+
+        gerar_xml_certificado_po(
+            informacoes=dados,
+            valores_medidos=extrair_valores_medidos(caminho_pdf_atual),
+            valores_er=dados_report,
+            caminho_saida=caminho_saida
+        )
+    
     
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
@@ -68,5 +83,16 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         )
         return gerar_ac_prio(dados_pdf, caminho_pdf_atual)
     
+    # elif "PRIO" in cliente and instrumento == "PLACA DE ORIFICIO":
+    #     print('placa prio')
+    #     caminho_saida = Path(caminho_pdf_atual).with_suffix(".xml")
 
-        
+    #     gerar_xml_certificado_po(
+    #         informacoes=dados,
+    #         valores_medidos=extrair_valores_medidos(caminho_pdf_atual),
+    #         valores_er=dados_report,
+    #         caminho_saida=caminho_saida
+    #     )
+            
+
+        return

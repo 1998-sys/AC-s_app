@@ -72,7 +72,7 @@ class App(ctk.CTk):
         self.pontos_calibracao = []
         self.caminho_pdf_atual = None
         self.certificado_te_atual = None
-
+        self.pontos_calibracao_petro = None
         self.dados_certificado_atual = None
         self.dados_report_atual = None
         self.tipo_instrumento_atual = None
@@ -356,45 +356,38 @@ class App(ctk.CTk):
 
         if ok:
             try:
-                if tipo_instrumento == "placa_orificio":
-                    if not self.caminho_pdf_atual:
-                        messagebox.showerror("Erro", "Caminho do PDF não encontrado para gerar XML.")
-                        return
+                if not self.caminho_pdf_atual:
+                    messagebox.showerror("Erro", "Caminho do PDF não encontrado.")
+                    return
 
-                    caminho_said = self.caminho_pdf_atual.replace(".pdf", ".xml")
-                    gerar_xml_certificado_po(
-                        informacoes=dados_pdf,
-                        valores_medidos=extrair_valores_medidos(self.caminho_pdf_atual),
-                        valores_er=self.dados_report_atual,
-                        caminho_saida=caminho_said
-                    )
-                    messagebox.showinfo("Sucesso", "XML da Placa de Orifício gerado com sucesso!")
-                    self.dados_report_atual = None
+                caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
 
-                
-                else:
-                    caminho_ac = obter_caminho_ac(dados_pdf, self.caminho_pdf_atual)
-                    if not self.confirmar_sobrescrita(caminho_ac):
-                        messagebox.showinfo("Operação cancelada", "A Análise Crítica não foi sobrescrita.")
-                        self.exibir_resultado(dados_pdf, registro)
-                        return
+                if not self.confirmar_sobrescrita(caminho_ac):
+                    messagebox.showinfo("Operação cancelada", "A Análise Crítica não foi sobrescrita.")
+                    self.exibir_resultado(dados_pdf, registro)
+                    return
 
-                    gerar_ac_escolha(
-                        dados_pdf,
-                        self.caminho_pdf_atual,
-                        self.pontos_calibracao,
-                        self.certificado_te_atual,
-                        self.pontos_calibracao_petro
-                    )
-                    messagebox.showinfo("Sucesso", "Análise Crítica e XML concluídos!")
+                gerar_ac_escolha(
+                    dados_pdf,
+                    self.caminho_pdf_atual,
+                    self.pontos_calibracao,
+                    self.certificado_te_atual,
+                    self.pontos_calibracao_petro,
+                    self.dados_report_atual
+                )
 
-                    if dados_pdf.get("tag") and "TT" in dados_pdf.get("tag").upper():
-                        self.certificado_te_atual = None
+                messagebox.showinfo("Sucesso", "Processo concluído com sucesso!")
+
+                if dados_pdf.get("tag") and "TT" in dados_pdf.get("tag").upper():
+                    self.certificado_te_atual = None
+
+                self.dados_report_atual = None
 
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")
                 import traceback
                 traceback.print_exc()
+
             finally:
                 self.exibir_resultado(dados_pdf, registro)
 
