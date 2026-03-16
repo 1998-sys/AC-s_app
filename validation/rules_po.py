@@ -1,6 +1,15 @@
-
+import re
 from validation.issue import ValidationIssue
 
+
+def normalizar_numero_certificado(valor):
+    if not valor:
+        return valor
+    valor = re.sub(r"[‐-–—]", "-", valor)
+    valor = re.sub(r"\s+", "", valor)
+    valor = valor.upper()
+
+    return valor
 
 
 def comparar_evaluation_certificado(ctx):
@@ -10,20 +19,18 @@ def comparar_evaluation_certificado(ctx):
 
     if ctx.report:
         num_eval = ctx.report.get("Numero_Evaluation")
-        print(num_eval)
 
     if ctx.pdf:
         certificado = ctx.pdf.get("certificado")
-        print(certificado)
+
+    num_eval_norm = normalizar_numero_certificado(num_eval)
+    certificado_norm = normalizar_numero_certificado(certificado)
 
     print("*DEBUG comparar_evaluation_certificado")
-    print("num_eval:", num_eval)
-    print("certificado:", certificado)
+    print("num_eval:", num_eval_norm)
+    print("certificado:", certificado_norm)
 
-    if num_eval != certificado:
-        print("ERRO: Evaluation diferente do certificado")
-
-    if not num_eval or not certificado:
+    if not num_eval_norm or not certificado_norm:
         return ValidationIssue(
             key="evaluation_cert_incompleto",
             title="Dados insuficientes",
@@ -31,7 +38,8 @@ def comparar_evaluation_certificado(ctx):
             blocking=True
         )
 
-    if num_eval != certificado:
+    if num_eval_norm != certificado_norm:
+        print("ERRO: Evaluation diferente do certificado")
         return ValidationIssue(
             key="evaluation_cert_diferentes",
             title="Evaluation e Certificado divergentes",
@@ -44,7 +52,6 @@ def comparar_evaluation_certificado(ctx):
         )
 
     return None
-
 
 def validar_parametros_report(ctx):
     print("entrou na validação de parâmetros do report")

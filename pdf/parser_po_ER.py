@@ -39,9 +39,12 @@ def extrair_valores_d(texto_pdf: str):
 
     return resultados
 
+
 def extrair_numero_evaluation(texto_pdf: str):
+    texto_pdf = re.sub(r"[‐-–—]", "-", texto_pdf)
+
     padrao = re.compile(
-        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.0]?\s*([A-Z0-9\- ]+?)\s*-?\s*ER\b',
+        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9\- ]+?)\s*-?\s*ER\b',
         flags=re.IGNORECASE
     )
 
@@ -51,8 +54,6 @@ def extrair_numero_evaluation(texto_pdf: str):
         numero = match.group(1).strip()
         numero = normalizar_certificado(numero)
         return numero
-
-    return None
 
 def extrair_beta(texto_pdf: str) -> str:
     padrao = re.compile(
