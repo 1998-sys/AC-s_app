@@ -75,7 +75,7 @@ def extrair_campos_po(texto):
         'report_date': report_date,
         'cliente': nome_cliente,
         'endereco_cliente': endereco_cli,
-        'local': nome_cliente,
+        'local': unidade,
         'exec_sig': exec_sig,
         'cond_amb': cond_amb,
         'padroes_utilizados': padroes,
