@@ -134,17 +134,17 @@ def gerar_ac_prio(dados, caminho_pdf_original):
             )
         )
 
-    # montar rich text final
+    
     rich = CellRichText(*blocos)
 
-    # escrever na célula B35
+   
     ws["B35"].value = rich
     ws["B35"].alignment = Alignment(wrap_text=True, vertical="top")
 
    
     wb.save(caminho_template)
 
-    # Definir o caminho de saída do PDF
+    
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     certificado = dados.get("certificado", "").replace(" ", "")
     tag_limpa = dados.get("tag", "").replace(" ", "")

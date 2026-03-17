@@ -95,5 +95,5 @@ def extrair_valores_medidos(caminho_pdf):
 
                             break  
      
-    print(resultado)
+    
     return resultado

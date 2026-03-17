@@ -2,8 +2,7 @@ import re
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import (extrair_certificado, extrair_datas, extrair_nome_cliente, endereco_cliente, extrair_local,
 SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_ambientais, extrair_padroes, extrair_sn,
-extrair_tag, obter_procedimento_por_categoria, extrair_tag)
-
+obter_procedimento_por_categoria)
 
 
 
@@ -42,7 +41,7 @@ def diametro_tubo(texto):
     return None
 
 def tag_placa(texto):
-    padrao = r"TAG:\s*([A-Z0-9\-\u2010\u2011\u2012\u2013\u2014]+)"
+    padrao= r"TAG:\s*([A-Z0-9/\-\u2010\u2011\u2012\u2013\u2014]+)"
     m = re.search(padrao, texto)
 
     if m:

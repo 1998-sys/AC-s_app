@@ -10,10 +10,6 @@ import os
 
 
 def primeira_celula_merge(ws, cell):
-    """
-    Retorna a célula superior esquerda do merge,
-    ou a própria célula se não estiver mesclada.
-    """
     for merged_range in ws.merged_cells.ranges:
         if cell.coordinate in merged_range:
             return ws.cell(
@@ -24,9 +20,6 @@ def primeira_celula_merge(ws, cell):
 
 
 def escrever(ws, endereco, valor, wrap=True, vertical="top"):
-    """
-    Escreve valor em célula considerando merge automaticamente.
-    """
     celula = primeira_celula_merge(ws, ws[endereco])
     celula.value = valor
     celula.alignment = Alignment(wrap_text=wrap, vertical=vertical)

@@ -10,14 +10,14 @@ from openpyxl.worksheet.page import PageMargins
 
 def gerar_ac_prio_po(
     dados: dict,
-    caminho_pdf_original: str,
-    caminho_template: str = "TemplateAC_PRIO.xlsx",
-    nome_aba: str = "Template Formulário",
+    caminho_pdf_original,
+    caminho_template = "TemplateAC_PRIO.xlsx",
+    nome_aba = "Template Formulário",
     print_area_fixa: str | None = None,
     linhas_extra_topo: int = 2,
     aplicar_borda_fallback: bool = True,
-    cor_faixa_teal_hex: str = "0099A8"
-) -> str:
+    cor_faixa_teal_hex = "0099A8"
+):
 
     if not os.path.isfile(caminho_template):
         raise FileNotFoundError(f"Template não encontrado: {os.path.abspath(caminho_template)}")

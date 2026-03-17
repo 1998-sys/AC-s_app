@@ -4,7 +4,7 @@ from threading import Thread
 from pdf.extrator import extrair_texto
 from pdf.parser_po_ER import extrair_campos_er
 from xml_model.xml_extractor_PO import extrair_valores_medidos
-
+from processors.utils import fluxo_origem
 
 class PlacaProcessor(BaseProcessor):
 
@@ -18,7 +18,6 @@ class PlacaProcessor(BaseProcessor):
             return
 
         self.app.dados_certificado_atual = dados_pdf
-        print(dados_pdf)
         self.app.dados_report_atual = None
 
         self.app.after(
@@ -67,7 +66,6 @@ class PlacaProcessor(BaseProcessor):
                 )
 
             self.app.dados_report_atual = dados_er
-            print(dados_er)
 
             pontos = extrair_valores_medidos(caminho_certificado)
             if not pontos:
@@ -81,14 +79,18 @@ class PlacaProcessor(BaseProcessor):
                 raise ValueError(
                     "Dados do certificado não estão disponíveis para comparação."
                 )
+            def continuar(dados):
+                self.app.processar_comparacao(dados)
 
             self.app.after(
                 0,
-                lambda: self.app.processar_comparacao(
-                    self.app.dados_certificado_atual
+                lambda: fluxo_origem(
+                    app=self.app,
+                    dados_certificado=self.app.dados_certificado_atual,
+                    callback=continuar
                 )
-            )
-
+            )   
+            
         except Exception as e:
             erro_msg = str(e)
             self.app.after(

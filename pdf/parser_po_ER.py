@@ -154,8 +154,7 @@ def resultado_rugosidade(texto):
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
-        r'β\s*Factor\s+Upstream\s+Face\s+Roughness.*?'
-        r'Resultado\s*(Accepted|Aceito|Rejected|Reprovado).*?'
+        r'Upstream\s+Face\s+Roughness.*?'
         r'Resultado\s*(Accepted|Aceito|Rejected|Reprovado)',
         re.IGNORECASE
     )
@@ -163,8 +162,7 @@ def resultado_rugosidade(texto):
     match = padrao.search(texto)
 
     if match:
-        # Segundo resultado é o da rugosidade
-        resultado = match.group(2)
+        resultado = match.group(1)
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
@@ -322,8 +320,8 @@ def resultado_angulo_face_montante(texto):
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
-        r"(?:Orifice\s+Bore\s+and\s+Upstream\s+Face\s+of\s+Orifice\s+Plate\s+Angle"
-        r"|Ângulo\s+entre\s+o\s+orif[ií]cio\s+e\s+face\s+à?\s+montante\s+da\s+placa)"
+        r"(?:Upstream\s+Face\s+Roughness"
+        r"|Rugosidade\s+da\s+Face\s+a\s+Montante\s+da\s+Placa)"
         r".*?Resultado\s*(Accepted|Aceito|Rejected|Reprovado)",
         re.IGNORECASE
     )
@@ -338,7 +336,8 @@ def resultado_angulo_face_montante(texto):
         elif resultado in ("rejected", "reprovado"):
             return "Não"
 
-    return None
+    # fallback inteligente (evita None)
+    return "NÃO ENCONTRADO"
 
 def extrair_campos_er(texto):
     num_er = extrair_numero_evaluation(texto)

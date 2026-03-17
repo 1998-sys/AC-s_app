@@ -293,7 +293,7 @@ class App(ctk.CTk):
         if not dados_pdf:
             messagebox.showerror("Erro interno", "Dados do certificado estão vazios.")
             return
-
+        print(dados_pdf)
         is_placa = dados_pdf.get("instrumento") == "Placa de Orificio"
         tipo_instrumento = "placa_orificio" if is_placa else "secundario"
 
