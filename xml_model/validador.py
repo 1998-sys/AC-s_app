@@ -1,6 +1,6 @@
 from lxml import etree
 
-xml_path = "xml_model\\25-ODS-37-DIM-022_075-FE-1502.xml"
+xml_path = "xml_model\\25-ODS-70-DIM-074_CS-PO-19-11-0147.xml"
 xsd_path = "xml_model\\PetrobrasSchemaV3.0.0 (1) (1).xsd"
 
 with open(xsd_path, "rb") as f:

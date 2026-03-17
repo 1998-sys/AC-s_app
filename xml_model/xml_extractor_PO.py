@@ -29,7 +29,6 @@ def normalizar_texto(texto):
 
 def extrair_valores_medidos(caminho_pdf):
 
-    # Palavras-chave principais (não usar frase inteira rígida)
     mapa_chaves = {
         "circularity deviation of orifice bore diameter": "desv_circ",
         "orifice bore diameter": "d_int",
@@ -96,5 +95,5 @@ def extrair_valores_medidos(caminho_pdf):
 
                             break  
      
-
+    print(resultado)
     return resultado
