@@ -19,7 +19,7 @@ def resultado_diametro(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -84,7 +84,7 @@ def resultado_beta(texto):
 
         if resultado in ("accepted", "aceito"):
             return "Sim"
-        elif resultado in ("rejected", "reprovado"):
+        elif resultado in ("not accepted", "não aceito"):
             return "Não"
 
     return None
@@ -106,7 +106,7 @@ def resultado_circularidade(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -131,7 +131,7 @@ def resultado_espessura(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -166,7 +166,7 @@ def resultado_rugosidade(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -190,7 +190,7 @@ def resultado_planeza(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -215,7 +215,7 @@ def resultado_angulo_chanfro(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -254,7 +254,7 @@ def resultado_espessura_furo(texto):
 
         if resultado.lower() in ["accepted", "aceito"]:
             return "Sim"
-        elif resultado.lower() in ["rejected", "reprovado"]:
+        elif resultado.lower() in ["not accepted", "não aceito"]:
             return "Não"
 
         return resultado.upper()
@@ -274,9 +274,6 @@ def extrair_valores_e(texto_pdf: str):
 
     return resultados
 
-
-    return resultados
-
 def resultado_comp_cilin(texto):
     texto = re.sub(r'\s+', ' ', texto)
 
@@ -293,7 +290,7 @@ def resultado_comp_cilin(texto):
 
         if resultado in ("accepted", "aceito"):
             return "Sim"
-        elif resultado in ("rejected", "reprovado"):
+        elif resultado in ("not accepted", "não aceito"):
             return "Não"
 
     return None
@@ -312,7 +309,7 @@ def resultado_montante(texto):
 
         if resultado in ("accepted", "aceito"):
             return "Sim"
-        elif resultado in ("rejected", "reprovado"):
+        elif resultado in ("not accepted", "não aceito"):
             return "Não"
     return None
 
@@ -333,7 +330,7 @@ def resultado_angulo_face_montante(texto):
 
         if resultado in ("accepted", "aceito"):
             return "Sim"
-        elif resultado in ("rejected", "reprovado"):
+        elif resultado in ("not accepted", "não aceito"):
             return "Não"
 
     # fallback inteligente (evita None)
