@@ -42,7 +42,7 @@ def diametro_tubo(texto):
     return None
 
 def tag_placa(texto):
-    padrao = r"TAG:\s*([A-Z0-9\-]+)"
+    padrao = r"TAG:\s*([A-Z0-9\-\u2010\u2011\u2012\u2013\u2014]+)"
     m = re.search(padrao, texto)
 
     if m:
