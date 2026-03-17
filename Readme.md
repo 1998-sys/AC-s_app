@@ -2,7 +2,7 @@
 # 📄 AC's Generator – Gerador de Análises Críticas
 
 
-Software desenvolvido para **analisar certificados de calibração (PDF)** de instrumentos de **pressão e temperatura**, comparar com uma base local e gerar automaticamente:
+Software desenvolvido para **analisar certificados de calibração (PDF)** de instrumentos de **pressão, temperatura e placa de orificio**, comparar com uma base local e gerar automaticamente:
 
 - 📑 **Análise Crítica (AC) em PDF**
 - 🧾 **Arquivo XML no padrão ODS**
@@ -22,6 +22,7 @@ Software desenvolvido para **analisar certificados de calibração (PDF)** de in
   - Valores de calibração  
   - Erro fiducial  
   - Incerteza global  
+  - Verificação da Aprovação de Placa de Orifício pelo Report Valuation
 
 - 🗃️ Comparação automática com banco de dados SQLite  
 - ⚠️ Verificação de divergências de:
@@ -36,6 +37,7 @@ Software desenvolvido para **analisar certificados de calibração (PDF)** de in
   - Classificação (FISCAL, APROPRIAÇÃO, TRASNFERÊNCIA DE CUSTÓDIA, OPERACIONAL) - EXCLUSIVO CERTIFICADO PRIO
   - VALIDAÇÃO PRÓXIMA DATA DE CALIBRAÇÃO - EXCLUSIVO CERTIFICADO PRIO
   - VALIDAÇÃO DO PRAZO DE EMISSÃO DO CERTIFICADO DE ACORDO COM AS REGRAS DO CLIENTE.
+  
 
 - 🔄 Atualização automática do banco quando autorizada  
 - ✍️ Atualização manual via interface gráfica  
@@ -54,6 +56,7 @@ Software desenvolvido para **analisar certificados de calibração (PDF)** de in
 - DPT  
 - TT / TIT  
 - Sensores TE  
+- Placa de Orificio
 
 ---
 
