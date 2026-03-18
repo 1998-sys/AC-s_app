@@ -219,8 +219,6 @@ class App(ctk.CTk):
         except Exception as e:
                 traceback.print_exc()
                 self.after(0, lambda e=e: messagebox.showerror("Erro no PDF", str(e)))
-
-
         
     def solicitar_dados_origem(self, dados_pdf, callback):
         win = ctk.CTkToplevel(self)
@@ -293,7 +291,6 @@ class App(ctk.CTk):
         if not dados_pdf:
             messagebox.showerror("Erro interno", "Dados do certificado estão vazios.")
             return
-        print(dados_pdf)
         is_placa = dados_pdf.get("instrumento") == "Placa de Orificio"
         tipo_instrumento = "placa_orificio" if is_placa else "secundario"
 
@@ -342,6 +339,8 @@ class App(ctk.CTk):
             if issue.action:
                 if messagebox.askyesno(issue.title, f"{issue.message}\n\nDeseja aplicar a correção/inclusão?"):
                     issue.action()
+                    issue.resolved = True
+                    dados_pdf["_novo_instrumento_inserido"] = True
                 else:
                     ok = False
             if issue.blocking:

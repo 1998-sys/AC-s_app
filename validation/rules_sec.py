@@ -126,14 +126,17 @@ def regra_novo_instrumento(ctx):
                 f"SN Instrumento: {ctx.pdf.get('sn_instrumento')}\n"
                 f"SN Sensor: {ctx.pdf.get('sn_sensor')}"
             ),
-            action=lambda: inserir_instrumento(
-                ctx.pdf["tag"],
-                ctx.pdf.get("sn_instrumento"),
-                ctx.pdf.get("sn_sensor"),
-                ctx.pdf.get("min_range"),
-                ctx.pdf.get("max_range")
+            action=lambda: (
+                inserir_instrumento(
+                    ctx.pdf["tag"],
+                    ctx.pdf.get("sn_instrumento"),
+                    ctx.pdf.get("sn_sensor"),
+                    ctx.pdf.get("min_range"),
+                    ctx.pdf.get("max_range")
+                ),
+                ctx.pdf.__setitem__("_novo_instrumento_inserido", True)
             ),
-            blocking=True
+            blocking=False
         )
 
 # SN do Instrumento
