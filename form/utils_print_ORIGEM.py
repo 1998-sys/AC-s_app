@@ -27,7 +27,6 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
 
 
 def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
-    print(dados_xml_petro)
     def adicionar_dia_util(data):
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
@@ -35,7 +34,7 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
             data += timedelta(days=1)
         return data
 
-    
+    print(dados)
     
     caminho_template = "TemplateAC_ORIGEM.xlsx"
     wb = openpyxl.load_workbook(caminho_template)
@@ -100,9 +99,18 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         "MANOMETRO ANALÓGICO",
         "MANOMETRO DIGITAL ABSOLUTO",
     ):
-        
-        escrever(ws, "C8", "[ ✔ ] Transmissor de pressão estática (PT)")
-        escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
+        max_range = dados.get("max_range")
+        try:
+            max_range_float = float(max_range)
+        except (TypeError, ValueError):
+            max_range_float = None
+
+        if categoria == "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" and max_range_float is not None and max_range_float <= 200:
+            escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
+            escrever(ws, "C9", "[ ✔ ] Transmissor de pressão diferencial (PDT)")
+        else:
+            escrever(ws, "C8", "[ ✔ ] Transmissor de pressão estática (PT)")
+            escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
