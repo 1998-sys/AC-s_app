@@ -32,7 +32,9 @@ def gerar_ac_origem_PO(dados, caminho_pdf_original):
     wb = openpyxl.load_workbook(caminho_temp)
     ws = wb["Template Formulário"]
 
-    ws["A6"] = dados.get("tag")
+    print(dados)
+
+    ws["A6"] = dados.get("sn_inst")
     ws["A13"] = dados.get("certificado")
     ws["D13"] = dados.get("data_calibracao")
     ws["D57"] = f'Data: {dados.get("report_date")}'

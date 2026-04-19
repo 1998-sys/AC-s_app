@@ -21,8 +21,6 @@ def obter_caminho_ac(dados, caminho_pdf_original):
 
 
 def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report):
-    dados_pdf = dados
-
     cliente = dados.get("cliente", "").upper()
     local = dados.get("local", "").upper()
     instrumento = dados.get("instrumento", "").upper()
