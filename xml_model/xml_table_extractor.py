@@ -105,6 +105,7 @@ def extrair_tabelas_pagina_2(pdf):
             "horizontal_strategy": "text"
         })
 
+    print(tabelas)
     return tabelas or []
 
 

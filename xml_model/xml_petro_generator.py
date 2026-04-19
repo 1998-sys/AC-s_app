@@ -493,7 +493,7 @@ def gerar_pontos_calibracao_pt100(resultados, unidade_eng="°C"):
 #escrever_pontos_calibracao
 def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
     instrumento = normalizar_categoria(dados.get("categoria", "").upper())
-   
+    
 
     if instrumento in ("TERMÔMETRO DIGITAL", "TERMÔMETRO ANALÓGICO", 'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA', ):
 
@@ -614,8 +614,8 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
             )
             cal_as_left.append(
                 gerar_pontos_calibracao_pressao(
-                    pontos.get("results_left_bruto", []),
-                    pontos.get("results_left_resultados", []),
+                    pontos.get("results1", []),
+                    pontos.get("results3", []),
                     unidade_eng
                 )
             )
