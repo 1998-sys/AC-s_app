@@ -2,7 +2,6 @@ import openpyxl
 import win32com.client as win32
 import os
 import re
-from datetime import datetime
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Border, Side
 from openpyxl.worksheet.page import PageMargins
@@ -35,8 +34,7 @@ def gerar_ac_prio_po(
     ws["F5"] = dados.get("sn_inst", "")
     ws["F6"] = dados.get("certificado", "")
     ws["F7"] = "ODS Metering Systems"
-
-    ws["G48"] = datetime.now().strftime("%d/%m/%Y")
+    ws["G48"] = dados.get('report_date', "")
 
     if aplicar_borda_fallback:
 

@@ -632,6 +632,7 @@ def regra_classe(ctx):
     if not classe_raw or classe_raw == "NA":
         return None
     classe = classe_raw.strip().upper().replace(" ", "")
+    print(f"Classe normalizada: {classe}")
 
     classes_validas = [
         "FISCAL",

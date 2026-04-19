@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UncertaintyReport company="ODS ENERGY SOLUTIONS">
+
+  <CINumber>CI-1300.0000-6252-813-O2C-027</CINumber>
+  <Tag>NI</Tag>
+  <SystemName>NI</SystemName>
+
+  <GasMeterRun>
+    <Certificate>FX-SG-122101-01</Certificate>
+    <InternalDiameter>78,14</InternalDiameter>
+    <CertificateNumber>24-ODS-0638-DIM-473</CertificateNumber>
+  </GasMeterRun>
+
+  <OrificePlate>
+    <Certificate>EQ006.23.10.02</Certificate>
+    <DiameterAt20C>32,31</DiameterAt20C>
+    <CertificateNumber>25-ODS-0638-DIM-029</CertificateNumber>
+  </OrificePlate>
+
+  <DifferentialPressureTransmitter range="high">
+    <Certificate>UT-SG-122101-01</Certificate>
+    <CertificateNumber>25-ODS-0638-PRE-637</CertificateNumber>
+    <MaxFlowRate>1324,85</MaxFlowRate>
+    <MinFlowRate>369,371</MinFlowRate>
+  </DifferentialPressureTransmitter>
+
+  <DifferentialPressureTransmitter range="low">
+    <Certificate>FT-SG-122101-01</Certificate>
+    <CertificateNumber>25-ODS-0638-PRE-636</CertificateNumber>
+    <MaxFlowRate>501,70</MaxFlowRate>
+    <MinFlowRate>122,66</MinFlowRate>
+  </DifferentialPressureTransmitter>
+
+  <PressureTransmitter>
+    <Certificate>PT-SG-122101-01</Certificate>
+    <CertificateNumber>25-ODS-0638-PRE-638</CertificateNumber>
+  </PressureTransmitter>
+
+  <TemperatureTransmitter>
+    <Certificate>TT-SG-122101-01</Certificate>
+    <CertificateNumber>25-ODS-0638-TEM-348</CertificateNumber>
+  </TemperatureTransmitter>
+
+  <TemperatureSensor>
+    <Certificate>NI</Certificate>
+    <CertificateNumber>NI</CertificateNumber>
+  </TemperatureSensor>
+
+  <OperationFlowRate>
+    <MaxFlowRate>1324,85</MaxFlowRate>
+    <MinFlowRate>122,66</MinFlowRate>
+  </OperationFlowRate>
+</UncertaintyReport>
