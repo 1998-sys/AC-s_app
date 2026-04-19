@@ -26,13 +26,15 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
 
 
 
-def gerar_ac_origem(dados, caminho_pdf_original):
+def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
+    print(dados_xml_petro)
     def adicionar_dia_util(data):
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
         elif data.weekday() == 6:  # domingo
             data += timedelta(days=1)
         return data
+
     
     
     caminho_template = "TemplateAC_ORIGEM.xlsx"
@@ -115,7 +117,6 @@ def gerar_ac_origem(dados, caminho_pdf_original):
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
-        
 
   
     if dados.get("report_date"):
@@ -148,6 +149,13 @@ def gerar_ac_origem(dados, caminho_pdf_original):
                 font=InlineFont(b=True)
             )
         )
+    
+    elif dados_xml_petro and dados_xml_petro.get("tabela2") == "AS LEFT":
+            escrever(ws, "F35", "◉", vertical="center")
+            ws["F35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+            escrever(ws, "H35", "○", vertical="center")
+            ws["H35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+    
 
     rich = CellRichText(*blocos) if blocos else ""
     escrever(ws, "A42", rich)
