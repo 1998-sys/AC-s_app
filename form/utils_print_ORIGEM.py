@@ -163,6 +163,11 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
             ws["F35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
             escrever(ws, "H35", "○", vertical="center")
             ws["H35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+    else:
+            escrever(ws, "H35", "◉", vertical="center")
+            ws["H35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+            escrever(ws, "F35", "○", vertical="center")
+            ws["F35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
     
 
     rich = CellRichText(*blocos) if blocos else ""
