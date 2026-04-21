@@ -217,10 +217,8 @@ class App(ctk.CTk):
 
             if tipo == "ci":
                 numero_ci = dados_pdf.get("numero_ci", "NI")
-                xml_str = gerar_xml_uc(numero_ci, dados_pdf)
                 xml_path = os.path.splitext(caminho)[0] + ".xml"
-                with open(xml_path, "w", encoding="utf-8") as f:
-                    f.write(xml_str)
+                gerar_xml_uc(numero_ci, dados_pdf, xml_path)
                 self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Incerteza gerado:\n{xml_path}"))
                 self.after(0, lambda: self.exibir_resultado(dados_pdf, None))
                 return

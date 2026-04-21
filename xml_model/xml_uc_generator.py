@@ -1,71 +1,94 @@
-def gerar_xml_uc(numero_ci: str, dados: dict) -> str:
-    """
-    Gera o XML do relatório de incerteza a partir do número do CI e do dict
-    retornado por organizar_dados_uc.
-    SensorTemperatura é incluído com 'NI' quando não há dados.
-    TransmissorPD faixa='low' é omitido quando DP Low não existir.
-    """
-    def v(chave_instrumento: str, campo: str) -> str:
-        return dados.get(chave_instrumento, {}).get(campo, "NI")
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+from pathlib import Path
 
-    def bloco_operation_flow_rate() -> str:
-        dp_high = dados.get("dp_high", {})
-        dp_low  = dados.get("dp_low",  {})
-        max_flow = dp_high.get("vazao_max", "NI")
-        min_flow = dp_low.get("vazao_min") or dp_high.get("vazao_min", "NI")
-        return (
-            f'  <OperationFlowRate>\n'
-            f'    <MaxFlowRate>{max_flow}</MaxFlowRate>\n'
-            f'    <MinFlowRate>{min_flow}</MinFlowRate>\n'
-            f'  </OperationFlowRate>\n'
-        )
 
-    def bloco_pd(range_: str, chave: str) -> str:
-        if chave not in dados:
-            return ""
-        d = dados[chave]
-        return (
-            f'  <DifferentialPressureTransmitter range="{range_}">\n'
-            f'    <Certificate>{d.get("tag", "NI")}</Certificate>\n'
-            f'    <CertificateNumber>{d.get("certificado", "NI")}</CertificateNumber>\n'
-            f'    <MaxFlowRate>{d.get("vazao_max", "NI")}</MaxFlowRate>\n'
-            f'    <MinFlowRate>{d.get("vazao_min", "NI")}</MinFlowRate>\n'
-            f'  </DifferentialPressureTransmitter>\n'
-        )
+def sub(parent, tag, text="", **attrs):
+    el = ET.SubElement(parent, tag, **attrs)
+    el.text = str(text)
+    return el
 
-    xml = (
-        f'<?xml version="1.0" encoding="utf-8"?>\n'
-        f'<UncertaintyReport company="ODS ENERGY SOLUTIONS">\n\n'
-        f'  <CINumber>{numero_ci}</CINumber>\n'
-        f'  <Tag>NI</Tag>\n'
-        f'  <SystemName>NI</SystemName>\n\n'
-        f'  <GasMeterRun>\n'
-        f'    <Certificate>{v("trecho", "tag")}</Certificate>\n'
-        f'    <InternalDiameter>{v("trecho", "diametro")}</InternalDiameter>\n'
-        f'    <CertificateNumber>{v("trecho", "certificado")}</CertificateNumber>\n'
-        f'  </GasMeterRun>\n\n'
-        f'  <OrificePlace>\n'
-        f'    <Certificate>{v("placa", "tag")}</Certificate>\n'
-        f'    <DiameterAt20C>{v("placa", "diametro")}</DiameterAt20C>\n'
-        f'    <CertificateNumber>{v("placa", "certificado")}</CertificateNumber>\n'
-        f'  </OrificePlace>\n\n'
 
-        + bloco_pd("high", "dp_high")
-        + ('\n' if "dp_low" in dados else '')
-        + bloco_pd("low",  "dp_low")
-        + f'\n  <PressureTransmitter>\n'
-        + f'    <Certificate>{v("pressao_estatica", "tag")}</Certificate>\n'
-        + f'    <CertificateNumber>{v("pressao_estatica", "certificado")}</CertificateNumber>\n'
-        + f'  </PressureTransmitter>\n\n'
-        + f'  <TemperatureTransmitter>\n'
-        + f'    <Certificate>{v("termometro", "tag")}</Certificate>\n'
-        + f'    <CertificateNumber>{v("termometro", "certificado")}</CertificateNumber>\n'
-        + f'  </TemperatureTransmitter>\n\n'
-        + f'  <TemperatureSensor>\n'
-        + f'    <Certificate>NI</Certificate>\n'
-        + f'    <CertificateNumber>NI</CertificateNumber>\n'
-        + f'  </TemperatureSensor>\n\n'
-        + bloco_operation_flow_rate()
-        + '</UncertaintyReport>'
-    )
-    return xml
+def criar_gas_meter_run(root, dados):
+    bloco = ET.SubElement(root, "GasMeterRun")
+    sub(bloco, "Certificate",       dados.get("trecho", {}).get("tag",         "NI"))
+    sub(bloco, "InternalDiameter",  dados.get("trecho", {}).get("diametro",    "NI"))
+    sub(bloco, "CertificateNumber", dados.get("trecho", {}).get("certificado", "NI"))
+
+
+def criar_orifice_plate(root, dados):
+    bloco = ET.SubElement(root, "OrificePlate")
+    sub(bloco, "Certificate",       dados.get("placa", {}).get("tag",         "NI"))
+    sub(bloco, "DiameterAt20C",     dados.get("placa", {}).get("diametro",    "NI"))
+    sub(bloco, "CertificateNumber", dados.get("placa", {}).get("certificado", "NI"))
+
+
+def criar_pd_transmitter(root, dados, range_: str, chave: str):
+    if chave not in dados:
+        return
+    d = dados[chave]
+    bloco = ET.SubElement(root, "DifferentialPressureTransmitter", range=range_)
+    sub(bloco, "Certificate",       d.get("tag",          "NI"))
+    sub(bloco, "CertificateNumber", d.get("certificado",  "NI"))
+    sub(bloco, "MaxFlowRate",       d.get("vazao_max",    "NI"), unit="m³/h")
+    sub(bloco, "MinFlowRate",       d.get("vazao_min",    "NI"), unit="m³/h")
+    sub(bloco, "MaxPressure",       d.get("pressao_max",  "NI"), unit="kPa")
+    sub(bloco, "MinPressure",       d.get("pressao_min",  "NI"), unit="kPa")
+
+
+def criar_pressure_transmitter(root, dados):
+    bloco = ET.SubElement(root, "PressureTransmitter")
+    sub(bloco, "Certificate",       dados.get("pressao_estatica", {}).get("tag",         "NI"))
+    sub(bloco, "CertificateNumber", dados.get("pressao_estatica", {}).get("certificado", "NI"))
+
+
+def criar_temperature_transmitter(root, dados):
+    bloco = ET.SubElement(root, "TemperatureTransmitter")
+    sub(bloco, "Certificate",       dados.get("termometro", {}).get("tag",         "NI"))
+    sub(bloco, "CertificateNumber", dados.get("termometro", {}).get("certificado", "NI"))
+
+
+def criar_temperature_sensor(root):
+    bloco = ET.SubElement(root, "TemperatureSensor")
+    sub(bloco, "Certificate",       "NI")
+    sub(bloco, "CertificateNumber", "NI")
+
+
+def criar_operation_flow_rate(root, dados):
+    dp_high = dados.get("dp_high", {})
+    dp_low  = dados.get("dp_low",  {})
+    max_flow    = dp_high.get("vazao_max",   "NI")
+    min_flow    = dp_low.get("vazao_min")    or dp_high.get("vazao_min",   "NI")
+    max_pressao = dp_high.get("pressao_max", "NI")
+    min_pressao = dp_low.get("pressao_min")  or dp_high.get("pressao_min", "NI")
+    bloco = ET.SubElement(root, "OperationFlowRate")
+    sub(bloco, "MaxFlowRate", max_flow,    unit="m³/h")
+    sub(bloco, "MinFlowRate", min_flow,    unit="m³/h")
+    sub(bloco, "MaxPressure", max_pressao, unit="kPa")
+    sub(bloco, "MinPressure", min_pressao, unit="kPa")
+
+
+def gerar_xml_uc(numero_ci: str, dados: dict, caminho_saida: str) -> str:
+    root = ET.Element("UncertaintyReport", company="ODS ENERGY SOLUTIONS", customer='ORIGEM ENERGIA ALAGOAS S.A.')
+
+    sub(root, "CINumber",    numero_ci)
+    sub(root, "Tag",         "NI")
+    sub(root, "SystemName",  "NI")
+
+    criar_gas_meter_run(root, dados)
+    criar_orifice_plate(root, dados)
+    criar_pd_transmitter(root, dados, "high", "dp_high")
+    criar_pd_transmitter(root, dados, "low",  "dp_low")
+    criar_pressure_transmitter(root, dados)
+    criar_temperature_transmitter(root, dados)
+    criar_temperature_sensor(root)
+    criar_operation_flow_rate(root, dados)
+
+    xml_bytes = ET.tostring(root, encoding="utf-8")
+    pretty_xml = minidom.parseString(xml_bytes).toprettyxml(indent="  ", encoding="utf-8")
+
+    Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
+    with open(caminho_saida, "wb") as f:
+        f.write(pretty_xml)
+
+    return caminho_saida
