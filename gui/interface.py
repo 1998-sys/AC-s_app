@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 from pdf.utils_parser import select_extract
 from core.dispatcher import Dispatcher
+from xml_model.xml_uc_generator import gerar_xml_uc
 import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -209,10 +210,20 @@ class App(ctk.CTk):
 
             if tipo == "cromatografia":
                 from xml_model.xml_cromato import xml_cromatografia
-                xml_path = xml_cromatografia(caminho, dados_pdf)  
+                xml_path = xml_cromatografia(caminho, dados_pdf)
                 self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}"))
                 self.after(0, lambda: self.exibir_resultado(dados_pdf, None))
-                return  
+                return
+
+            if tipo == "ci":
+                numero_ci = dados_pdf.get("numero_ci", "NI")
+                xml_str = gerar_xml_uc(numero_ci, dados_pdf)
+                xml_path = os.path.splitext(caminho)[0] + ".xml"
+                with open(xml_path, "w", encoding="utf-8") as f:
+                    f.write(xml_str)
+                self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Incerteza gerado:\n{xml_path}"))
+                self.after(0, lambda: self.exibir_resultado(dados_pdf, None))
+                return
 
             self.dispatcher.dispatch(tipo, caminho, dados_pdf)
 
