@@ -74,7 +74,16 @@ def gerar_ac_prio(dados, caminho_pdf_original):
         "MANOMETRO ANALÓGICO",
         "MANOMETRO DIGITAL ABSOLUTO",
     ):
-        ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão"
+        max_range = dados.get("max_range")
+        try:
+            max_range_float = float(max_range)
+        except (TypeError, ValueError):
+            max_range_float = None
+
+        if categoria == "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" and max_range_float is not None and max_range_float <= 250:
+            ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão Diferencial"
+        else:
+            ws["B2"] = "Análise Crítica de Calibração dos Transmissores de Pressão"
         
 
     elif categoria in (

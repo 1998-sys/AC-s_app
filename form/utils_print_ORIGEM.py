@@ -105,7 +105,7 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         except (TypeError, ValueError):
             max_range_float = None
 
-        if categoria == "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" and max_range_float is not None and max_range_float <= 200:
+        if categoria == "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA" and max_range_float is not None and max_range_float <= 250:
             escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
             escrever(ws, "C9", "[ ✔ ] Transmissor de pressão diferencial (PDT)")
         else:

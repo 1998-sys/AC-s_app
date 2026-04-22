@@ -80,7 +80,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
-        
+        dados_pdf = dados
         xml_destino_padrao = Path(caminho_pdf_atual).with_suffix(".xml")
         xml_destino_petro  = Path(caminho_pdf_atual).with_name(f"{Path(caminho_pdf_atual).stem}_petro.xml")
 
