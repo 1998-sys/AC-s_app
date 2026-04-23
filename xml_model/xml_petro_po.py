@@ -86,8 +86,14 @@ def criar_identificacao_po(dados, valores_medidos, valores_er, root):
     ET.SubElement(bloco_ang_chanf,'INCERTEZA_EXP', UNIDADE_ENG=valores_medidos.get("ang_chanf", {}).get("unidade", "") if valores_medidos else "", K=str(valores_medidos.get("ang_chanf", {}).get("k", "") if valores_medidos else "NI"), GRAU_LIBERDADE=str(valores_medidos.get("ang_chanf", {}).get("veff", "") if valores_medidos else "NI")).text = str(valores_medidos.get("ang_chanf", {}).get("incerteza", "")) if valores_medidos else ""
     ET.SubElement(bloco_ang_chanf,'APROVADO').text = valores_er.get("Angulo_Chanfro", "") if valores_er else ""
     bloco_ang_gh = ET.SubElement(bloco_instr,'ANGULO_BORDA_G')
-    ET.SubElement(bloco_ang_gh,'VALOR', UNIDADE_ENG="°").text = str(valores_medidos.get("ang_of_mont", {}).get('media', "")) if valores_er else ""
-    ET.SubElement(bloco_ang_gh,'INCERTEZA_EXP', UNIDADE_ENG=valores_medidos.get("ang_of_mont", {}).get("unidade", "") if valores_medidos else "", K=str(valores_medidos.get("ang_of_mont", {}).get("k", "") if valores_medidos else "NI"), GRAU_LIBERDADE=str(valores_medidos.get("ang_of_mont", {}).get("veff", "") if valores_medidos else "NI")).text = str(valores_medidos.get("ang_of_mont", {}).get("incerteza", "")) if valores_medidos else ""
+    ang_gh_data = valores_medidos.get("ang_of_mont", {}) if valores_medidos else {}
+    ang_gh_media = str(ang_gh_data.get("media", "")).strip()
+    if ang_gh_media:
+        ET.SubElement(bloco_ang_gh,'VALOR', UNIDADE_ENG=ang_gh_data.get("unidade", "°")).text = ang_gh_media
+        ET.SubElement(bloco_ang_gh,'INCERTEZA_EXP', UNIDADE_ENG=ang_gh_data.get("unidade", "°"), K=str(ang_gh_data.get("k", "NI")), GRAU_LIBERDADE=str(ang_gh_data.get("veff", "NI"))).text = str(ang_gh_data.get("incerteza", "NI"))
+    else:
+        ET.SubElement(bloco_ang_gh,'VALOR', UNIDADE_ENG="NI").text = "NI"
+        ET.SubElement(bloco_ang_gh,'INCERTEZA_EXP', UNIDADE_ENG="NI", K="NI", GRAU_LIBERDADE="NI").text = "NI"
     ET.SubElement(bloco_ang_gh,'APROVADO').text = "NI"
     bloco_escent = ET.SubElement(bloco_instr,'EXCENTRICIDADE')
     ET.SubElement(bloco_escent,'VALOR', UNIDADE_ENG="NI").text = "NI"
