@@ -11,15 +11,15 @@ def sub(parent, tag, text="", **attrs):
 
 def criar_gas_meter_run(root, dados):
     bloco = ET.SubElement(root, "GasMeterRun")
-    sub(bloco, "Certificate",       dados.get("trecho", {}).get("tag",         "NI"))
-    sub(bloco, "InternalDiameter",  dados.get("trecho", {}).get("diametro",    "NI"))
+    sub(bloco, "Tag",       dados.get("trecho", {}).get("tag",         "NI"))
+    sub(bloco, "Diameter",  dados.get("trecho", {}).get("diametro",    "NI"))
     sub(bloco, "CertificateNumber", dados.get("trecho", {}).get("certificado", "NI"))
 
 
 def criar_orifice_plate(root, dados):
     bloco = ET.SubElement(root, "OrificePlate")
-    sub(bloco, "Certificate",       dados.get("placa", {}).get("tag",         "NI"))
-    sub(bloco, "DiameterAt20C",     dados.get("placa", {}).get("diametro",    "NI"))
+    sub(bloco, "Tag",       dados.get("placa", {}).get("tag",         "NI"))
+    sub(bloco, "Diameter",     dados.get("placa", {}).get("diametro",    "NI"))
     sub(bloco, "CertificateNumber", dados.get("placa", {}).get("certificado", "NI"))
 
 
@@ -28,7 +28,7 @@ def criar_pd_transmitter(root, dados, range_: str, chave: str):
         return
     d = dados[chave]
     bloco = ET.SubElement(root, "DifferentialPressureTransmitter", range=range_)
-    sub(bloco, "Certificate",       d.get("tag",          "NI"))
+    sub(bloco, "Tag",       d.get("tag",          "NI"))
     sub(bloco, "CertificateNumber", d.get("certificado",  "NI"))
     sub(bloco, "MaxFlowRate",       d.get("vazao_max",    "NI"), unit="m³/h")
     sub(bloco, "MinFlowRate",       d.get("vazao_min",    "NI"), unit="m³/h")
@@ -38,19 +38,19 @@ def criar_pd_transmitter(root, dados, range_: str, chave: str):
 
 def criar_pressure_transmitter(root, dados):
     bloco = ET.SubElement(root, "PressureTransmitter")
-    sub(bloco, "Certificate",       dados.get("pressao_estatica", {}).get("tag",         "NI"))
+    sub(bloco, "Tag",       dados.get("pressao_estatica", {}).get("tag",         "NI"))
     sub(bloco, "CertificateNumber", dados.get("pressao_estatica", {}).get("certificado", "NI"))
 
 
 def criar_temperature_transmitter(root, dados):
     bloco = ET.SubElement(root, "TemperatureTransmitter")
-    sub(bloco, "Certificate",       dados.get("termometro", {}).get("tag",         "NI"))
+    sub(bloco, "Tag",       dados.get("termometro", {}).get("tag",         "NI"))
     sub(bloco, "CertificateNumber", dados.get("termometro", {}).get("certificado", "NI"))
 
 
 def criar_temperature_sensor(root):
     bloco = ET.SubElement(root, "TemperatureSensor")
-    sub(bloco, "Certificate",       "NI")
+    sub(bloco, "Tag",       "NI")
     sub(bloco, "CertificateNumber", "NI")
 
 
@@ -68,12 +68,19 @@ def criar_operation_flow_rate(root, dados):
     sub(bloco, "MinPressure", min_pressao, unit="kPa")
 
 
+CLIENTES = {
+    "origem": "ORIGEM ENERGIA ALAGOAS S.A.",
+}
+
+
 def gerar_xml_uc(numero_ci: str, dados: dict, caminho_saida: str) -> str:
-    root = ET.Element("UncertaintyReport", company="ODS ENERGY SOLUTIONS", customer='ORIGEM ENERGIA ALAGOAS S.A.')
+    cliente_raw = dados.get("cliente", "")
+    customer = CLIENTES.get(cliente_raw.lower(), cliente_raw) if cliente_raw else "NI"
+    root = ET.Element("UncertaintyReport", company="ODS ENERGY SOLUTIONS", customer=customer)
 
     sub(root, "CINumber",    numero_ci)
-    sub(root, "Tag",         "NI")
-    sub(root, "SystemName",  "NI")
+    sub(root, "Tag",         dados.get("tag",          "NI"))
+    sub(root, "SystemName",  dados.get("nome_sistema", "NI"))
 
     criar_gas_meter_run(root, dados)
     criar_orifice_plate(root, dados)

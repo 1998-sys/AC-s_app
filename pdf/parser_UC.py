@@ -7,6 +7,28 @@ from xml_model.xml_generator import normalizar_certificado
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 
+def extrair_cliente(texto: str) -> str | None:
+    """
+    Extrai o nome do cliente da linha 'Cliente: <nome>'.
+    Ex: 'Cliente: Origem' → 'Origem'
+    """
+    match = re.search(r'Cliente[:\s]+(.+?)(?:\n|$)', texto, re.IGNORECASE)
+    return match.group(1).strip() if match else None
+
+
+def extrair_tag_sistema(texto: str) -> tuple[str | None, str | None]:
+    """
+    Extrai a TAG e o nome do sistema da linha de identificação.
+    Ex: 'FT-SG-122101-01 - TESTE POÇO - SG-122101'
+         → ('FT-SG-122101-01', 'TESTE POÇO - SG-122101')
+    """
+    pattern = r'([A-Z]{2,4}-[A-Z]+-\d{5,6}-\d{2})\s*-\s*(.+)'
+    match = re.search(pattern, texto, re.MULTILINE)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+    return None, None
+
+
 def extrair_numero_relatorio(texto: str) -> str | None:
     """
     Identifica se o PDF é um CI pelo número de relatório (ex: CI-1300.0000-6252-813-O2C-027).
@@ -24,18 +46,10 @@ def extrair_tabelas_uc(caminho_pdf: str) -> dict:
       - 'documentos': lista de instrumentos com TAG e certificado de calibração.
       - 'budget': budget de incerteza com símbolo e contribuição por grandeza.
 
-    A detecção de cada tabela é feita pelo cabeçalho:
-      - 'documentos' → linha com "documentos" + "certificado"
-      - 'budget'     → linha com "símbolo" + "contribuição"
-
-    Linhas com apenas uma célula preenchida são tratadas como separadores de seção
-    e encerram a coleta de dados daquela tabela.
-    Retorna imediatamente ao encontrar ambas, sem varrer o restante do PDF.
+    A detecção é feita pelo cabeçalho com "documentos" + "certificado".
+    Retorna assim que encontrar, sem varrer o restante do PDF.
     """
-    resultado = {"documentos": None, "budget": None}
-
     def e_separador(linha):
-        # Uma linha quase vazia indica título ou espaçador entre seções
         return sum(1 for c in linha if c.strip()) <= 1
 
     def extrair_apos_cabecalho(dados, idx_header):
@@ -56,16 +70,12 @@ def extrair_tabelas_uc(caminho_pdf: str) -> dict:
                     ]
                     for i, linha in enumerate(dados):
                         texto = " ".join(linha).lower()
-                        if resultado["documentos"] is None and "documentos" in texto and "certificado" in texto:
-                            resultado["documentos"] = extrair_apos_cabecalho(dados, i)
-                        if resultado["budget"] is None and "símbolo" in texto and "contribuição" in texto:
-                            resultado["budget"] = extrair_apos_cabecalho(dados, i)
-                    if all(v is not None for v in resultado.values()):
-                        return resultado
+                        if "documentos" in texto and "certificado" in texto:
+                            return extrair_apos_cabecalho(dados, i)
     except Exception as e:
         print(f"Erro ao extrair tabelas de '{caminho_pdf}': {e}")
 
-    return resultado
+    return None
 
 
 def extrair_fluxos_dp(texto: str) -> dict:
@@ -130,7 +140,7 @@ def extrair_fluxos_dp(texto: str) -> dict:
         }
 
 
-def organizar_dados_uc(tabelas: dict, fluxos: dict | None = None) -> dict:
+def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> dict:
     """
     Transforma as linhas brutas das tabelas em um dict estruturado por instrumento.
 
@@ -147,33 +157,23 @@ def organizar_dados_uc(tabelas: dict, fluxos: dict | None = None) -> dict:
     O número do certificado é normalizado (espaços removidos) via normalizar_certificado.
     """
     MAPA_INSTRUMENTOS = {
-        "trecho":      "trecho",
-        "placa":       "placa",
-        "termômetro":  "termometro",
-        "estática":    "pressao_estatica",
-        "high":        "dp_high",
-        "low":         "dp_low",
+        "trecho":        "trecho",
+        "placa":         "placa",
+        "termômetro":    "termometro",
+        "temperatura":   "termometro",
+        "termorresist":  "termoresistencia",
+        "estática":      "pressao_estatica",
+        "high":          "dp_high",
+        "low":           "dp_low",
+        "diferencial":   "dp_high",
     }
-
-    # Instrumentos cujo diâmetro medido está registrado no budget de incerteza
-    DIAMETRO_POR_INSTRUMENTO = {
-        "trecho": "D",
-        "placa":  "d",
-    }
-
-    # Indexa o budget por símbolo para lookup O(1) durante o loop de documentos
-    budget_por_simbolo = {}
-    for linha in (tabelas.get("budget") or []):
-        simbolo = linha[2].strip()
-        if simbolo:
-            budget_por_simbolo[simbolo] = linha[4].strip()
 
     resultado = {}
 
-    for linha in (tabelas.get("documentos") or []):
+    for linha in (documentos or []):
         nome        = linha[0].strip()
         tag         = linha[1].strip()
-        certificado = normalizar_certificado(linha[7].strip())
+        certificado = normalizar_certificado(linha[-1].strip())
 
         chave = None
         for palavra, k in MAPA_INSTRUMENTOS.items():
@@ -185,9 +185,8 @@ def organizar_dados_uc(tabelas: dict, fluxos: dict | None = None) -> dict:
 
         dados_instrumento = {"tag": tag, "certificado": certificado}
 
-        simbolo_d = DIAMETRO_POR_INSTRUMENTO.get(chave)
-        if simbolo_d and simbolo_d in budget_por_simbolo:
-            dados_instrumento["diametro"] = budget_por_simbolo[simbolo_d]
+        if linha[-2].strip() == "mm":
+            dados_instrumento["diametro"] = linha[-3].strip()
 
         # Injeta vazão e pressão para transmissores de pressão diferencial
         if fluxos and chave in ("dp_high", "dp_low"):
@@ -196,6 +195,8 @@ def organizar_dados_uc(tabelas: dict, fluxos: dict | None = None) -> dict:
                 dados_instrumento.update(fluxo_dp)
 
         resultado[chave] = dados_instrumento
+    
+    print("Dados organizados por instrumento:", resultado)
 
     return resultado
 
@@ -207,11 +208,17 @@ def extrair_campos_uc(caminho: str) -> dict:
     """
     texto = extrair_texto(caminho)
     numero_ci = extrair_numero_relatorio(texto)
-    tabelas = extrair_tabelas_uc(caminho)
+    cliente = extrair_cliente(texto)
+    tag, nome_sistema = extrair_tag_sistema(texto)
+    documentos = extrair_tabelas_uc(caminho)
+    print("Tabelas extraídas:", documentos)
     fluxos = extrair_fluxos_dp(texto)
-    dados = organizar_dados_uc(tabelas, fluxos)
+    dados = organizar_dados_uc(documentos, fluxos)
     ci_dados = {
-        "numero_ci": numero_ci or "NI",
+        "numero_ci":    numero_ci    or "NI",
+        "tag":          tag          or "NI",
+        "nome_sistema": nome_sistema or "NI",
+        "cliente":      cliente      or "NI",
         "tipo": "ci",
         **dados,
     }
