@@ -23,6 +23,8 @@ mapeamento_eng = {
     {'faixa_cal': "°C", "valor_referencia": "°C", "valor_indicado": "°C", "incerteza": "°C", "erro": "°C", "erro_fid": "NI", "incert_global": "NI", "histerese": "NI", "rept": "NI"},
     "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA":
     {'faixa_cal': "°C", "valor_referencia": "°C", "valor_indicado": "°C", "incerteza": "°C", "erro": "°C", "erro_fid": "NI", "incert_global": "NI", "histerese": "NI", "rept": "NI"},
+    "TRANSMISSOR DE TEMPERATURA":
+    {'faixa_cal': "°C", "valor_referencia": "°C", "valor_indicado": "°C", "incerteza": "°C", "erro": "°C", "erro_fid": "NI", "incert_global": "NI", "histerese": "NI", "rept": "NI"},
     "TERMÔMETRO DIGITAL":
     {'faixa_cal': "°C", "valor_referencia": "°C", "valor_indicado": "°C", "incerteza": "°C", "erro": "°C", "erro_fid": "NI", "incert_global": "NI", "histerese": "NI", "rept": "NI"},
     "TERMÔMETRO ANALÓGICO":
@@ -118,7 +120,8 @@ def definir_unidade_eng(categoria):
         "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
         "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
         "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
-        'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA'
+        'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA',
+        'TRANSMISSOR DE TEMPERATURA'
     ]
 
     if categoria in categorias_ma:
@@ -206,7 +209,7 @@ def criar_identificacao_instrumento(dados, pontos ,root):
     informações = dados
     instrumento = normalizar_categoria(dados.get("categoria", "").upper())
     sn_sensor = dados.get("sn_sensor", "")
-    if instrumento == "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" or instrumento == "TERMÔMETRO ANALÓGICO" or instrumento == "TERMÔMETRO DIGITAL":
+    if instrumento in ("TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA", "TRANSMISSOR DE TEMPERATURA", "TERMÔMETRO ANALÓGICO", "TERMÔMETRO DIGITAL"):
         bloco_instr = ET.SubElement(root, "INSTRUMENTO_TEMPERATURA")
         if sn_sensor != None:
             bloco_s = ET.SubElement(bloco_instr,"ELEMENTO_SENSOR")
@@ -495,7 +498,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
     instrumento = normalizar_categoria(dados.get("categoria", "").upper())
     
 
-    if instrumento in ("TERMÔMETRO DIGITAL", "TERMÔMETRO ANALÓGICO", 'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA', ):
+    if instrumento in ("TERMÔMETRO DIGITAL", "TERMÔMETRO ANALÓGICO", 'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA', 'TRANSMISSOR DE TEMPERATURA'):
 
     
         cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
@@ -631,6 +634,7 @@ CATEGORIAS_TEMPERATURA = (
     "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
     "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
     "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+    "TRANSMISSOR DE TEMPERATURA",
     "TERMÔMETRO ANALÓGICO",
     "TERMÔMETRO DIGITAL"
 )
@@ -714,6 +718,7 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
 
     if instrumento in (
         "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TRANSMISSOR DE TEMPERATURA",
         "TERMÔMETRO ANALÓGICO",
         "TERMÔMETRO DIGITAL",
     ):

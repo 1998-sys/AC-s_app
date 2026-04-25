@@ -92,7 +92,7 @@ def extrair_tag(texto):
 
 def extrair_sn(texto):
     encontrados = re.findall(
-        r"(?:SN|Num\.?\s*de\s*Série):\s*([^\s]+)",
+        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w.-]+(?:[ \t]+[\w.-]+)*)",
         texto,
         flags=re.IGNORECASE
     )
@@ -490,7 +490,7 @@ def extrair_modelo(texto):
         return None
 
     padrao = re.search(
-        r"Model:\s*([A-Z0-9\-]+)",
+        r"Model:\s*([A-Z0-9\-/]+)",
         texto,
         flags=re.IGNORECASE
     )
