@@ -179,9 +179,8 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
 
     
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
-    certificado = dados.get("certificado", "").replace(" ", "")
-    tag_limpa = dados.get("tag", "").replace(" ", "")
-    nome_pdf = f"{certificado}_{tag_limpa}_AC.pdf"
+    n_ac = dados.get("n_ac", "").replace(" ", "")
+    nome_pdf = f"{n_ac}_AC.pdf"
     caminho_pdf_final = os.path.join(pasta_saida, nome_pdf)
 
     if os.path.exists(caminho_pdf_final):

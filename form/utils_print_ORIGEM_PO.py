@@ -47,10 +47,9 @@ def gerar_ac_origem_PO(dados, caminho_pdf_original):
     time.sleep(1)
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
 
-    certificado = limpar_nome_arquivo(dados.get("certificado", ""))
-    tag_limpa = limpar_nome_arquivo(dados.get("tag", ""))
+    n_ac = limpar_nome_arquivo(dados.get("n_ac", ""))
 
-    nome_pdf = f"{certificado}_{tag_limpa}_AC.pdf"
+    nome_pdf = f"{n_ac}_AC.pdf"
     caminho_pdf_final = os.path.join(pasta_saida, nome_pdf)
 
     if os.path.exists(caminho_pdf_final):
