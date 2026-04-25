@@ -12,6 +12,11 @@ import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+
+def _resource(relative_path: str) -> str:
+    base = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
+    return str(base / relative_path)
+
 try:
     from pdf.extrator import extrair_texto
     from pdf.parser_certificados import extrair_campos
@@ -84,11 +89,10 @@ class App(ctk.CTk):
     def _definir_logo_janela(self):
         """Carrega a imagem PNG e a define como ícone da janela e barra de tarefas"""
         try:
-            caminho_logo = os.path.join("logo", "ods-logo2.png")
+            caminho_logo = _resource(os.path.join("logo", "ods-logo2.png"))
             if os.path.exists(caminho_logo):
-                
-                img_icon = Image.open(caminho_logo)            
-                self.img_icon_tk = ctk.CTkImage(light_image=img_icon, dark_image=img_icon) 
+                img_icon = Image.open(caminho_logo)
+                self.img_icon_tk = ctk.CTkImage(light_image=img_icon, dark_image=img_icon)
                 self.after(200, lambda: self.wm_iconphoto(False, self._load_icon_native(caminho_logo)))
         except Exception as e:
             print(f"Erro ao carregar ícone: {e}")
@@ -126,7 +130,7 @@ class App(ctk.CTk):
 
        
         try:
-            img_dog = Image.open("logo/logo.jpg")
+            img_dog = Image.open(_resource("logo/logo.jpg"))
             logo_dog = ctk.CTkImage(img_dog, size=(150, 150))
             self.dog_label = ctk.CTkLabel(self.content_frame, image=logo_dog, text="")
             self.dog_label.pack(pady=(40, 30))
@@ -238,7 +242,7 @@ class App(ctk.CTk):
         win.grab_set()
 
         try:
-            caminho_logo = os.path.join("logo", "ods-logo2.png")
+            caminho_logo = _resource(os.path.join("logo", "ods-logo2.png"))
             if os.path.exists(caminho_logo):
                 from tkinter import PhotoImage
                 win.icon_img = PhotoImage(file=caminho_logo)  
@@ -462,7 +466,7 @@ class App(ctk.CTk):
         win.grab_set()
         
         try:
-            caminho_logo = os.path.join("logo", "ods-logo2.png")
+            caminho_logo = _resource(os.path.join("logo", "ods-logo2.png"))
             if os.path.exists(caminho_logo):
                 win.after(200, lambda: win.wm_iconphoto(False, self._load_icon_native(caminho_logo)))
         except: pass

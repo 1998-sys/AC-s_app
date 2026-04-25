@@ -1,8 +1,15 @@
+import sys
 from lxml import etree
 from pathlib import Path
 from datetime import datetime
 
-XSD_PATH = Path(__file__).parent / "PetrobrasSchemaV3.0.0 (1) (1).xsd"
+
+def _base_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent.parent
+
+XSD_PATH = _base_path() / "xml_model" / "PetrobrasSchemaV3.0.0 (1) (1).xsd"
 
 
 def validar_xml(caminho_xml: Path) -> list:

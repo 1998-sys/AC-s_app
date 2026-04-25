@@ -17,6 +17,12 @@ def gerar_ac_prio_po(
     aplicar_borda_fallback: bool = True,
     cor_faixa_teal_hex = "0099A8"
 ):
+    """Preenche o template AC PRIO PO e exporta como PDF via Excel COM.
+    Fills the AC PRIO PO template and exports it as PDF via Excel COM.
+
+    Applies borders, auto-detects print area from cell content, and overrides
+    page setup directly via COM to ensure reliable fit-to-page rendering.
+    Returns the absolute path of the generated PDF."""
 
     if not os.path.isfile(caminho_template):
         raise FileNotFoundError(f"Template não encontrado: {os.path.abspath(caminho_template)}")

@@ -8,6 +8,12 @@ from openpyxl.cell.text import InlineFont
 
 tipo=""
 def gerar_ac_yinson_atlanta(dados, caminho_pdf_original):
+    """Preenche o template AC YINSON ATLANTA e exporta como PDF via Excel COM.
+    Fills the AC YINSON ATLANTA template and exports it as PDF via Excel COM.
+
+    Handles instrument type title, local field line-breaking, business-day-adjusted
+    delivery date (+1 day), and rich text observations (range/SN update or no change).
+    Returns the absolute path of the generated PDF."""
     def adicionar_dia_util(data):
         data += timedelta(days=1)
         if data.weekday() == 5:  # sábado

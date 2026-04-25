@@ -1,6 +1,17 @@
 from data.conexao import conectar
 
 def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None):
+    """
+    Insere um novo instrumento na tabela 'instrumentos'.
+    Inserts a new instrument into the 'instrumentos' table.
+
+    Args:
+        tag           (str):   Identificador do instrumento / Instrument tag identifier.
+        sn_instrumento(str):   Número de série do instrumento / Instrument serial number.
+        sn_sensor     (str):   Número de série do sensor, opcional / Sensor serial number, optional.
+        min_range     (float): Valor mínimo da faixa de medição / Minimum measurement range value.
+        max_range     (float): Valor máximo da faixa de medição / Maximum measurement range value.
+    """
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute('''
@@ -12,6 +23,17 @@ def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max
 
 
 def buscar_instrumento_por_tag(tag):
+    """
+    Busca um instrumento pelo seu tag identificador.
+    Searches for an instrument by its tag identifier.
+
+    Args:
+        tag (str): Identificador do instrumento / Instrument tag identifier.
+
+    Returns:
+        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
+                     Dictionary with instrument data or None if not found.
+    """
     conn = conectar()
     cur = conn.cursor()
 
@@ -27,7 +49,6 @@ def buscar_instrumento_por_tag(tag):
     if not row:
         return None
 
-    # row = (tag, sn_instrumento, sn_sensor)
     return {
         "tag": row[0],
         "sn_instrumento": row[1],
@@ -37,6 +58,14 @@ def buscar_instrumento_por_tag(tag):
     }
 
 def atualizar_sn(tag, novo_sn):
+    """
+    Atualiza o número de série do instrumento identificado pelo tag.
+    Updates the instrument serial number identified by tag.
+
+    Args:
+        tag    (str): Identificador do instrumento / Instrument tag identifier.
+        novo_sn(str): Novo número de série / New serial number.
+    """
     conn = conectar()
     cursor = conn.cursor()
 
@@ -50,6 +79,14 @@ def atualizar_sn(tag, novo_sn):
     conn.close()
 
 def atualizar_sn_sensor(tag, novo_sn_sensor):
+    """
+    Atualiza o número de série do sensor identificado pelo tag.
+    Updates the sensor serial number identified by tag.
+
+    Args:
+        tag          (str): Identificador do instrumento / Instrument tag identifier.
+        novo_sn_sensor(str): Novo número de série do sensor / New sensor serial number.
+    """
     conn = conectar()
     cursor = conn.cursor()
 
@@ -63,6 +100,17 @@ def atualizar_sn_sensor(tag, novo_sn_sensor):
     conn.close()
 
 def buscar_por_sn_instrumento(sn):
+    """
+    Busca um instrumento pelo número de série do instrumento.
+    Searches for an instrument by its serial number.
+
+    Args:
+        sn (str): Número de série do instrumento / Instrument serial number.
+
+    Returns:
+        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
+                     Dictionary with instrument data or None if not found.
+    """
     conn = conectar()
     cur = conn.cursor()
 
@@ -86,6 +134,17 @@ def buscar_por_sn_instrumento(sn):
 
 
 def buscar_por_sn_sensor(sn_sensor):
+    """
+    Busca um instrumento pelo número de série do sensor.
+    Searches for an instrument by its sensor serial number.
+
+    Args:
+        sn_sensor (str): Número de série do sensor / Sensor serial number.
+
+    Returns:
+        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
+                     Dictionary with instrument data or None if not found.
+    """
     conn = conectar()
     cur = conn.cursor()
 
@@ -109,7 +168,14 @@ def buscar_por_sn_sensor(sn_sensor):
 
 
 def atualizar_tag(sn_instrumento, nova_tag):
+    """
+    Atualiza o tag de um instrumento identificado pelo número de série.
+    Updates the tag of an instrument identified by its serial number.
 
+    Args:
+        sn_instrumento(str): Número de série do instrumento / Instrument serial number.
+        nova_tag      (str): Novo tag identificador / New tag identifier.
+    """
     conn = conectar()
     cur = conn.cursor()
 
@@ -124,6 +190,15 @@ def atualizar_tag(sn_instrumento, nova_tag):
 
 
 def atualizar_range(tag, min_range, max_range):
+    """
+    Atualiza a faixa de medição de um instrumento identificado pelo tag.
+    Updates the measurement range of an instrument identified by tag.
+
+    Args:
+        tag      (str):   Identificador do instrumento / Instrument tag identifier.
+        min_range(float): Novo valor mínimo da faixa / New minimum range value.
+        max_range(float): Novo valor máximo da faixa / New maximum range value.
+    """
     conn = conectar()
     cur = conn.cursor()
 

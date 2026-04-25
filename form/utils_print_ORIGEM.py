@@ -7,9 +7,9 @@ import win32com.client as win32
 import os
 
 
-
-
 def primeira_celula_merge(ws, cell):
+    """Resolve a célula superior esquerda de um merge. / Resolves the top-left cell of a merged range.
+    Required because openpyxl only accepts writes to the first cell of a merge."""
     for merged_range in ws.merged_cells.ranges:
         if cell.coordinate in merged_range:
             return ws.cell(
@@ -20,13 +20,20 @@ def primeira_celula_merge(ws, cell):
 
 
 def escrever(ws, endereco, valor, wrap=True, vertical="top"):
+    """Escreve valor na célula (ou merge) com alinhamento padrão.
+    Writes a value to a cell (or merged cell) with default alignment."""
     celula = primeira_celula_merge(ws, ws[endereco])
     celula.value = valor
     celula.alignment = Alignment(wrap_text=wrap, vertical=vertical)
 
 
-
 def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
+    """Preenche o template AC Origem e exporta como PDF via Excel COM.
+    Fills the AC Origem template and exports it as PDF via Excel COM.
+
+    Handles instrument type checkboxes, business-day-adjusted delivery date,
+    AS FOUND/AS LEFT indication, and rich text observations.
+    Returns the absolute path of the generated PDF."""
     def adicionar_dia_util(data):
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
@@ -35,12 +42,11 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         return data
 
     print(dados)
-    
+
     caminho_template = "TemplateAC_ORIGEM.xlsx"
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Template Formulário"]
 
-   
     ws.page_setup.orientation = "portrait"
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
@@ -52,16 +58,14 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
     ws.page_margins.bottom = 0.5
     ws.page_margins.left = 0.8
     ws.page_margins.right = 0.5
-   
+
     escrever(ws, "A6",  dados.get("tag"))
     escrever(ws, "C6",  dados.get("localizacao"))
     escrever(ws, "F6", f"SAP: {dados.get('sap', '')}")
     escrever(ws, "G6", f"CE: {dados.get('n_ac', '')}")
     escrever(ws, "A13", dados.get("certificado"))
     escrever(ws, "D13", dados.get("data"))
-    
 
-    
     categoria = (dados.get('categoria') or "").upper()
     sensor = (dados.get("sn_sensor") or "").upper()
 
@@ -74,7 +78,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
-        
 
     elif categoria in (
         "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
@@ -82,7 +85,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         "TERMÔMETRO ANALÓGICO",
         "TERMÔMETRO DIGITAL"
     ):
-        
         escrever(ws, "C8", "[ ] Transmissor de pressão estática (PT)")
         escrever(ws, "C9", "[ ] Transmissor de pressão diferencial (PDT)")
         escrever(ws, "C10", "[ ✔ ] Transmissor de temperatura (TT)")
@@ -91,7 +93,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
             escrever(ws, "F8", "[ ✔ ] Termorresistência (TE)")
         else:
             escrever(ws, "F8", "[ ] Termorresistência (TE)")
-
 
     elif categoria in (
         "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
@@ -115,8 +116,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
-        
-
     elif categoria in (
         "MANOMETRO DIFERENCIAL DIGITAL",
         "MANOMETRO DIFERENCIAL ANALÓGICO",
@@ -126,8 +125,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         escrever(ws, "C10", "[ ] Transmissor de temperatura (TT)")
         escrever(ws, "F8", "[ ] Termorresistência (TE)")
 
-
-  
     if dados.get("report_date"):
         dt = datetime.strptime(dados["report_date"], "%d/%m/%Y")
         dt_util = adicionar_dia_util(dt)
@@ -140,7 +137,6 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
             vertical="center"
         )
 
-   
     blocos = []
 
     if dados.get("range_atualizado"):
@@ -158,7 +154,7 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
                 font=InlineFont(b=True)
             )
         )
-    
+
     elif dados_xml_petro and dados_xml_petro.get("tabela2") == "AS LEFT":
             escrever(ws, "F35", "◉", vertical="center")
             ws["F35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
@@ -169,15 +165,12 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
             ws["H35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
             escrever(ws, "F35", "○", vertical="center")
             ws["F35"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
-    
 
     rich = CellRichText(*blocos) if blocos else ""
     escrever(ws, "A42", rich)
 
-    
     wb.save(caminho_template)
 
-    
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     n_ac = dados.get("n_ac", "").replace(" ", "")
     nome_pdf = f"{n_ac}_AC.pdf"
@@ -198,4 +191,3 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
         excel.Quit()
 
     return caminho_pdf_final
-

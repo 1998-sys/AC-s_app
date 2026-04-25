@@ -14,6 +14,8 @@ import os
 
 
 def validar_e_logar(caminho_xml):
+    """Valida o XML contra o XSD e, se inválido, remove o arquivo e grava um log de erros.
+    Validates the XML against the XSD and, if invalid, deletes the file and writes an error log."""
     erros = validar_xml(caminho_xml)
     if erros:
         log = registrar_log(caminho_xml, erros)
@@ -24,6 +26,8 @@ def validar_e_logar(caminho_xml):
 
 
 def obter_caminho_ac(dados, caminho_pdf_original):
+    """Calcula o caminho de saída do PDF da AC sem gerá-lo.
+    Computes the AC PDF output path without generating it."""
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     certificado = dados.get("certificado", "").replace(" ", "")
     tag_limpa = dados.get("tag", "").replace(" ", "")
@@ -32,6 +36,12 @@ def obter_caminho_ac(dados, caminho_pdf_original):
 
 
 def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report):
+    """Roteador principal: seleciona o gerador de AC e os XMLs conforme cliente e instrumento.
+    Main router: selects the AC generator and XMLs based on client and instrument type.
+
+    Dispatches to the correct template generator (ORIGEM, YINSON, YINSON ATLANTA, PRIO, PO variants)
+    and handles XML generation and XSD validation before exporting the PDF.
+    Returns the absolute path of the generated PDF."""
     cliente = dados.get("cliente", "").upper()
     local = dados.get("local", "").upper()
     instrumento = dados.get("instrumento", "").upper()
