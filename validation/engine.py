@@ -43,22 +43,28 @@ class ValidationEngine:
 
    
         self.placa_rules = [
-        comparar_evaluation_certificado,
-        validar_parametros_report
+            comparar_evaluation_certificado,
+            validar_parametros_report
+        ]
+
+        self.trecho_rules = [
+            # regras para Gas Meter Run serão adicionadas aqui futuramente
         ]
 
     def run(self, context):
         issues = []
 
-        
         rules_to_run = list(self.common_rules)
 
-      
-        if context.pdf.get("instrumento") == "Placa de Orificio":
+        if context.pdf.get("instrumento") == "Gas Meter Run":
+            rules_to_run += self.trecho_rules
+            print('entrou em trecho reto')
+
+        elif context.pdf.get("instrumento") == "Placa de Orificio":
             rules_to_run += self.placa_rules
             print('entrou em placa')
+
         else:
-            
             rules_to_run += self.secundario_rules
 
         for rule in rules_to_run:

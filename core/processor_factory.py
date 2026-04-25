@@ -1,6 +1,7 @@
 from processors.secundario_processor import SecundarioProcessor
 from processors.placa_processor import PlacaProcessor
 from processors.ci_processor import CIProcessor
+from processors.trecho_processor import TrechoProcessor
 
 
 class ProcessorFactory:
@@ -26,6 +27,7 @@ class ProcessorFactory:
             "secundario": SecundarioProcessor(app),
             "placa_orificio": PlacaProcessor(app),
             "ci": CIProcessor(app),
+            "trecho": TrechoProcessor(app),
         }
 
         if tipo not in processors:

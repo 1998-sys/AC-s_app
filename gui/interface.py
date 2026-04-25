@@ -9,6 +9,7 @@ from pdf.utils_parser import select_extract
 from core.dispatcher import Dispatcher
 from xml_model.xml_uc_generator import gerar_xml_uc
 import traceback
+from xml_model.xml_cromato import xml_cromatografia
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -213,7 +214,6 @@ class App(ctk.CTk):
             dados_pdf, tipo = select_extract(caminho)
 
             if tipo == "cromatografia":
-                from xml_model.xml_cromato import xml_cromatografia
                 xml_path = xml_cromatografia(caminho, dados_pdf)
                 self.after(0, lambda: messagebox.showinfo("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}"))
                 self.after(0, lambda: self.exibir_resultado(dados_pdf, None))

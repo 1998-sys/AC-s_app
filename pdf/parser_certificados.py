@@ -390,7 +390,7 @@ def extrair_padroes(texto):
     regex_padrao = re.compile(
         r"""
         (?P<tipo>[^,]+),\s*
-        (?P<identificacao>AF\s*\d+),\s*
+        (?P<identificacao>AF\s*\d+[A-Za-z]?),\s*
         Cert\.?\s*n[ºo]\s*(?P<certificado>[^,]+),\s*
         Val\.?\s*(?P<validade>\d{2}/\d{4}),\s*
         (?P<procedimento>CAL\s*\d+\s*/\s*RBC)

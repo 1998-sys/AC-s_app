@@ -8,6 +8,7 @@ from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
 from xml_model.xsd_validator import validar_xml, registrar_log
+from xml_model.xml_petro_tr import gerar_xml_certificado_tr
 
 from pathlib import Path
 import os
@@ -95,20 +96,25 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
 
         return gerar_ac_prio_po(dados, caminho_pdf_atual)
     
+    elif "PRIO" in cliente and dados.get("instrumento", "").upper() == "GAS METER RUN":
+        print(">>> GERANDO XML TRECHO RETO (PRIO) <<<")
+        print(dados)
+        caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
+        gerar_xml_certificado_tr(dados, dados_report, caminho_xml)
+        # AC PDF ainda não implementado
+
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
         dados_pdf = dados
         xml_destino_padrao = Path(caminho_pdf_atual).with_suffix(".xml")
         xml_destino_petro  = Path(caminho_pdf_atual).with_name(f"{Path(caminho_pdf_atual).stem}_petro.xml")
 
-        
         gerar_xml_calibracao(
             dados_pdf,
             dados_xml_prio,
             xml_destino_padrao,
             certificado_te
-
-                )
+        )
         gerar_xml_certificado(
             dados_pdf,
             dados_xml_petro,
