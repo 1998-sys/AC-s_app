@@ -7,9 +7,20 @@ from form.utils_print_ORIGEM_PO import gerar_ac_origem_PO
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
+from xml_model.xsd_validator import validar_xml, registrar_log
 
 from pathlib import Path
 import os
+
+
+def validar_e_logar(caminho_xml):
+    erros = validar_xml(caminho_xml)
+    if erros:
+        log = registrar_log(caminho_xml, erros)
+        Path(caminho_xml).unlink(missing_ok=True)
+        print(f"[XSD] {len(erros)} erro(s) — XML removido, ver {log}")
+    else:
+        print(f"[XSD] {Path(caminho_xml).name} válido.")
 
 
 def obter_caminho_ac(dados, caminho_pdf_original):
@@ -40,27 +51,25 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     elif "ORIGEM ENERGIA ALAGOAS S.A." in cliente:
         print(">>> GERANDO AC ORIGEM <<<")
         dados_pdf = dados
-        gerar_xml_certificado(dados_pdf, dados_xml_petro, Path(caminho_pdf_atual).with_suffix(".xml"))
+        caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
+        gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
+        validar_e_logar(caminho_xml)
         return gerar_ac_origem(dados_pdf, caminho_pdf_atual, dados_xml_petro)
     
     elif "YINSON" in cliente and "atlanta" not in local.lower():
         print(">>> GERANDO AC YINSON <<<")
         dados_pdf = dados
-        gerar_xml_certificado(
-                        dados_pdf,
-                        dados_xml_petro,
-                        Path(caminho_pdf_atual).with_suffix(".xml"),
-                    )
+        caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
+        gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
+        validar_e_logar(caminho_xml)
         return gerar_ac_yinson(dados_pdf, caminho_pdf_atual)
     
     elif "YINSON" in cliente and local == "FPSO ATLANTA":
         print(">>> GERANDO AC YINSON - FPSO ATLANTA <<<")
         dados_pdf = dados
-        gerar_xml_certificado(
-                        dados_pdf,
-                        dados_xml_petro,
-                        Path(caminho_pdf_atual).with_suffix(".xml"),
-                    )
+        caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
+        gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
+        validar_e_logar(caminho_xml)
         return gerar_ac_yinson_atlanta(dados_pdf, caminho_pdf_atual)
     
     elif "PRIO" in cliente and instrumento == "PLACA DE ORIFICIO":
@@ -95,6 +104,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             dados_xml_petro,
             xml_destino_petro,
         )
+        validar_e_logar(xml_destino_petro)
         return gerar_ac_prio(dados_pdf, caminho_pdf_atual)
 
         
