@@ -218,6 +218,36 @@ def ajustar_transmissor_temperatura_eletrico(categoria, tabelas):
     return resultado
 
 
+def ajustar_transmissor_temperatura(categoria, tabelas):
+    """
+    Formato simplificado de Transmissor de Temperatura (6 colunas, sem coluna mA):
+    Reference | Average Reading | Error | Expanded Uncertainty | k | Veff
+    """
+    resultado = {"categoria": categoria}
+
+    tabela = tabelas.get("RESULTADOS")
+    if not tabela or len(tabela) <= 1:
+        return resultado
+
+    registros = []
+    for linha in tabela[1:]:
+        if len(linha) < 5:
+            continue
+
+        registros.append({
+            "valor_referencia_c": to_float(linha[0]),
+            "media_leituras_c":   to_float(linha[1]),
+            "tendencia_c":        to_float(linha[2]),
+            "incerteza_c":        to_valor_eng(linha[3]),
+            "k":                  to_valor_eng(linha[4]),
+            "veff":               to_valor_eng(linha[5]) if len(linha) > 5 else None,
+        })
+
+    resultado["tabela1"] = "RESULTADOS"
+    resultado["results1"] = registros
+    return resultado
+
+
 def ajustar_manometros(categoria, tabelas):
     resultado = {"categoria": categoria}
     idx = 1
@@ -362,6 +392,9 @@ def processar_pdf(pdf_path):
 
         elif "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in categoria:
             return ajustar_transmissor_temperatura_eletrico(categoria, classificacao)
+
+        elif "TRANSMISSOR DE TEMPERATURA" in categoria:
+            return ajustar_transmissor_temperatura(categoria, classificacao)
 
         elif any(c in categoria for c in [
             "MANOMETRO DIGITAL",

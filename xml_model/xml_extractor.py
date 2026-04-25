@@ -60,6 +60,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
 
     is_tt = (
         "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA" in texto_upper or
+        "TRANSMISSOR DE TEMPERATURA" in texto_upper or
         "TERMÔMETRO ANALÓGICO" in texto_upper or
         "TERMÔMETRO DIGITAL" in texto_upper
     )

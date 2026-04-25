@@ -78,6 +78,7 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
 
     elif categoria in (
         "TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA",
+        "TRANSMISSOR DE TEMPERATURA",
         "TERMÔMETRO ANALÓGICO",
         "TERMÔMETRO DIGITAL"
     ):
