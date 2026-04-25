@@ -25,6 +25,8 @@ AC's_app/
 │   ├── parser_certificados.py  # Parser pressão/temperatura
 │   ├── parser_po.py            # Parser placa de orifício
 │   ├── parser_po_ER.py         # Parser evaluation report (PO)
+│   ├── parser_tr.py            # Parser Gas Meter Run (DIM report)
+│   ├── parser_tr_ER.py         # Parser evaluation report (trecho reto)
 │   ├── parser_UC.py            # Parser relatório de incerteza (CI)
 │   └── parser_sgs.py           # Parser cromatografia SGS
 │
@@ -32,7 +34,8 @@ AC's_app/
 │   ├── base_processor.py       # Classe abstrata base
 │   ├── secundario_processor.py # Instrumentos PT / TT / DPT / TE
 │   ├── placa_processor.py      # Placa de orifício
-│   └── ci_processor.py        # Relatório de incerteza (CI)
+│   ├── trecho_processor.py     # Gas Meter Run / Trecho Reto
+│   └── ci_processor.py         # Relatório de incerteza (CI)
 │
 ├── validation/                 # Motor de validação
 │   ├── engine.py               # Orquestrador de regras
@@ -44,9 +47,10 @@ AC's_app/
 ├── xml_model/                  # Geração e validação de XML
 │   ├── xsd_validator.py        # Validação contra o schema Petrobras
 │   ├── PetrobrasSchemaV3.0.0.xsd
-│   ├── xml_petro_generator.py  # XML Petrobras principal
+│   ├── xml_petro_generator.py  # XML Petrobras principal (funções auxiliares)
 │   ├── xml_generator.py        # XML calibração PRIO padrão
 │   ├── xml_petro_po.py         # XML placa de orifício
+│   ├── xml_petro_tr.py         # XML Gas Meter Run / Trecho Reto
 │   ├── xml_uc_generator.py     # XML relatório de incerteza
 │   ├── xml_cromato.py          # XML cromatografia
 │   ├── xml_extractor.py        # Extração de pontos de calibração do PDF
@@ -80,32 +84,41 @@ flowchart TD
 
     C -->|CI| D[xml_uc_generator\ngerar_xml_uc]
     C -->|Cromatografia| E[xml_cromato\nxml_cromatografia]
-    C -->|secundario / placa_orificio| F[core/dispatcher.py\ndispatch]
+    C -->|secundario / placa_orificio / trecho| F[core/dispatcher.py\ndispatch]
 
     D --> Z([Finalizado — apenas XML])
     E --> Z
 
     F --> G[core/processor_factory.py\nget_processor]
 
-    G -->|secundario| H[SecundarioProcessor\nprocessar]
-    G -->|placa_orificio| I[PlacaProcessor\nprocessar]
+    G -->|secundario| H[SecundarioProcessor]
+    G -->|placa_orificio| I[PlacaProcessor]
+    G -->|trecho| TR[TrechoProcessor]
 
     H --> J[Extrair pontos de calibração\nxml_extractor + xml_table_extractor]
     I --> K[Solicitar Evaluation Report\nparser_po_ER]
+    TR --> TRK[Solicitar Evaluation Report\nparser_tr_ER]
 
     J --> L{Cliente ORIGEM?}
     K --> L
+    TRK --> TRL{Cliente ORIGEM?}
 
     L -->|Sim| M[Modal: Localização / SAP / N° AC]
     L -->|Não| N[app.processar_comparacao]
     M --> N
 
+    TRL -->|Sim| TRM[Modal: Localização / SAP / N° AC]
+    TRL -->|Não| TRN[app.processar_comparacao]
+    TRM --> TRN
+
     N --> O[validation/engine.py\nValidationEngine.run]
+    TRN --> O
+
     O --> P{Issues encontradas?}
 
     P -->|Bloqueante| Q([Erro exibido — geração cancelada])
-    P -->|Ação disponível| R[Usuário confirma correção automática\nex: inserir instrumento no BD]
-    P -->|Aviso| S[Exibe aviso e continua]
+    P -->|Ação disponível| R[Usuário confirma correção automática]
+    P -->|Aviso ou sem issues| S[Exibe aviso e continua]
     R --> S
     S --> T[form/utils_print.py\ngerar_ac_escolha]
 
@@ -116,6 +129,7 @@ flowchart TD
     U -->|YINSON ATLANTA| X1[gerar_xml_certificado\ngerar_ac_yinson_atlanta]
     U -->|YINSON| X2[gerar_xml_certificado\ngerar_ac_yinson]
     U -->|PRIO + PO| Y[gerar_xml_certificado_po\ngerar_ac_prio_po]
+    U -->|PRIO + Gas Meter Run| TR2[xml_petro_tr.py\ngerar_xml_certificado_tr\n⚠ AC PDF pendente]
     U -->|PRIO| Z2[gerar_xml_calibracao\ngerar_xml_certificado\ngerar_ac_prio]
 
     V --> VAL[xsd_validator\nvalidar_e_logar]
@@ -125,10 +139,32 @@ flowchart TD
     Y --> VAL
     Z2 --> VAL
 
+    TR2 --> TRFIM([XML gerado — sem validação XSD por ora])
+
     VAL -->|Inválido| ERR[XML removido + .log gerado]
     VAL -->|Válido| PDF[Excel template → PDF da AC\nvia Excel COM]
 
     PDF --> FIM([AC gerada com sucesso])
+```
+
+---
+
+## Fluxo Gas Meter Run — DIM Report + Evaluation Report
+
+```mermaid
+flowchart TD
+    A([PDF: Dimensional Report\nGas Meter Run]) --> B[parser_tr.py\nidentificar_tr + extrair_campos_tr]
+    B --> C[TrechoProcessor\nprocessar]
+    C --> D[Solicitar Evaluation Report\nfiledialog]
+    D --> E[parser_tr_ER.py\nextrair_campos_er_tr]
+    E --> F{Cliente ORIGEM?}
+    F -->|Sim| G[Modal: Localização / SAP / N° AC]
+    F -->|Não| H[app.processar_comparacao]
+    G --> H
+    H --> I[ValidationEngine\ntrecho_rules — vazio por ora]
+    I --> J[gerar_ac_escolha\nPRIO + GAS METER RUN]
+    J --> K[xml_petro_tr.py\ngerar_xml_certificado_tr]
+    K --> L([XML gerado na pasta do PDF\nsem validação XSD])
 ```
 
 ---
@@ -142,7 +178,7 @@ flowchart TD
     P1["1. pdf/utils_parser.py\nAdicionar detecção do tipo\nem select_extract()\nRetornar novo tipo ex: 'flow_meter'"]
     P1 --> P2
 
-    P2["2. pdf/parser_NOVOIPO.py\nCriar módulo de extração\ncom extrair_campos_novotipo()"]
+    P2["2. pdf/parser_NOVOTIPO.py\nCriar módulo de extração\ncom extrair_campos_novotipo()"]
     P2 --> P3
 
     P3["3. processors/novotipo_processor.py\nCriar classe estendendo BaseProcessor\nImplementar processar(caminho, dados)"]
@@ -190,6 +226,8 @@ flowchart TD
     H --> I([Erros visíveis no .log\nna mesma pasta do PDF])
 ```
 
+> **Nota:** O fluxo de Gas Meter Run ainda não passa pela validação XSD — o XML é gerado diretamente para testes.
+
 ---
 
 ## Regras de Validação — Instrumentos Secundários
@@ -214,14 +252,15 @@ flowchart TD
 
 ## Clientes e Templates Suportados
 
-| Cliente | Instrumento | Template Excel | Gerador XML |
-|---|---|---|---|
-| ORIGEM Energia Alagoas | Secundário | `TemplateAC_ORIGEM.xlsx` | `xml_petro_generator.py` |
-| ORIGEM Energia Alagoas | Placa de Orifício | `TemplateAC_PO_ORIGEM.xlsx` | `xml_petro_po.py` |
-| PRIO | Secundário | `TemplateAC_PRIO.xlsx` | `xml_generator.py` + `xml_petro_generator.py` |
-| PRIO | Placa de Orifício | `TemplateAC_PO_PRIO.xlsx` | `xml_petro_po.py` |
-| YINSON | Secundário | `TemplateAC_YINSON.xlsx` | `xml_petro_generator.py` |
-| YINSON (FPSO Atlanta) | Secundário | `TemplateAC_YINSON - ATLANTA.xlsx` | `xml_petro_generator.py` |
+| Cliente | Instrumento | Template Excel | Gerador XML | AC PDF |
+|---|---|---|---|---|
+| ORIGEM Energia Alagoas | Secundário | `TemplateAC_ORIGEM.xlsx` | `xml_petro_generator.py` | ✅ |
+| ORIGEM Energia Alagoas | Placa de Orifício | `TemplateAC_PO_ORIGEM.xlsx` | `xml_petro_po.py` | ✅ |
+| PRIO | Secundário | `TemplateAC_PRIO.xlsx` | `xml_generator.py` + `xml_petro_generator.py` | ✅ |
+| PRIO | Placa de Orifício | `TemplateAC_PO_PRIO.xlsx` | `xml_petro_po.py` | ✅ |
+| PRIO | Gas Meter Run | — | `xml_petro_tr.py` | ⏳ pendente |
+| YINSON | Secundário | `TemplateAC_YINSON.xlsx` | `xml_petro_generator.py` | ✅ |
+| YINSON (FPSO Atlanta) | Secundário | `TemplateAC_YINSON - ATLANTA.xlsx` | `xml_petro_generator.py` | ✅ |
 
 ---
 
