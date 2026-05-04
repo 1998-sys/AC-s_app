@@ -4,6 +4,8 @@ from form.utils_print_ORIGEM import gerar_ac_origem
 from form.utils_print_YINSON import gerar_ac_yinson
 from form.utils_print_YINSON_ATLANTA import gerar_ac_yinson_atlanta
 from form.utils_print_ORIGEM_PO import gerar_ac_origem_PO
+from form.utils_print_YINSON_PO import gerar_ac_yinson_PO
+from form.utils_print_YINSON_ATLANTA_PO import gerar_ac_yinson_atlanta_PO
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
@@ -67,6 +69,30 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         validar_e_logar(caminho_xml)
         return gerar_ac_origem(dados_pdf, caminho_pdf_atual, dados_xml_petro)
     
+    if "YINSON" in cliente and instrumento == "PLACA DE ORIFICIO" and "ATLANTA" in local:
+        print(">>> GERANDO AC YINSON ATLANTA PLACA <<<")
+        caminho_saida = Path(caminho_pdf_atual).with_suffix(".xml")
+
+        gerar_xml_certificado_po(
+            informacoes=dados,
+            valores_medidos=extrair_valores_medidos(caminho_pdf_atual),
+            valores_er=dados_report,
+            caminho_saida=caminho_saida
+        )
+        return gerar_ac_yinson_atlanta_PO(dados, caminho_pdf_atual)
+
+    if "YINSON" in cliente and instrumento == "PLACA DE ORIFICIO":
+        print(">>> GERANDO AC YINSON PLACA <<<")
+        caminho_saida = Path(caminho_pdf_atual).with_suffix(".xml")
+
+        gerar_xml_certificado_po(
+            informacoes=dados,
+            valores_medidos=extrair_valores_medidos(caminho_pdf_atual),
+            valores_er=dados_report,
+            caminho_saida=caminho_saida
+        )
+        return gerar_ac_yinson_PO(dados, caminho_pdf_atual)
+    
     elif "YINSON" in cliente and "atlanta" not in local.lower():
         print(">>> GERANDO AC YINSON <<<")
         dados_pdf = dados
@@ -101,6 +127,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         print(dados)
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
         gerar_xml_certificado_tr(dados, dados_report, caminho_xml)
+        #validar_e_logar(caminho_xml)
         # AC PDF ainda não implementado
 
     elif "PRIO" in cliente:
