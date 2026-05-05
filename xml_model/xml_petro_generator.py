@@ -617,7 +617,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
             )
             cal_as_left.append(
                 gerar_pontos_calibracao_pressao(
-                    pontos.get("results1", []),
+                    pontos.get("results2", []),
                     pontos.get("results3", []),
                     unidade_eng
                 )

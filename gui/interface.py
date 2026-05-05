@@ -457,8 +457,6 @@ class App(ctk.CTk):
         linha(f"LOCAL: {dados_pdf.get('local')}", ok=True)
         linha(f"SISTEMA: {dados_pdf.get('sistema')}", ok=True)
 
-        
-
 
     def abrir_consulta(self):
         win = ctk.CTkToplevel(self)

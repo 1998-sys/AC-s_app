@@ -69,8 +69,14 @@ AC's_app/
 │   └── utils_print_YINSON_ATLANTA_PO.py
 │
 ├── data/                       # Banco de dados SQLite
-│   ├── conexao.py
-│   └── utils_db.py
+│   ├── conexao.py              # Conexão, criar_tabela(), migrar()
+│   └── utils_db.py             # CRUD: instrumentos secundários e placas
+│
+├── importer/                   # Importação em lote via xlsx
+│   ├── __init__.py
+│   ├── validador.py            # Regras de validação por linha
+│   ├── importador.py           # Orquestra leitura, validação e escrita no banco
+│   └── relatorio.py            # Gera .txt com bloqueados, ignorados e pulados
 │
 └── logo/                       # Recursos de imagem
 ```
@@ -152,6 +158,76 @@ flowchart TD
 
     PDF --> FIM([AC gerada com sucesso])
 ```
+
+---
+
+## Fluxo de Importação em Lote — xlsx → Banco de Dados
+
+Acessível pelo botão **IMPORTAR XLSX** na tela "Editar Dados Técnicos".
+
+```mermaid
+flowchart TD
+    A([Usuário clica IMPORTAR XLSX]) --> B[filedialog — seleciona .xlsx]
+    B --> C[importer/importador.py\nler_xlsx]
+    C --> D{Colunas obrigatórias\npresentes?}
+    D -->|Não| ERR([Erro exibido — importação cancelada])
+    D -->|Sim| E[Processar linha a linha\na partir da linha 3]
+
+    E --> F[importer/validador.py\nvalidar_linha]
+
+    F --> G{Categoria}
+
+    G -->|TAG ou SN vazio| AV[aviso — linha ignorada]
+    G -->|tipo inválido| AV
+    G -->|range não numérico| AV
+    G -->|min >= max| AV
+    G -->|NS existe com outra TAG| BL[bloqueado]
+    G -->|TAG existe com tipo diferente| BL
+    G -->|TAG + tipo OK, NS igual| MT[mantido — sem ação]
+    G -->|TAG + tipo OK, NS diferente| DV[divergente]
+    G -->|TAG não existe| IN[inserir]
+
+    DV --> MOD[Modal por item\nSobrescrever ou Pular?]
+    MOD -->|Sim| SOB[sobrescrever]
+    MOD -->|Não| PUL[pulado]
+
+    IN --> EX[importer/importador.py\nexecutar]
+    SOB --> EX
+
+    EX --> REL[importer/relatorio.py\ngerar .txt]
+    AV --> REL
+    BL --> REL
+    PUL --> REL
+
+    REL --> FIM([Resumo exibido\n.txt gerado na pasta do xlsx\nse houver problemas])
+```
+
+### Regras de validação por linha
+
+| Categoria | Condição | Ação |
+|---|---|---|
+| `aviso` | TAG ou SN vazio | Linha ignorada, registrada no .txt |
+| `aviso` | `tipo` ausente ou diferente de `SEC`/`PO` | Linha ignorada, registrada no .txt |
+| `aviso` | `min_range` ou `max_range` não numérico (só SEC) | Linha ignorada, registrada no .txt |
+| `aviso` | `min_range >= max_range` (só SEC) | Linha ignorada, registrada no .txt |
+| `bloqueado` | TAG existe no banco com tipo diferente | Não importa, registrado no .txt |
+| `bloqueado` | NS existe com outra TAG | Não importa, registrado no .txt |
+| `mantido` | TAG + NS + tipo idênticos no banco | Nenhuma ação |
+| `divergente` | TAG + tipo iguais, NS diferente | Modal de confirmação por item |
+| `inserir` | TAG não existe no banco | Inserção automática |
+
+### Estrutura esperada do xlsx
+
+| Coluna | Obrigatório | Observação |
+|---|---|---|
+| `tag` | ✅ | Identificador do instrumento |
+| `sn_instrumento` | ✅ | Número de série |
+| `tipo` | ✅ | `SEC` ou `PO` |
+| `sn_sensor` | ➖ | Apenas SEC |
+| `min_range` | ➖ | Apenas SEC |
+| `max_range` | ➖ | Apenas SEC |
+
+> Cabeçalho na **linha 1**, legenda opcional na **linha 2**, dados a partir da **linha 3**. Um template pré-formatado está disponível em `template_importacao_instrumentos.xlsx` na raiz do projeto.
 
 ---
 
@@ -271,6 +347,24 @@ flowchart TD
 | YINSON (FPSO Atlanta) | Placa de Orifício | `TemplateAC_PO_YINSON - ATLANTA.xlsx` ¹ | `xml_petro_po.py` | ✅ |
 
 > ¹ Os templates **FPSO Atlanta** incluem o logo da **Brava Energia**, exigido contratualmente para instrumentos localizados nessa unidade. O roteador (`gerar_ac_escolha`) verifica `"ATLANTA" in local` antes de despachar para o template padrão YINSON.
+
+---
+
+## Banco de Dados — Tabela `instrumentos`
+
+| Coluna | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `id` | INTEGER | ✅ | Chave primária autoincremental |
+| `tag` | TEXT | ✅ | Identificador do instrumento |
+| `sn_instrumento` | TEXT | ✅ | Número de série do instrumento ou placa |
+| `sn_sensor` | TEXT | ➖ | Número de série do sensor (só SEC) |
+| `min_range` | REAL | ➖ | Faixa mínima de calibração (só SEC) |
+| `max_range` | REAL | ➖ | Faixa máxima de calibração (só SEC) |
+| `tipo` | TEXT | ✅ | `SEC` (secundário) ou `PO` (placa de orifício) |
+
+A função `migrar()` em `data/conexao.py` é chamada na inicialização e aplica automaticamente:
+- Adição da coluna `tipo` em bancos criados antes desta versão
+- Conversão de valores legados: `'secundario'` → `'SEC'` e `'placa_orificio'` → `'PO'`
 
 ---
 
