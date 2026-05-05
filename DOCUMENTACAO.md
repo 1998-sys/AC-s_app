@@ -64,7 +64,9 @@ AC's_app/
 │   ├── utils_print_PRIO.py
 │   ├── utils_print_PRIO_PO.py
 │   ├── utils_print_YINSON.py
-│   └── utils_print_YINSON_ATLANTA.py
+│   ├── utils_print_YINSON_ATLANTA.py
+│   ├── utils_print_YINSON_PO.py
+│   └── utils_print_YINSON_ATLANTA_PO.py
 │
 ├── data/                       # Banco de dados SQLite
 │   ├── conexao.py
@@ -126,7 +128,9 @@ flowchart TD
 
     U -->|ORIGEM + PO| V[gerar_xml_certificado_po\ngerar_ac_origem_PO]
     U -->|ORIGEM| W[gerar_xml_certificado\ngerar_ac_origem]
-    U -->|YINSON ATLANTA| X1[gerar_xml_certificado\ngerar_ac_yinson_atlanta]
+    U -->|YINSON + PO + FPSO Atlanta| XAP[gerar_xml_certificado_po\ngerar_ac_yinson_atlanta_PO\n⚠ template com logo Brava Energia]
+    U -->|YINSON + PO| XP[gerar_xml_certificado_po\ngerar_ac_yinson_PO]
+    U -->|YINSON FPSO Atlanta| X1[gerar_xml_certificado\ngerar_ac_yinson_atlanta\n⚠ template com logo Brava Energia]
     U -->|YINSON| X2[gerar_xml_certificado\ngerar_ac_yinson]
     U -->|PRIO + PO| Y[gerar_xml_certificado_po\ngerar_ac_prio_po]
     U -->|PRIO + Gas Meter Run| TR2[xml_petro_tr.py\ngerar_xml_certificado_tr\n⚠ AC PDF pendente]
@@ -134,6 +138,8 @@ flowchart TD
 
     V --> VAL[xsd_validator\nvalidar_e_logar]
     W --> VAL
+    XAP --> VAL
+    XP --> VAL
     X1 --> VAL
     X2 --> VAL
     Y --> VAL
@@ -260,7 +266,11 @@ flowchart TD
 | PRIO | Placa de Orifício | `TemplateAC_PO_PRIO.xlsx` | `xml_petro_po.py` | ✅ |
 | PRIO | Gas Meter Run | — | `xml_petro_tr.py` | ⏳ pendente |
 | YINSON | Secundário | `TemplateAC_YINSON.xlsx` | `xml_petro_generator.py` | ✅ |
-| YINSON (FPSO Atlanta) | Secundário | `TemplateAC_YINSON - ATLANTA.xlsx` | `xml_petro_generator.py` | ✅ |
+| YINSON (FPSO Atlanta) | Secundário | `TemplateAC_YINSON - ATLANTA.xlsx` ¹ | `xml_petro_generator.py` | ✅ |
+| YINSON | Placa de Orifício | `TemplateAC_PO_YINSON.xlsx` | `xml_petro_po.py` | ✅ |
+| YINSON (FPSO Atlanta) | Placa de Orifício | `TemplateAC_PO_YINSON - ATLANTA.xlsx` ¹ | `xml_petro_po.py` | ✅ |
+
+> ¹ Os templates **FPSO Atlanta** incluem o logo da **Brava Energia**, exigido contratualmente para instrumentos localizados nessa unidade. O roteador (`gerar_ac_escolha`) verifica `"ATLANTA" in local` antes de despachar para o template padrão YINSON.
 
 ---
 

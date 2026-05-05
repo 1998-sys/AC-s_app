@@ -2,8 +2,8 @@ from data.conexao import conectar
 
 def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None):
     """
-    Insere um novo instrumento na tabela 'instrumentos'.
-    Inserts a new instrument into the 'instrumentos' table.
+    Insere um instrumento secundário na tabela 'instrumentos'.
+    Inserts a secondary instrument into the 'instrumentos' table.
 
     Args:
         tag           (str):   Identificador do instrumento / Instrument tag identifier.
@@ -15,9 +15,73 @@ def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range)
-        VALUES (?, ?, ?,?, ?)
+        INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo)
+        VALUES (?, ?, ?, ?, ?, 'secundario')
     ''', (tag, sn_instrumento, sn_sensor, min_range, max_range))
+    conn.commit()
+    conn.close()
+
+
+def inserir_placa(tag, sn_instrumento):
+    """
+    Insere uma placa de orifício na tabela 'instrumentos'.
+    Inserts an orifice plate into the 'instrumentos' table.
+
+    Args:
+        tag           (str): Identificador da placa / Orifice plate tag identifier.
+        sn_instrumento(str): Número de série da placa / Orifice plate serial number.
+    """
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO instrumentos (tag, sn_instrumento, tipo)
+        VALUES (?, ?, 'placa_orificio')
+    ''', (tag, sn_instrumento))
+    conn.commit()
+    conn.close()
+
+
+def buscar_placa_por_tag(tag):
+    """
+    Busca uma placa de orifício pelo tag.
+    Searches for an orifice plate by tag.
+
+    Args:
+        tag (str): Identificador da placa / Orifice plate tag identifier.
+
+    Returns:
+        dict | None: {'tag', 'sn_instrumento'} ou None se não encontrada.
+    """
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT tag, sn_instrumento
+        FROM instrumentos
+        WHERE tag = ? AND tipo = 'placa_orificio'
+    """, (tag,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"tag": row[0], "sn_instrumento": row[1]}
+
+
+def atualizar_sn_placa(tag, novo_sn):
+    """
+    Atualiza o número de série de uma placa de orifício identificada pelo tag.
+    Updates the serial number of an orifice plate identified by tag.
+
+    Args:
+        tag    (str): Identificador da placa / Orifice plate tag identifier.
+        novo_sn(str): Novo número de série / New serial number.
+    """
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE instrumentos
+        SET sn_instrumento = ?
+        WHERE tag = ? AND tipo = 'placa_orificio'
+    """, (novo_sn, tag))
     conn.commit()
     conn.close()
 
@@ -38,7 +102,7 @@ def buscar_instrumento_por_tag(tag):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range
+        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo
         FROM instrumentos
         WHERE tag = ?
     """, (tag,))
@@ -54,7 +118,8 @@ def buscar_instrumento_por_tag(tag):
         "sn_instrumento": row[1],
         "sn_sensor": row[2],
         "min_range": row[3],
-        'max_range': row[4]
+        "max_range": row[4],
+        "tipo": row[5] or "secundario",
     }
 
 def atualizar_sn(tag, novo_sn):

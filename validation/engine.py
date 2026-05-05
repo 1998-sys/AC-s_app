@@ -15,6 +15,7 @@ from validation.rules_sec import (
 )
 
 from validation.rules_po import (
+    regra_nova_placa,
     comparar_evaluation_certificado,
     validar_parametros_report
 )
@@ -43,6 +44,7 @@ class ValidationEngine:
 
    
         self.placa_rules = [
+            regra_nova_placa,
             comparar_evaluation_certificado,
             validar_parametros_report
         ]

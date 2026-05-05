@@ -1,5 +1,6 @@
 import re
 from validation.issue import ValidationIssue
+from data.utils_db import inserir_placa, buscar_placa_por_tag
 
 
 def normalizar_numero_certificado(valor):
@@ -10,6 +11,43 @@ def normalizar_numero_certificado(valor):
     valor = valor.upper()
 
     return valor
+
+
+def regra_nova_placa(ctx):
+    tag = (ctx.pdf.get("tag") or "").upper()
+    sn  = ctx.pdf.get("sn_inst")
+
+    if not tag or not sn:
+        return None
+
+    registro = buscar_placa_por_tag(tag)
+
+    if registro is None:
+        return ValidationIssue(
+            key="nova_placa",
+            title="Placa não cadastrada",
+            message=(
+                f"TAG {tag} não encontrada no banco.\n\n"
+                f"NS: {sn}\n\n"
+                "Deseja cadastrar a placa?"
+            ),
+            action=lambda: inserir_placa(tag, sn),
+            blocking=False
+        )
+
+    if registro["sn_instrumento"] != sn:
+        return ValidationIssue(
+            key="sn_placa_divergente",
+            title="NS da placa divergente",
+            message=(
+                f"TAG: {tag}\n\n"
+                f"NS Certificado: {sn}\n"
+                f"NS Banco: {registro['sn_instrumento']}"
+            ),
+            blocking=True
+        )
+
+    return None
 
 
 def comparar_evaluation_certificado(ctx):

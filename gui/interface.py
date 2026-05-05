@@ -29,7 +29,8 @@ try:
         buscar_por_sn_instrumento,
         atualizar_sn,
         atualizar_sn_sensor,
-        atualizar_range
+        atualizar_range,
+        atualizar_sn_placa,
     )
     from xml_model.xml_extractor_PO import extrair_valores_medidos
     from xml_model.xml_petro_po import gerar_xml_certificado_po
@@ -476,39 +477,81 @@ class App(ctk.CTk):
         ctk.CTkLabel(sub_h, text="EDITAR DADOS TÉCNICOS", text_color="white", font=(FONT_FAMILY, 14, "bold")).pack(expand=True)
         container = ctk.CTkFrame(win, fg_color="transparent")
         container.pack(fill="both", expand=True, padx=30, pady=20)
-        campos = {"sn_instrumento": ctk.StringVar(), "sn_sensor": ctk.StringVar(), "min_range": ctk.StringVar(), "max_range": ctk.StringVar()}
+
+        tipo_atual = [None]
+        campos = {
+            "sn_instrumento": ctk.StringVar(),
+            "sn_sensor":      ctk.StringVar(),
+            "min_range":      ctk.StringVar(),
+            "max_range":      ctk.StringVar(),
+        }
+        entries = {}
+
+        # TAG
         ctk.CTkLabel(container, text="TAG do Instrumento", font=(FONT_FAMILY, 11, "bold")).pack(anchor="w")
         entry_tag = ctk.CTkEntry(container, width=340, height=35)
         entry_tag.pack(pady=(0, 15))
-        entries = {}
-        for k, var in campos.items():
-            ctk.CTkLabel(container, text=k.replace("_", " ").title(), font=(FONT_FAMILY, 11)).pack(anchor="w")
-            e = ctk.CTkEntry(container, textvariable=var, state="readonly", width=340, height=32, fg_color=ODS_FRAME_LIGHT)
+
+        # SN instrumento — sempre visível
+        ctk.CTkLabel(container, text="Sn Instrumento", font=(FONT_FAMILY, 11)).pack(anchor="w")
+        e_sn = ctk.CTkEntry(container, textvariable=campos["sn_instrumento"], state="readonly", width=340, height=32, fg_color=ODS_FRAME_LIGHT)
+        e_sn.pack(pady=(0, 10))
+        entries["sn_instrumento"] = e_sn
+
+        # Campos exclusivos de instrumento secundário
+        frame_sec = ctk.CTkFrame(container, fg_color="transparent")
+        for k in ["sn_sensor", "min_range", "max_range"]:
+            ctk.CTkLabel(frame_sec, text=k.replace("_", " ").title(), font=(FONT_FAMILY, 11)).pack(anchor="w")
+            e = ctk.CTkEntry(frame_sec, textvariable=campos[k], state="readonly", width=340, height=32, fg_color=ODS_FRAME_LIGHT)
             e.pack(pady=(0, 10))
             entries[k] = e
+
+        # Botão consultar — referência guardada para uso como âncora de pack
+        btn_consultar = ctk.CTkButton(container, text="CONSULTAR", fg_color=ODS_DARK, height=35)
+        btn_consultar.pack(fill="x", pady=5)
+        btn_grid = ctk.CTkFrame(container, fg_color="transparent")
+        btn_grid.pack(fill="x", pady=5)
+
         def consultar():
             tag = entry_tag.get().upper()
             reg = buscar_instrumento_por_tag(tag)
             if not reg:
                 messagebox.showerror("Erro", "TAG não encontrada.")
                 return
-            for k in campos: campos[k].set(reg[k])
+            tipo_atual[0] = reg.get("tipo", "secundario")
+            campos["sn_instrumento"].set(reg.get("sn_instrumento") or "")
+            if tipo_atual[0] == "placa_orificio":
+                frame_sec.pack_forget()
+            else:
+                campos["sn_sensor"].set(reg.get("sn_sensor") or "")
+                campos["min_range"].set("" if reg.get("min_range") is None else str(reg["min_range"]))
+                campos["max_range"].set("" if reg.get("max_range") is None else str(reg["max_range"]))
+                frame_sec.pack(fill="x", before=btn_consultar)
+
         def editar():
-            for e in entries.values(): e.configure(state="normal", fg_color="#FFFFFF")
+            entries["sn_instrumento"].configure(state="normal", fg_color="#FFFFFF")
+            if tipo_atual[0] != "placa_orificio":
+                for k in ["sn_sensor", "min_range", "max_range"]:
+                    entries[k].configure(state="normal", fg_color="#FFFFFF")
+
         def salvar():
             tag = entry_tag.get().upper()
-            min_r, max_r = to_float_safe(campos["min_range"].get()), to_float_safe(campos["max_range"].get())
-            if min_r is None or max_r is None:
-                messagebox.showerror("Erro", "Ranges inválidos.")
-                return
-            atualizar_sn(tag, campos["sn_instrumento"].get())
-            atualizar_sn_sensor(tag, campos["sn_sensor"].get())
-            atualizar_range(tag, min_r, max_r)
+            if tipo_atual[0] == "placa_orificio":
+                atualizar_sn_placa(tag, campos["sn_instrumento"].get())
+            else:
+                min_r = to_float_safe(campos["min_range"].get())
+                max_r = to_float_safe(campos["max_range"].get())
+                if min_r is None or max_r is None:
+                    messagebox.showerror("Erro", "Ranges inválidos.")
+                    return
+                atualizar_sn(tag, campos["sn_instrumento"].get())
+                atualizar_sn_sensor(tag, campos["sn_sensor"].get())
+                atualizar_range(tag, min_r, max_r)
             messagebox.showinfo("Sucesso", "Dados salvos.")
-            for e in entries.values(): e.configure(state="readonly", fg_color=ODS_FRAME_LIGHT)
-        ctk.CTkButton(container, text="CONSULTAR", fg_color=ODS_DARK, command=consultar, height=35).pack(fill="x", pady=5)
-        btn_grid = ctk.CTkFrame(container, fg_color="transparent")
-        btn_grid.pack(fill="x", pady=5)
+            for e in entries.values():
+                e.configure(state="readonly", fg_color=ODS_FRAME_LIGHT)
+
+        btn_consultar.configure(command=consultar)
         ctk.CTkButton(btn_grid, text="EDITAR", fg_color=ODS_RED, command=editar, width=160, height=35).pack(side="left")
         ctk.CTkButton(btn_grid, text="SALVAR", fg_color=ODS_OK, command=salvar, width=160, height=35).pack(side="right")
 
