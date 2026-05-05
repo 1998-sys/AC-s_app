@@ -24,7 +24,7 @@ def criar_tabela():
         sn_sensor     (TEXT):    Número de série do sensor, opcional / Sensor serial number, optional.
         min_range     (REAL):    Valor mínimo da faixa de medição / Minimum measurement range value.
         max_range     (REAL):    Valor máximo da faixa de medição / Maximum measurement range value.
-        tipo          (TEXT):    Tipo do instrumento: 'secundario' ou 'placa_orificio'.
+        tipo          (TEXT):    Tipo do instrumento: 'SEC' (secundário) ou 'PO' (placa de orifício).
     """
     conn = conectar()
     cursor = conn.cursor()
@@ -36,7 +36,7 @@ def criar_tabela():
             sn_sensor TEXT,
             min_range REAL,
             max_range REAL,
-            tipo TEXT NOT NULL DEFAULT 'secundario'
+            tipo TEXT NOT NULL DEFAULT 'SEC'
         )
     ''')
     conn.commit()
@@ -53,8 +53,11 @@ def migrar():
     colunas = [row[1] for row in cursor.execute("PRAGMA table_info(instrumentos)")]
     if "tipo" not in colunas:
         cursor.execute(
-            "ALTER TABLE instrumentos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'secundario'"
+            "ALTER TABLE instrumentos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'SEC'"
         )
-        conn.commit()
+    # Normaliza valores legados para as abreviações atuais
+    cursor.execute("UPDATE instrumentos SET tipo = 'SEC' WHERE tipo = 'secundario'")
+    cursor.execute("UPDATE instrumentos SET tipo = 'PO'  WHERE tipo = 'placa_orificio'")
+    conn.commit()
     conn.close()
 

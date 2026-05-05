@@ -32,6 +32,8 @@ try:
         atualizar_range,
         atualizar_sn_placa,
     )
+    from importer.importador import ler_xlsx, executar
+    from importer.relatorio import gerar as gerar_relatorio
     from xml_model.xml_extractor_PO import extrair_valores_medidos
     from xml_model.xml_petro_po import gerar_xml_certificado_po
     from form.utils_print import gerar_ac_escolha , obter_caminho_ac
@@ -306,7 +308,7 @@ class App(ctk.CTk):
             messagebox.showerror("Erro interno", "Dados do certificado estão vazios.")
             return
         is_placa = dados_pdf.get("instrumento") == "Placa de Orificio"
-        tipo_instrumento = "placa_orificio" if is_placa else "secundario"
+        tipo_instrumento = "PO" if is_placa else "SEC"
 
         tag = dados_pdf.get("tag")
 
@@ -518,9 +520,9 @@ class App(ctk.CTk):
             if not reg:
                 messagebox.showerror("Erro", "TAG não encontrada.")
                 return
-            tipo_atual[0] = reg.get("tipo", "secundario")
+            tipo_atual[0] = reg.get("tipo", "SEC")
             campos["sn_instrumento"].set(reg.get("sn_instrumento") or "")
-            if tipo_atual[0] == "placa_orificio":
+            if tipo_atual[0] == "PO":
                 frame_sec.pack_forget()
             else:
                 campos["sn_sensor"].set(reg.get("sn_sensor") or "")
@@ -530,13 +532,13 @@ class App(ctk.CTk):
 
         def editar():
             entries["sn_instrumento"].configure(state="normal", fg_color="#FFFFFF")
-            if tipo_atual[0] != "placa_orificio":
+            if tipo_atual[0] != "PO":
                 for k in ["sn_sensor", "min_range", "max_range"]:
                     entries[k].configure(state="normal", fg_color="#FFFFFF")
 
         def salvar():
             tag = entry_tag.get().upper()
-            if tipo_atual[0] == "placa_orificio":
+            if tipo_atual[0] == "PO":
                 atualizar_sn_placa(tag, campos["sn_instrumento"].get())
             else:
                 min_r = to_float_safe(campos["min_range"].get())
@@ -554,4 +556,55 @@ class App(ctk.CTk):
         btn_consultar.configure(command=consultar)
         ctk.CTkButton(btn_grid, text="EDITAR", fg_color=ODS_RED, command=editar, width=160, height=35).pack(side="left")
         ctk.CTkButton(btn_grid, text="SALVAR", fg_color=ODS_OK, command=salvar, width=160, height=35).pack(side="right")
+        ctk.CTkButton(container, text="IMPORTAR XLSX", fg_color=ODS_DARK, command=self.abrir_importacao_xlsx, height=35).pack(fill="x", pady=(10, 0))
+
+    def abrir_importacao_xlsx(self):
+        caminho = filedialog.askopenfilename(
+            title="Selecionar planilha de instrumentos",
+            filetypes=[("Excel", "*.xlsx")]
+        )
+        if not caminho:
+            return
+
+        try:
+            resultado = ler_xlsx(caminho)
+        except ValueError as e:
+            messagebox.showerror("Erro na planilha", str(e))
+            return
+
+        # Se há divergentes, exibe modal para cada um
+        sobrescrever = []
+        pulados = []
+        for item in resultado["divergente"]:
+            resposta = messagebox.askyesno(
+                "NS divergente",
+                f"TAG: {item['tag']}\n\n"
+                f"NS no banco : {item['sn_banco']}\n"
+                f"NS no xlsx  : {item['sn']}\n\n"
+                "Deseja sobrescrever o NS no banco?"
+            )
+            if resposta:
+                sobrescrever.append(item)
+            else:
+                pulados.append(item)
+
+        executar(resultado, sobrescrever)
+        caminho_txt = gerar_relatorio(resultado, pulados, caminho)
+
+        total_ins  = len(resultado["inserir"])
+        total_sob  = len(sobrescrever)
+        total_mant = len(resultado["mantido"])
+        total_prob = len(resultado["bloqueado"]) + len(resultado["aviso"]) + len(pulados)
+
+        msg = (
+            f"Importação concluída.\n\n"
+            f"Inseridos   : {total_ins}\n"
+            f"Sobrescritos: {total_sob}\n"
+            f"Mantidos    : {total_mant}\n"
+            f"Problemas   : {total_prob}"
+        )
+        if caminho_txt:
+            msg += f"\n\nRelatório gerado em:\n{caminho_txt}"
+
+        messagebox.showinfo("Importação", msg)
 

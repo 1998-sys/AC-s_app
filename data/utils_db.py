@@ -16,7 +16,7 @@ def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo)
-        VALUES (?, ?, ?, ?, ?, 'secundario')
+        VALUES (?, ?, ?, ?, ?, 'SEC')
     ''', (tag, sn_instrumento, sn_sensor, min_range, max_range))
     conn.commit()
     conn.close()
@@ -35,7 +35,7 @@ def inserir_placa(tag, sn_instrumento):
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, tipo)
-        VALUES (?, ?, 'placa_orificio')
+        VALUES (?, ?, 'PO')
     ''', (tag, sn_instrumento))
     conn.commit()
     conn.close()
@@ -57,7 +57,7 @@ def buscar_placa_por_tag(tag):
     cur.execute("""
         SELECT tag, sn_instrumento
         FROM instrumentos
-        WHERE tag = ? AND tipo = 'placa_orificio'
+        WHERE tag = ? AND tipo = 'PO'
     """, (tag,))
     row = cur.fetchone()
     conn.close()
@@ -80,7 +80,7 @@ def atualizar_sn_placa(tag, novo_sn):
     cursor.execute("""
         UPDATE instrumentos
         SET sn_instrumento = ?
-        WHERE tag = ? AND tipo = 'placa_orificio'
+        WHERE tag = ? AND tipo = 'PO'
     """, (novo_sn, tag))
     conn.commit()
     conn.close()
