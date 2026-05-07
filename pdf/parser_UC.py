@@ -7,6 +7,57 @@ from xml_model.xml_generator import normalizar_certificado
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 
+ativos = {
+    "Ananbé": 1100,
+    "Arapaçu": 1200,
+    "Cidade de São Miguel dos Campos": 1300,
+    "Furado": 1400,
+    "Paru": 1500,
+    "Pilar": 1600,
+    "São Miguel dos Campos": 1700,
+    "Conceição": 2100,
+    "Querará": 2400,
+    "ESGN": 1900
+}
+
+
+def identificar_instalacao(numero_ci: str) -> str | None:
+    """
+    Identifica o nome da instalação a partir do número do CI,
+    buscando o código numérico de 4 dígitos dos ativos embutido no número.
+    Ex: 'CI-1300.0000-...' → 'Cidade de São Miguel dos Campos'
+        'CI-FQI-1900002A-...' → 'ESGN'
+    """
+    if not numero_ci:
+        return None
+
+    for nome, codigo in ativos.items():
+        if str(codigo) in numero_ci:
+            return nome
+
+    return None
+
+
+MESES_PT = {
+    "janeiro": "01", "fevereiro": "02", "março": "03", "abril": "04",
+    "maio": "05", "junho": "06", "julho": "07", "agosto": "08",
+    "setembro": "09", "outubro": "10", "novembro": "11", "dezembro": "12"
+}
+
+def extrair_data_ci(texto: str) -> str | None:
+    """
+    Extrai a data do CI e converte para o formato DD/MM/AAAA.
+    Retorna a última ocorrência, que corresponde à data de emissão no rodapé.
+    Ex: '7 maio, 2026' → '07/05/2026'
+    """
+    meses = "|".join(MESES_PT.keys())
+    matches = re.findall(rf'(\d{{1,2}})\s+({meses}),?\s+(\d{{4}})', texto, re.IGNORECASE)
+    if not matches:
+        return None
+    dia, mes, ano = matches[-1]
+    return f"{int(dia):02d}/{MESES_PT[mes.lower()]}/{ano}"
+
+
 def extrair_cliente(texto: str) -> str | None:
     """
     Extrai o nome do cliente da linha 'Cliente: <nome>'.
@@ -22,7 +73,7 @@ def extrair_tag_sistema(texto: str) -> tuple[str | None, str | None]:
     Ex: 'FT-SG-122101-01 - TESTE POÇO - SG-122101'
          → ('FT-SG-122101-01', 'TESTE POÇO - SG-122101')
     """
-    pattern = r'([A-Z]{2,4}-[A-Z]+-\d{5,6}-\d{2})\s*-\s*(.+)'
+    pattern = r'([A-Z]{2,4}-(?:[A-Z]{2,4}-\d{5,6}|[A-Z0-9]{6,9})-\d{2})\s+-\s+(.+)'
     match = re.search(pattern, texto, re.MULTILINE)
     if match:
         return match.group(1).strip(), match.group(2).strip()
@@ -31,13 +82,21 @@ def extrair_tag_sistema(texto: str) -> tuple[str | None, str | None]:
 
 def extrair_numero_relatorio(texto: str) -> str | None:
     """
-    Identifica se o PDF é um CI pelo número de relatório (ex: CI-1300.0000-6252-813-O2C-027).
-    Esse padrão é o discriminador principal usado por identificar_uc:
-    se não bater, o arquivo não é roteado como CI no utils_parser.
+    Extrai o número do CI. Tenta dois formatos:
+    - Formato antigo: CI-1300.0000-6252-813-O2C-027
+    - Formato novo:   número após 'Relatório de Cálculo de Incerteza' ou 'Uncertainty Calculation Report'
+                      ex: CI-FQI-1900002A-02-01.26
     """
-    pattern = r'[A-Z]{2}-\d+\.\d+-\d+-\d+-[A-Z0-9]+-\d+'
-    match = re.search(pattern, texto)
-    return match.group() if match else None
+    match = re.search(r'[A-Z]{2}-\d+\.\d+-\d+-\d+-[A-Z0-9]+-\d+', texto)
+    if match:
+        return match.group()
+
+    match = re.search(
+        r'(?:Relatório de Cálculo de Incerteza|Uncertainty Calculation Report)\s+([\w\-\.]+)',
+        texto,
+        re.IGNORECASE
+    )
+    return match.group(1).strip() if match else None
 
 
 def extrair_tabelas_uc(caminho_pdf: str) -> dict:
@@ -85,10 +144,10 @@ def extrair_fluxos_dp(texto: str) -> dict:
 
     A seção é localizada pelo cabeçalho 'Tabelas Vazão x Incerteza'.
     Cada linha de dados tem 3 colunas por DP: Vazão | Incerteza | Pressão.
-    O regex captura apenas a 1ª e 3ª colunas (ignora a incerteza do meio).
+    O regex captura as 3 colunas de cada DP.
 
-    Com DP Low: 6 colunas por linha → grupos (vazao_H, pressao_H, vazao_L, pressao_L).
-    Sem DP Low: 3 colunas por linha → grupos (vazao_H, pressao_H).
+    Com DP Low: 6 colunas por linha → grupos (vazao_H, incerteza_H, pressao_H, vazao_L, incerteza_L, pressao_L).
+    Sem DP Low: 3 colunas por linha → grupos (vazao_H, incerteza_H, pressao_H).
 
     Os pares são ordenados por vazão para garantir que pressao_min/max
     correspondam à menor e maior vazão respectivamente (fisicamente correlatos).
@@ -102,14 +161,14 @@ def extrair_fluxos_dp(texto: str) -> dict:
 
     num = r'\d[\d.]*(?:,\d+)?'
 
-    # Captura: vazao_high, pressao_high, [vazao_low, pressao_low]
+    # Captura: vazao_high, incerteza_high, pressao_high, [vazao_low, incerteza_low, pressao_low]
     if tem_dp_low:
         padrao = re.compile(
-            rf'^({num})\s+{num}\s+({num})\s+({num})\s+{num}\s+({num})$',
+            rf'^({num})\s+({num})\s+({num})\s+({num})\s+({num})\s+({num})$',
             re.MULTILINE
         )
     else:
-        padrao = re.compile(rf'^({num})\s+{num}\s+({num})$', re.MULTILINE)
+        padrao = re.compile(rf'^({num})\s+({num})\s+({num})$', re.MULTILINE)
 
     matches = padrao.findall(secao)
     if not matches:
@@ -118,24 +177,26 @@ def extrair_fluxos_dp(texto: str) -> dict:
     def br_float(v: str) -> float:
         return float(v.replace('.', '').replace(',', '.'))
 
-    def min_max(vazoes: list, pressoes: list) -> dict:
+    def min_max(vazoes: list, incertezas: list, pressoes: list) -> dict:
         # Ordena pelo valor da vazão para manter o par vazão↔pressão coerente
-        pares = sorted(zip(vazoes, pressoes), key=lambda x: br_float(x[0]))
+        pares = sorted(zip(vazoes, incertezas, pressoes), key=lambda x: br_float(x[0]))
         return {
-            "vazao_min":   pares[0][0],
-            "vazao_max":   pares[-1][0],
-            "pressao_min": pares[0][1],
-            "pressao_max": pares[-1][1],
+            "vazao_min":      pares[0][0],
+            "vazao_max":      pares[-1][0],
+            "incerteza_min":  pares[0][1],
+            "incerteza_max":  pares[-1][1],
+            "pressao_min":    pares[0][2],
+            "pressao_max":    pares[-1][2],
         }
 
     if tem_dp_low:
         return {
-            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches]),
-            "dp_low":  min_max([m[2] for m in matches], [m[3] for m in matches]),
+            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches], [m[2] for m in matches]),
+            "dp_low":  min_max([m[3] for m in matches], [m[4] for m in matches], [m[5] for m in matches]),
         }
     else:
         return {
-            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches]),
+            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches], [m[2] for m in matches]),
             "dp_low":  None,
         }
 
@@ -183,7 +244,13 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> d
         if chave is None:
             continue  # linha não reconhecida pelo mapa, ignora
 
-        dados_instrumento = {"tag": tag, "certificado": certificado}
+        dados_instrumento = {
+            "tag":         tag,
+            "certificado": certificado,
+            "u":           linha[3].strip() if len(linha) > 3 else "",
+            "fator_k":     linha[4].strip() if len(linha) > 4 else "",
+            "erro":        linha[5].strip() if len(linha) > 5 else "",
+        }
 
         if linha[-2].strip() == "mm":
             dados_instrumento["diametro"] = linha[-3].strip()
@@ -208,6 +275,8 @@ def extrair_campos_uc(caminho: str) -> dict:
     """
     texto = extrair_texto(caminho)
     numero_ci = extrair_numero_relatorio(texto)
+    ativo = identificar_instalacao(numero_ci) if numero_ci else None
+    data = extrair_data_ci(texto)
     cliente = extrair_cliente(texto)
     tag, nome_sistema = extrair_tag_sistema(texto)
     documentos = extrair_tabelas_uc(caminho)
@@ -216,6 +285,8 @@ def extrair_campos_uc(caminho: str) -> dict:
     dados = organizar_dados_uc(documentos, fluxos)
     ci_dados = {
         "numero_ci":    numero_ci    or "NI",
+        "ativo":       ativo        or "NI",
+        "data":        data         or "NI",
         "tag":          tag          or "NI",
         "nome_sistema": nome_sistema or "NI",
         "cliente":      cliente      or "NI",
@@ -232,4 +303,6 @@ def identificar_uc(caminho: str) -> bool:
     processar qualquer dado. Lê apenas o texto e testa o padrão do número CI.
     """
     texto = extrair_texto(caminho)
-    return extrair_numero_relatorio(texto) is not None
+    if extrair_numero_relatorio(texto) is not None:
+        return True
+    return bool(re.search(r"Relatório de Cálculo de Incerteza|Uncertainty Calculation Report", texto, re.IGNORECASE))
