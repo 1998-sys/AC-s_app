@@ -72,15 +72,16 @@ def to_valor_eng(valor):
         return "NI"
 
 
-def pegar_primeiro_valor(valor):
+def pegar_valor_kpa(valor):
     """
     Regra metrológica:
-    Para transmissores elétricos, usa sempre o valor antes da barra (/)
+    Para transmissores de pressão elétricos, usa o valor após a barra (/) que representa kPa
     """
     if valor is None:
         return None
 
-    return str(valor).split("/")[0].strip()
+    partes = str(valor).split("/")
+    return partes[1].strip() if len(partes) > 1 else partes[0].strip()
 
 
 
@@ -175,8 +176,8 @@ def ajustar_transmissor_pressao_eletrico(categoria, tabelas):
                 "referencia_si_kpa": to_float(linha[0]),
                 "referencia_ma": to_float(linha[1]),
                 "media_leituras_ma": to_float(linha[2]),
-                "tendencia_ma": to_valor_eng(pegar_primeiro_valor(linha[3])),
-                "incerteza_ma": to_valor_eng(pegar_primeiro_valor(linha[4])),
+                "tendencia_kpa": to_valor_eng(pegar_valor_kpa(linha[3])),
+                "incerteza_kpa": to_valor_eng(pegar_valor_kpa(linha[4])),
                 "k": to_valor_eng(linha[5]),
                 "veff": to_valor_eng(linha[6])
             })

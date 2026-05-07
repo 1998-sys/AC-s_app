@@ -12,9 +12,9 @@ from xml_model.xml_generator import normalizar_certificado
 
 mapeamento_eng = {
     "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA": 
-    {'faixa_cal': "kPa", "valor_referencia": "kPa", "valor_indicado": "mA", "incerteza": "mA", "erro": "mA", "erro_fid": "%", "incert_global": "%", "histerese": "%", "rept": "%"},
+    {'faixa_cal': "kPa", "valor_referencia": "kPa", "valor_indicado": "mA", "incerteza": "kPa", "erro": "kPa", "erro_fid": "%", "incert_global": "%", "histerese": "%", "rept": "%"},
     "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA": 
-    {'faixa_cal': "kPa", "valor_referencia": "kPa", "valor_indicado": "mA", "incerteza": "mA", "erro": "mA", "erro_fid": "%", "incert_global": "%", "histerese": "%", "rept": "%"},
+    {'faixa_cal': "kPa", "valor_referencia": "kPa", "valor_indicado": "mA", "incerteza": "kPa", "erro": "kPa", "erro_fid": "%", "incert_global": "%", "histerese": "%", "rept": "%"},
     "TERMORRESISTÊNCIA PT-100 - 4 FIOS":
     {'faixa_cal': "°C", "valor_referencia": "°C", "valor_indicado": "°C", "incerteza": "°C", "erro": "°C", "erro_fid": "NI", "incert_global": "NI", "histerese": "NI", "rept": "NI"},
     "TERMORRESISTÊNCIA PT-100 - 3 FIOS":
@@ -107,31 +107,6 @@ def data_xs_date(data_str):
     except ValueError:
         return ""
 
-
-# regra para a unidade eng istrumento pressão
-def definir_unidade_eng(categoria):
-    categorias_ma = [
-        "TRANSMISSOR DE PRESSÃO COM SAÍDA EM UNIDADE ELÉTRICA",
-        "TRANSMISSOR DE PRESSÃO ABSOLUTA COM SAÍDA EM UNIDADE ELÉTRICA",
-    ]
-    categorias_c = [
-        "TERMÔMETRO DIGITAL",
-        "TERMÔMETRO ANALÓGICO",
-        "TERMORRESISTÊNCIA PT-100 - 2 FIOS",
-        "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
-        "TERMORRESISTÊNCIA PT-100 - 4 FIOS",
-        'TRANSMISSOR DE TEMPERATURA COM SAÍDA EM UNIDADE ELÉTRICA',
-        'TRANSMISSOR DE TEMPERATURA'
-    ]
-
-    if categoria in categorias_ma:
-        return "mA"
-
-    if categoria in categorias_c:
-        return "°C"
-
-    # fallback (pressão mecânica, etc.)
-    return "NI"
     
 
 def criar_identificacao_certificado(root, dados=None):
@@ -264,7 +239,6 @@ def criar_identificacao_instrumento(dados, pontos ,root):
         criar_data_calibracao(bloco, informações)
         escrever_pontos_calibracao(informações, pontos, bloco, obter_unidade_eng(dados))
         
-
 # FAIXA NOMINNAL
 def criar_faixa_nominal(dados):
     bloco = ET.Element("FAIXA_NOMINAL")
