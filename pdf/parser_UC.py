@@ -67,17 +67,22 @@ def extrair_cliente(texto: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def extrair_tag_sistema(texto: str) -> tuple[str | None, str | None]:
+def extrair_tag(texto: str) -> str | None:
     """
-    Extrai a TAG e o nome do sistema da linha de identificação.
-    Ex: 'FT-SG-122101-01 - TESTE POÇO - SG-122101'
-         → ('FT-SG-122101-01', 'TESTE POÇO - SG-122101')
+    Extrai a TAG da malha da linha 'TAG da Malha ( Loop TAG) : <TAG>'.
+    Ex: 'TAG da Malha ( Loop TAG) : FQI-1900002A-02' → 'FQI-1900002A-02'
     """
-    pattern = r'([A-Z]{2,4}-(?:[A-Z]{2,4}-\d{5,6}|[A-Z0-9]{6,9})-\d{2})\s+-\s+(.+)'
-    match = re.search(pattern, texto, re.MULTILINE)
-    if match:
-        return match.group(1).strip(), match.group(2).strip()
-    return None, None
+    match = re.search(r'TAG\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
+    return match.group(1).strip() if match else None
+
+
+def extrair_descricao_malha(texto: str) -> str | None:
+    """
+    Extrai a descrição da malha da linha 'Descrição da Malha ( Loop Description ) : <desc>'.
+    Ex: 'Descrição da Malha ( Loop Description ) : RETIRADA POÇO' → 'RETIRADA POÇO'
+    """
+    match = re.search(r'Descri[çc][aã]o\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
+    return match.group(1).strip() if match else None
 
 
 def extrair_numero_relatorio(texto: str) -> str | None:
@@ -278,7 +283,8 @@ def extrair_campos_uc(caminho: str) -> dict:
     ativo = identificar_instalacao(numero_ci) if numero_ci else None
     data = extrair_data_ci(texto)
     cliente = extrair_cliente(texto)
-    tag, nome_sistema = extrair_tag_sistema(texto)
+    tag = extrair_tag(texto)
+    nome_sistema = extrair_descricao_malha(texto)
     documentos = extrair_tabelas_uc(caminho)
     print("Tabelas extraídas:", documentos)
     fluxos = extrair_fluxos_dp(texto)
