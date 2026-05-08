@@ -92,7 +92,7 @@ def extrair_tag(texto):
 
 def extrair_sn(texto):
     encontrados = re.findall(
-        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w.-]+)",
+        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w.-]+(?:[ \t]+(?![\w.-]+\s*:|Nominal\b)[\w.-]+)*)",
         texto,
         flags=re.IGNORECASE
     )
