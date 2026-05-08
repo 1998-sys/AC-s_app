@@ -73,7 +73,7 @@ def normalizar_texto(texto):
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 def extrair_tag(texto):
-    padrao = r"TAG:\s*([0-9A-Za-z\-‐‒–—―\s]+?)\s+SN:"
+    padrao = r"TAG:\s*([0-9A-Za-zÀ-ÿ\-‐‒–—―\s]+?)\s+SN:"
     m = re.search(padrao, texto)
     if not m:
         return None
