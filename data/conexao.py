@@ -1,6 +1,10 @@
 import sqlite3
+import os
+from pathlib import Path
 
-db_path = 'instrumentos.db'
+_app_dir = Path(os.getenv('APPDATA')) / 'ACs Generator'
+_app_dir.mkdir(parents=True, exist_ok=True)
+db_path = str(_app_dir / 'instrumentos.db')
 
 def conectar():
     """

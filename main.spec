@@ -1,7 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('gui', 'gui'), ('form', 'form'), ('pdf', 'pdf'), ('data', 'data'), ('logo', 'logo'), ('xml_model\\PetrobrasSchemaV3.0.0 (1) (1).xsd', 'xml_model')]
+datas = [
+    ('gui', 'gui'),
+    ('form', 'form'),
+    ('pdf', 'pdf'),
+    ('data', 'data'),
+    ('logo', 'logo'),
+    ('xml_model\\PetrobrasSchemaV3.0.0 (1) (1).xsd', 'xml_model'),
+]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('holidays')
@@ -25,8 +32,6 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
     name='Ac_app',
     debug=False,
@@ -42,4 +47,13 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['logo\\logo icon.ico'],
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    name='Ac_app',
 )

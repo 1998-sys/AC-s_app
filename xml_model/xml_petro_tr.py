@@ -15,69 +15,56 @@ from xml_model.xml_petro_generator import (
 )
 
 
-def _aprovado(valor):
-    """Normaliza resultado do ER para 'Sim' / 'Não' / valor original."""
-    if not valor:
-        return "NÃO ENCONTRADO"
-    v = valor.strip()
-    if v == "Sim":
-        return "Sim"
-    if v == "Não":
-        return "Não"
-    return v
+
+_MATERIAL_MAP = {
+    "carbon steel":        "Aço Carbono",
+    "galvanized steel":    "Aço Galvanizado",
+    "stainless steel 316": "Aço Inox 316",
+    "stainless steel":     "Aço Inox",
+    "inox 316":            "Aço Inox 316",
+    "inox":                "Aço Inox",
+    "duplex":              "Duplex",
+    "monel":               "Monel",
+}
+
+def _traduzir_material(valor):
+    return _MATERIAL_MAP.get(valor.strip().lower(), valor)
 
 
-def criar_trecho_reto(dados, dados_er, root):
-    """Cria o bloco TRECHO_RETO com os dados do DIM report e do Evaluation Report.
-    Creates the TRECHO_RETO block from DIM report and Evaluation Report data."""
 
-    er = dados_er or {}
-    d_er = er.get("d_er") or {}
+def criar_trecho_reto(dados, dados_dim, root):
+    """Cria o bloco TRECHO_RETO com os dados do DIM report.
+    Creates the TRECHO_RETO block from DIM report data."""
+
+    dim = dados_dim or {}
 
     bloco = ET.SubElement(root, "TRECHO_RETO")
 
     ET.SubElement(bloco, "DATA_INSPECAO").text = data_xs_date(dados.get("data_calibracao", ""))
-    # ET.SubElement(bloco, "NUMERO_EVALUATION").text = er.get("Numero_Evaluation", "")
-    # ET.SubElement(bloco, "TAG").text = dados.get("tag", "")
-    # ET.SubElement(bloco, "NUM_SERIE").text = dados.get("sn_inst", "")
-    # ET.SubElement(bloco, "MATERIAL").text = dados.get("material", "")
-    # ET.SubElement(bloco, "COEF_DILATACAO", UNIDADE_ENG="mm/mm°C").text = dados.get("coef", "")
-    # ET.SubElement(bloco, "NORMA_AVALIACAO").text = dados.get("norma", "ISO 5167-2:2022")
-    # ET.SubElement(bloco, "CONDICIONADOR_FLUXO").text = dados.get("condicionador_fluxo", "Nenhum")
+    ET.SubElement(bloco, "NUM_SERIE").text     = dados.get("sn_inst", "")
+    ET.SubElement(bloco, "TAG").text           = dados.get("tag", "")
+    ET.SubElement(bloco, "TIPO_COMPONENTE").text = next(iter(dim), "").replace("_", " ").upper()
+    ET.SubElement(bloco, "MATERIAL").text       = _traduzir_material(dados.get("material", ""))
+    ET.SubElement(bloco, "COEF_DILATACAO", UNIDADE_ENG="mm/mm°C").text = str(dados.get("coef", ""))
+    ET.SubElement(bloco, "NORMA_AVALIACAO").text         = dados.get("norma", "")
+    ET.SubElement(bloco, "DIAMETRO_TUBULACAO", UNIDADE_ENG='"').text = str(dados.get("diametro_tubo", ""))
+    d_ref  = next(iter(dim.values()), {}).get("diameter_d_at_20c_0d_025d_e_05d", {})
+    cref   = ET.SubElement(bloco, "DIAMETRO_TRECHO_COND_REF")
+    ET.SubElement(cref, "VALOR",        UNIDADE_ENG=str(d_ref.get("unidade", "mm"))).text = str(d_ref.get("valor", ""))
+    ET.SubElement(cref, "INCERTEZA_EXP", UNIDADE_ENG=str(d_ref.get("unidade", "mm")),
+                                         K=str(d_ref.get("k", "")),
+                                         GRAU_LIBERDADE=str(d_ref.get("veff", ""))).text  = str(d_ref.get("incerteza", ""))
+    ET.SubElement(cref, "APROVADO").text = "Sim"
+    ET.SubElement(bloco, "TIPO_CONDICIONADOR_FLUXO").text = dados.get("condicionador_fluxo", "")
 
-    # # Diâmetro interno médio D (Item 6.4.2 do ER)
-    # bloco_d = ET.SubElement(bloco, "DIAMETRO_INTERNO_MEDIO")
-    # ET.SubElement(bloco_d, "VALOR", UNIDADE_ENG="mm").text = d_er.get("valor", "")
-    # ET.SubElement(bloco_d, "INCERTEZA_EXP", UNIDADE_ENG="mm").text = d_er.get("incerteza", "")
+def demais_componentes(informacoes, root):
+    demais = ET.SubElement(root, "DEMAIS_COMPONENTES")
+    for c in informacoes.get("componentes", []):
+        comp = ET.SubElement(demais, "COMPONENTE")
+        ET.SubElement(comp, "NUM_SERIE").text = c.get("sn",   "")
+        ET.SubElement(comp, "TIPO").text      = c.get("tipo", "")
 
-    # # Componentes (Porta Placa, Trecho Montante, Trecho Jusante)
-    # bloco_comp = ET.SubElement(bloco, "COMPONENTES")
-    # for comp in dados.get("componentes", []):
-    #     el = ET.SubElement(bloco_comp, "COMPONENTE", TIPO=comp.get("tipo", ""))
-    #     ET.SubElement(el, "TAG").text = comp.get("tag", "")
-    #     ET.SubElement(el, "NUM_SERIE").text = comp.get("sn", "")
-
-    # # Avaliação Montante
-    # bloco_mont = ET.SubElement(bloco, "AVALIACAO_MONTANTE")
-    # ET.SubElement(bloco_mont, "CILINDRICIDADE_ALEM_10D").text = _aprovado(er.get("Cil_Montante_Alem_10D"))
-    # ET.SubElement(bloco_mont, "CILINDRICIDADE_2_10D").text = _aprovado(er.get("Cil_Montante_2_10D"))
-    # ET.SubElement(bloco_mont, "RUGOSIDADE_2_10D").text = _aprovado(er.get("Rug_Montante_2_10D"))
-    # ET.SubElement(bloco_mont, "COMPRIMENTO").text = _aprovado(er.get("Comp_Montante"))
-
-    # # Avaliação Jusante
-    # bloco_jus = ET.SubElement(bloco, "AVALIACAO_JUSANTE")
-    # ET.SubElement(bloco_jus, "CILINDRICIDADE").text = _aprovado(er.get("Cil_Jusante"))
-    # ET.SubElement(bloco_jus, "RUGOSIDADE").text = _aprovado(er.get("Rug_Jusante"))
-    # ET.SubElement(bloco_jus, "COMPRIMENTO_TOMADA_TEMPERATURA").text = _aprovado(er.get("Comp_Tomada_Temp"))
-    # ET.SubElement(bloco_jus, "COMPRIMENTO_ACIDENTE").text = _aprovado(er.get("Comp_Acidente_Jusante"))
-
-    # # Avaliação Porta Placa (0-2D)
-    # bloco_pp = ET.SubElement(bloco, "AVALIACAO_PORTA_PLACA")
-    # ET.SubElement(bloco_pp, "CILINDRICIDADE_0_2D").text = _aprovado(er.get("Diametro_D"))
-    # ET.SubElement(bloco_pp, "RUGOSIDADE_0_2D").text = _aprovado(er.get("Rug_0_2D"))
-
-
-def gerar_xml_certificado_tr(informacoes, dados_er, caminho_saida):
+def gerar_xml_certificado_tr(informacoes, dados_dim, caminho_saida):
     """Gera o XML de inspeção do Trecho Reto (Gas Meter Run) e salva em caminho_saida.
     Generates the Gas Meter Run inspection XML and saves it to caminho_saida."""
 
@@ -94,7 +81,8 @@ def gerar_xml_certificado_tr(informacoes, dados_er, caminho_saida):
     root.append(criar_identificacao_padroes(informacoes))
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
-    criar_trecho_reto(informacoes, dados_er, root)
+    criar_trecho_reto(informacoes, dados_dim, root)
+    demais_componentes(informacoes, root)
 
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)

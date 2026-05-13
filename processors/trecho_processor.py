@@ -4,6 +4,7 @@ from threading import Thread
 from pdf.extrator import extrair_texto
 from pdf.parser_tr_ER import extrair_campos_er_tr
 from processors.utils import fluxo_origem
+from xml_model.xml_extractor_TR import extrair_dados_dim_tr
 
 
 class TrechoProcessor(BaseProcessor):
@@ -20,6 +21,7 @@ class TrechoProcessor(BaseProcessor):
 
         self.app.dados_certificado_atual = dados_pdf
         self.app.dados_report_atual = None
+        self.app.dados_dim_tr = None
 
         self.app.after(0, lambda: self._solicitar_report(caminho_certificado))
 
@@ -59,6 +61,7 @@ class TrechoProcessor(BaseProcessor):
                 raise ValueError("Não foi possível extrair informações do Evaluation Report.")
 
             self.app.dados_report_atual = dados_er
+            self.app.dados_dim_tr = extrair_dados_dim_tr(caminho_certificado)
             self.app.pontos_calibracao = []
 
             def continuar(dados):

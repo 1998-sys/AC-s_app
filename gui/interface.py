@@ -85,6 +85,7 @@ class App(ctk.CTk):
         self.pontos_calibracao_petro = None
         self.dados_certificado_atual = None
         self.dados_report_atual = None
+        self.dados_dim_tr = None
         self.tipo_instrumento_atual = None
 
 
@@ -388,7 +389,8 @@ class App(ctk.CTk):
                     self.pontos_calibracao,
                     self.certificado_te_atual,
                     self.pontos_calibracao_petro,
-                    self.dados_report_atual
+                    self.dados_report_atual,
+                    dados_dim_tr=self.dados_dim_tr,
                 )
 
                 messagebox.showinfo("Sucesso", "Processo concluído com sucesso!")
@@ -397,6 +399,7 @@ class App(ctk.CTk):
                     self.certificado_te_atual = None
 
                 self.dados_report_atual = None
+                self.dados_dim_tr = None
 
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro na geração: {e}")

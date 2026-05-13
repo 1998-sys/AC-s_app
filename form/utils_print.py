@@ -38,7 +38,7 @@ def obter_caminho_ac(dados, caminho_pdf_original):
     return os.path.join(pasta_saida, nome_pdf)
 
 
-def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report):
+def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report, dados_dim_tr=None):
     """Roteador principal: seleciona o gerador de AC e os XMLs conforme cliente e instrumento.
     Main router: selects the AC generator and XMLs based on client and instrument type.
 
@@ -125,9 +125,10 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
     elif "PRIO" in cliente and dados.get("instrumento", "").upper() == "GAS METER RUN":
         print(">>> GERANDO XML TRECHO RETO (PRIO) <<<")
         print(dados)
+        print(dados_dim_tr)
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
-        gerar_xml_certificado_tr(dados, dados_report, caminho_xml)
-        #validar_e_logar(caminho_xml)
+        gerar_xml_certificado_tr(dados, dados_dim_tr, caminho_xml)
+        validar_e_logar(caminho_xml)
         # AC PDF ainda não implementado
 
     elif "PRIO" in cliente:

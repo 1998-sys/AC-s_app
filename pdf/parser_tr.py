@@ -103,8 +103,11 @@ def extrair_componentes_tr(texto):
     - Upstream Pipe    → TRECHO MONTANTE
     - Downstream Pipe  → TRECHO JUSANTE
 
-    Formato no PDF:
-      COMPONENT - TAG / SN: TAG_VALUE / SN_VALUE
+    Regra de separação: o separador TAG/SN é a primeira barra precedida de espaço
+    (" /"), que distingue o "/" do separador dos "/" internos (N/A, TR00916-21/2.1).
+    Se não houver separador → TAG = "NI", SN = valor completo.
+    SN termina antes de \n ou texto com letras minúsculas; admite sufixo posicional
+    de exatamente 1 letra maiúscula + 1 dígito (ex: M1, J1).
     """
     padroes = [
         (r"Orifice Carrier\s*/\s*Porta Placa", "PORTA PLACA"),
@@ -112,18 +115,25 @@ def extrair_componentes_tr(texto):
         (r"Downstream Pipe", "TRECHO JUSANTE"),
     ]
 
+    # TAG: valor compacto (alfanum + /-.) antes do separador " /"
+    # SN:  mesmo padrão + sufixo opcional de exatamente [A-Z][0-9] (ex: M1, J1)
+    _tag = r"[A-Z0-9][A-Z0-9/\-\.]*"
+    _sn  = r"[A-Z0-9][A-Z0-9/\-\.]*(?:\s+[A-Z][0-9])?"
+
     componentes = []
     for padrao_nome, tipo in padroes:
         m = re.search(
             padrao_nome
-            + r".*?TAG\s*/\s*SN\s*:\s*([A-Z0-9\-]+)\s*/\s*([A-Z0-9\-/\.]+?)(?=\s|$)",
+            + r"[^\n]*?TAG\s*/\s*SN\s*:\s*"
+            + rf"(?:({_tag})\s+/\s*)?"  # TAG opcional: valor antes do primeiro " /"
+            + rf"({_sn})",              # SN: valor compacto + sufixo posicional
             texto,
             flags=re.IGNORECASE,
         )
         if m:
-            componentes.append(
-                {"tipo": tipo, "tag": m.group(1).strip(), "sn": m.group(2).strip()}
-            )
+            tag = m.group(1).strip() if m.group(1) else "NI"
+            sn  = m.group(2).strip() if m.group(2) else "NI"
+            componentes.append({"tipo": tipo, "tag": tag, "sn": sn})
 
     return componentes
 
@@ -139,6 +149,7 @@ def extrair_condicionador_fluxo(texto):
 
 
 def extrair_campos_tr(texto):
+    texto = re.sub(r"[‐–—]", "-", texto)
     certificado = extrair_certificado(texto)
     _, report_date = extrair_datas(texto)
     data_medicao = extrair_data_medicao(texto)

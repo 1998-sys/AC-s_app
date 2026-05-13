@@ -1,6 +1,6 @@
 === RELATÓRIO DE IMPORTAÇÃO ===
 Arquivo : template_importacao_instrumentos.xlsx
-Data    : 06/05/2026 10:01
+Data    : 12/05/2026 14:42
 
 [LINHAS IGNORADAS]
   Linha    7 | TAG: —                    | NS: SN-0001                   | TAG ou SN vazio

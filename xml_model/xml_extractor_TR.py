@@ -28,64 +28,116 @@ def separar_valor_unidade(celula):
     return celula, None
 
 
+MAPA_SECOES = {
+    "upstream pipe 1": "tubo_a_montante_1",
+    "tubo a montante 1": "tubo_a_montante_1",
+    "upstream pipe 2": "tubo_a_montante_2",
+    "tubo a montante 2": "tubo_a_montante_2",
+    "downstream pipe": "tubo_a_jusante",
+    "tubo a jusante": "tubo_a_jusante",
+    "orifice carrier": "porta_placa",
+    "porta placa": "porta_placa",
+    "zanker": "zanker",
+}
+
+
+def _identificar_secao(texto):
+    texto_norm = normalizar_texto(texto)
+    for chave, valor in sorted(MAPA_SECOES.items(), key=lambda x: len(x[0]), reverse=True):
+        if chave in texto_norm:
+            return valor
+    return None
+
+
+def _chave_parametro(descricao_raw):
+    # Usa apenas a primeira linha (inglês) para gerar a chave
+    primeira_linha = str(descricao_raw).split("\n")[0]
+    norm = normalizar_texto(primeira_linha)
+    norm = re.sub(r"[^a-z0-9 ]", "", norm)
+    norm = re.sub(r"\s+", "_", norm).strip("_")
+    return norm[:60] if norm else None
+
+
 def extrair_dados_dim_tr(caminho_pdf):
     """
-    Extrai medições da tabela do relatório dimensional (DIM) de trecho reto.
+    Extrai todas as tabelas de resultados do relatório dimensional (DIM),
+    organizadas pela seção que precede cada tabela (Upstream Pipe 1/2,
+    Downstream Pipe, Orifice Carrier, Zanker). A ordem é detectada
+    dinamicamente — pode variar entre documentos.
 
-    Formato da tabela DIM (diferente do cert de placa):
-      col[0]: Parâmetro (bilíngue)
-      col[1]: Resultado com unidade  ex: '52,57 mm'
-      col[2]: Incerteza com unidade  ex: '0,05 mm'
-      col[3]: k
-      col[4]: Veff  (∞ → 'INFINITO')
-
-    Retorna dict mapeando chave interna a:
-      { valor, unidade, incerteza, k, veff }
+    Retorna:
+        {
+            "upstream_pipe_1": { "medium_internal_diameter_at_20c": { valor, unidade, incerteza, k, veff }, ... },
+            "upstream_pipe_2": { ... },
+            "downstream_pipe": { ... },
+            "orifice_carrier": { ... },
+            "zanker":          { ... },
+        }
     """
-    mapa_chaves = {
-        "diameter d at 20": "d_trecho_ref",
-    }
-
     resultado = {}
+    secao_atual = None
 
     with pdfplumber.open(caminho_pdf) as pdf:
-        for pagina in pdf.pages:
-            tabelas = pagina.extract_tables()
-            if not tabelas:
+        for pagina in pdf.pages[1:]:
+            tabelas_obj = pagina.find_tables()
+            if not tabelas_obj:
                 continue
 
-            for tabela in tabelas:
-                if not tabela or len(tabela) < 2:
+            prev_bottom = 0
+            for tab_obj in tabelas_obj:
+                # texto entre o fim da tabela anterior e o topo desta
+                bbox_acima = (0, prev_bottom, pagina.width, tab_obj.bbox[1])
+                texto_acima = pagina.crop(bbox_acima).extract_text() or ""
+                prev_bottom = tab_obj.bbox[3]
+
+                secao_nova = _identificar_secao(texto_acima)
+                if secao_nova:
+                    secao_atual = secao_nova
+
+                if secao_atual != "porta_placa":
                     continue
 
-                cabecalho = " ".join(str(c) for c in tabela[0] if c)
-                if "Parameters" not in cabecalho:
+                dados = tab_obj.extract()
+                if not dados or len(dados) < 2:
                     continue
 
-                for linha in tabela[1:]:
-                    if not linha or len(linha) < 4:
+                cabecalho = normalizar_texto(" ".join(str(c or "") for c in dados[0]))
+                if "parameters" not in cabecalho and "parametros" not in cabecalho:
+                    continue
+
+                if secao_atual not in resultado:
+                    resultado[secao_atual] = {}
+
+                for linha in dados[1:]:
+                    if not linha or not linha[0]:
+                        continue
+                    descricao = str(linha[0]).strip()
+                    if not descricao:
                         continue
 
-                    descricao = normalizar_texto(linha[0])
+                    chave = _chave_parametro(descricao)
+                    if not chave:
+                        continue
 
-                    for chave_pdf, chave_final in sorted(
-                        mapa_chaves.items(),
-                        key=lambda x: len(x[0]),
-                        reverse=True,
-                    ):
-                        if chave_pdf in descricao:
-                            valor_raw, unidade = separar_valor_unidade(linha[1])
-                            incerteza_raw, _ = separar_valor_unidade(linha[2])
-                            k = to_valor_eng(linha[3]) if len(linha) > 3 else None
-                            veff = to_valor_eng(linha[4]) if len(linha) > 4 else None
+                    # porta_placa: só o diâmetro D [0D; 0.25D; 0.5D]
+                    if "diameter" not in chave or "cilindricity" in chave or "2d_4d" in chave:
+                        continue
 
-                            resultado[chave_final] = {
-                                "valor": to_valor_eng(valor_raw),
-                                "unidade": unidade,
-                                "incerteza": to_valor_eng(incerteza_raw),
-                                "k": k,
-                                "veff": veff,
-                            }
-                            break
+                    valor_raw, unidade = separar_valor_unidade(
+                        str(linha[1]).strip() if len(linha) > 1 and linha[1] else ""
+                    )
+                    incerteza_raw, _ = separar_valor_unidade(
+                        str(linha[2]).strip() if len(linha) > 2 and linha[2] else ""
+                    )
+                    k    = to_valor_eng(linha[3]) if len(linha) > 3 else None
+                    veff = to_valor_eng(linha[4]) if len(linha) > 4 else None
+
+                    resultado[secao_atual][chave] = {
+                        "valor":     to_valor_eng(valor_raw),
+                        "unidade":   unidade,
+                        "incerteza": to_valor_eng(incerteza_raw),
+                        "k":         k,
+                        "veff":      veff,
+                    }
 
     return resultado
