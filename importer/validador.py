@@ -12,7 +12,8 @@ def _to_float(val):
         return None, str(val)
 
 
-def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw):
+def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
+                  sistema=None, aplicacao=None, ativo=None):
     """
     Valida uma linha do xlsx e retorna (categoria, payload).
 
@@ -54,31 +55,38 @@ def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw):
     reg_tag = buscar_instrumento_por_tag(tag)
     reg_sn  = buscar_por_sn_instrumento(sn)
 
-    # NS já existe com outra TAG
-    if reg_sn and reg_sn["tag"] != tag:
-        return "bloqueado", {"linha": n, "tag": tag, "sn": sn,
-                             "motivo": f"NS já cadastrado com TAG '{reg_sn['tag']}'"}
-
+    # TAG já existe no banco — resolve pelo registro da TAG (ignorando NS de outros)
     if reg_tag:
         # Conflito de tipo
-        if reg_tag["tipo"] != tipo:
+        if reg_tag["tipo"] != tipo and reg_tag["tipo"] != "MVS":
             return "bloqueado", {"linha": n, "tag": tag, "sn": sn,
                                  "motivo": f"TAG já existe como {reg_tag['tipo']} — conflito com {tipo}"}
 
-        # Mesmo tipo + mesmo NS → já correto
+        # Mesmo NS → já correto
         if reg_tag["sn_instrumento"] == sn:
             return "mantido", {"linha": n, "tag": tag, "sn": sn}
 
-        # Mesmo tipo + NS diferente → aguarda decisão
+        # NS diferente → aguarda decisão do usuário
         return "divergente", {
             "linha": n, "tag": tag, "sn": sn,
             "sn_banco": reg_tag["sn_instrumento"],
             "tipo": tipo, "sn_sensor": sn_sensor,
             "min_range": min_range, "max_range": max_range,
+            "sistema": sistema, "aplicacao": aplicacao, "ativo": ativo,
+        }
+
+    # TAG nova: verifica se NS já pertence a outra TAG → candidato a MVS
+    if reg_sn and reg_sn["tag"] != tag:
+        return "mvs_candidato", {
+            "linha": n, "tag": tag, "sn": sn, "tipo": tipo,
+            "sn_sensor": sn_sensor, "min_range": min_range, "max_range": max_range,
+            "sistema": sistema, "aplicacao": aplicacao, "ativo": ativo,
+            "tag_existente": reg_sn["tag"],
         }
 
     # Novo registro
     return "inserir", {
         "linha": n, "tag": tag, "sn": sn, "tipo": tipo,
         "sn_sensor": sn_sensor, "min_range": min_range, "max_range": max_range,
+        "sistema": sistema, "aplicacao": aplicacao, "ativo": ativo,
     }

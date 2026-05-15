@@ -38,6 +38,8 @@ MAPA_SECOES = {
     "orifice carrier": "porta_placa",
     "porta placa": "porta_placa",
     "zanker": "zanker",
+    "orifice flange": "flange_de_orificio",
+    "flange de orificio": "flange_de_orificio",
 }
 
 
@@ -94,7 +96,7 @@ def extrair_dados_dim_tr(caminho_pdf):
                 if secao_nova:
                     secao_atual = secao_nova
 
-                if secao_atual != "porta_placa":
+                if secao_atual not in ("porta_placa", "flange_de_orificio"):
                     continue
 
                 dados = tab_obj.extract()
@@ -119,9 +121,13 @@ def extrair_dados_dim_tr(caminho_pdf):
                     if not chave:
                         continue
 
-                    # porta_placa: só o diâmetro D [0D; 0.25D; 0.5D]
-                    if "diameter" not in chave or "cilindricity" in chave or "2d_4d" in chave:
-                        continue
+                    # porta_placa: só os diâmetros D; flange_de_orificio: só diâmetro a 20°C
+                    if secao_atual == "porta_placa":
+                        if "diameter" not in chave or "cilindricity" in chave or "2d_4d" in chave:
+                            continue
+                    elif secao_atual == "flange_de_orificio":
+                        if "diameter" not in chave or "at_20" not in chave:
+                            continue
 
                     valor_raw, unidade = separar_valor_unidade(
                         str(linha[1]).strip() if len(linha) > 1 and linha[1] else ""
@@ -140,4 +146,4 @@ def extrair_dados_dim_tr(caminho_pdf):
                         "veff":      veff,
                     }
 
-    return resultado
+    return {k: v for k, v in resultado.items() if v}

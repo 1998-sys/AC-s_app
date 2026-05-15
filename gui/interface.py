@@ -34,6 +34,7 @@ try:
     )
     from importer.importador import ler_xlsx, executar
     from importer.relatorio import gerar as gerar_relatorio
+    from importer.exportador import exportar as exportar_xlsx
     from xml_model.xml_extractor_PO import extrair_valores_medidos
     from xml_model.xml_petro_po import gerar_xml_certificado_po
     from form.utils_print import gerar_ac_escolha , obter_caminho_ac
@@ -557,7 +558,10 @@ class App(ctk.CTk):
         btn_consultar.configure(command=consultar)
         ctk.CTkButton(btn_grid, text="EDITAR", fg_color=ODS_RED, command=editar, width=160, height=35).pack(side="left")
         ctk.CTkButton(btn_grid, text="SALVAR", fg_color=ODS_OK, command=salvar, width=160, height=35).pack(side="right")
-        ctk.CTkButton(container, text="IMPORTAR XLSX", fg_color=ODS_DARK, command=self.abrir_importacao_xlsx, height=35).pack(fill="x", pady=(10, 0))
+        btn_io = ctk.CTkFrame(container, fg_color="transparent")
+        btn_io.pack(fill="x", pady=(10, 0))
+        ctk.CTkButton(btn_io, text="IMPORTAR XLSX", fg_color=ODS_DARK, command=self.abrir_importacao_xlsx, height=35).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        ctk.CTkButton(btn_io, text="EXPORTAR XLSX", fg_color=ODS_DARK, command=self.exportar_xlsx, height=35).pack(side="left", expand=True, fill="x", padx=(4, 0))
 
     def abrir_importacao_xlsx(self):
         caminho = filedialog.askopenfilename(
@@ -589,6 +593,32 @@ class App(ctk.CTk):
             else:
                 pulados.append(item)
 
+        # MVS: agrupa candidatos por NS e pergunta uma vez por grupo
+        from collections import defaultdict
+        grupos_mvs = defaultdict(list)
+        for item in resultado["mvs_candidato"]:
+            grupos_mvs[item["sn"]].append(item)
+
+        for sn, itens in grupos_mvs.items():
+            tag_existente = itens[0]["tag_existente"]
+            lista_tags = "\n".join(
+                f"  • Linha {i['linha']} — {i['tag']}" for i in itens
+            )
+            resposta = messagebox.askyesno(
+                "Instrumento MVS?",
+                f"O NS '{sn}' já está cadastrado com a TAG '{tag_existente}'.\n\n"
+                f"Os seguintes instrumentos do xlsx também usam esse NS:\n{lista_tags}\n\n"
+                "Eles pertencem ao mesmo MVS e compartilham o NS?\n\n"
+                "SIM → todos serão inseridos normalmente\n"
+                "NÃO → todos serão registrados como bloqueados"
+            )
+            for item in itens:
+                if resposta:
+                    resultado["inserir"].append(item)
+                else:
+                    item["motivo"] = f"NS já cadastrado com TAG '{tag_existente}' — não confirmado como MVS"
+                    resultado["bloqueado"].append(item)
+
         executar(resultado, sobrescrever)
         caminho_txt = gerar_relatorio(resultado, pulados, caminho)
 
@@ -608,4 +638,14 @@ class App(ctk.CTk):
             msg += f"\n\nRelatório gerado em:\n{caminho_txt}"
 
         messagebox.showinfo("Importação", msg)
+
+    def exportar_xlsx(self):
+        try:
+            caminho = exportar_xlsx()
+            messagebox.showinfo(
+                "Exportação concluída",
+                f"Base de dados exportada com sucesso.\n\n{caminho}"
+            )
+        except Exception as e:
+            messagebox.showerror("Erro na exportação", str(e))
 

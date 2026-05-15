@@ -1,42 +1,33 @@
 from data.conexao import conectar
 
-def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None):
+def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None,
+                        sistema=None, aplicacao=None, ativo=None, tipo='SEC'):
     """
-    Insere um instrumento secundário na tabela 'instrumentos'.
-    Inserts a secondary instrument into the 'instrumentos' table.
-
-    Args:
-        tag           (str):   Identificador do instrumento / Instrument tag identifier.
-        sn_instrumento(str):   Número de série do instrumento / Instrument serial number.
-        sn_sensor     (str):   Número de série do sensor, opcional / Sensor serial number, optional.
-        min_range     (float): Valor mínimo da faixa de medição / Minimum measurement range value.
-        max_range     (float): Valor máximo da faixa de medição / Maximum measurement range value.
+    Insere um instrumento na tabela 'instrumentos'.
+    Inserts an instrument into the 'instrumentos' table.
     """
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo)
-        VALUES (?, ?, ?, ?, ?, 'SEC')
-    ''', (tag, sn_instrumento, sn_sensor, min_range, max_range))
+        INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo,
+                                  sistema, aplicacao, ativo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo))
     conn.commit()
     conn.close()
 
 
-def inserir_placa(tag, sn_instrumento):
+def inserir_placa(tag, sn_instrumento, sistema=None, aplicacao=None, ativo=None):
     """
     Insere uma placa de orifício na tabela 'instrumentos'.
     Inserts an orifice plate into the 'instrumentos' table.
-
-    Args:
-        tag           (str): Identificador da placa / Orifice plate tag identifier.
-        sn_instrumento(str): Número de série da placa / Orifice plate serial number.
     """
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO instrumentos (tag, sn_instrumento, tipo)
-        VALUES (?, ?, 'PO')
-    ''', (tag, sn_instrumento))
+        INSERT INTO instrumentos (tag, sn_instrumento, tipo, sistema, aplicacao, ativo)
+        VALUES (?, ?, 'PO', ?, ?, ?)
+    ''', (tag, sn_instrumento, sistema, aplicacao, ativo))
     conn.commit()
     conn.close()
 
@@ -102,7 +93,7 @@ def buscar_instrumento_por_tag(tag):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo
+        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo
         FROM instrumentos
         WHERE tag = ?
     """, (tag,))
@@ -120,6 +111,9 @@ def buscar_instrumento_por_tag(tag):
         "min_range": row[3],
         "max_range": row[4],
         "tipo": row[5] or "secundario",
+        "sistema": row[6],
+        "aplicacao": row[7],
+        "ativo": row[8],
     }
 
 def atualizar_sn(tag, novo_sn):
@@ -232,6 +226,30 @@ def buscar_por_sn_sensor(sn_sensor):
     }
 
 
+def listar_todos():
+    """
+    Retorna todos os instrumentos do banco ordenados por TAG.
+    """
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT tag, sn_instrumento, tipo, sn_sensor, min_range, max_range,
+               sistema, aplicacao, ativo
+        FROM instrumentos
+        ORDER BY tag
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "tag": r[0], "sn_instrumento": r[1], "tipo": r[2],
+            "sn_sensor": r[3], "min_range": r[4], "max_range": r[5],
+            "sistema": r[6], "aplicacao": r[7], "ativo": r[8],
+        }
+        for r in rows
+    ]
+
+
 def atualizar_tag(sn_instrumento, nova_tag):
     """
     Atualiza o tag de um instrumento identificado pelo número de série.
@@ -273,5 +291,31 @@ def atualizar_range(tag, min_range, max_range):
         WHERE tag = ?
     """, (min_range, max_range, tag))
 
+    conn.commit()
+    conn.close()
+
+
+def atualizar_campos_extras(tag, sistema=None, aplicacao=None, ativo=None):
+    """
+    Atualiza sistema, aplicacao e ativo de um instrumento identificado pelo tag.
+    Apenas sobrescreve campos não-None recebidos.
+    """
+    campos = {}
+    if sistema is not None:
+        campos["sistema"] = sistema
+    if aplicacao is not None:
+        campos["aplicacao"] = aplicacao
+    if ativo is not None:
+        campos["ativo"] = ativo
+    if not campos:
+        return
+
+    conn = conectar()
+    cur = conn.cursor()
+    sets = ", ".join(f"{c} = ?" for c in campos)
+    cur.execute(
+        f"UPDATE instrumentos SET {sets} WHERE tag = ?",
+        (*campos.values(), tag)
+    )
     conn.commit()
     conn.close()

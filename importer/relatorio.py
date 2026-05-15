@@ -1,16 +1,28 @@
 import os
 from datetime import datetime
+from pathlib import Path
+
+
+def _pasta_relatorios() -> Path:
+    try:
+        import winreg
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+        )
+        docs = winreg.QueryValueEx(key, "Personal")[0]
+        winreg.CloseKey(key)
+    except Exception:
+        docs = Path.home() / "Documents"
+    pasta = Path(docs) / "AC's Generator" / "Relatórios"
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta
 
 
 def gerar(resultado, pulados, caminho_xlsx):
     """
-    Gera o arquivo .txt de relatório na mesma pasta do xlsx.
+    Gera o arquivo .txt de relatório em Documentos/AC's Generator/Relatórios/.
     Inclui apenas os itens que precisam de atenção: bloqueados, avisos e pulados.
-
-    Args:
-        resultado   : dict retornado por importador.ler_xlsx
-        pulados     : itens de divergente que o usuário optou por pular
-        caminho_xlsx: caminho do arquivo de origem
 
     Returns:
         str: caminho absoluto do .txt gerado, ou None se não houver nada a reportar
@@ -21,9 +33,10 @@ def gerar(resultado, pulados, caminho_xlsx):
     if not bloqueados and not avisos and not pulados:
         return None
 
-    pasta = os.path.dirname(os.path.abspath(caminho_xlsx))
+    pasta = _pasta_relatorios()
     nome  = os.path.splitext(os.path.basename(caminho_xlsx))[0]
-    caminho_txt = os.path.join(pasta, f"{nome}_relatorio_importacao.txt")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    caminho_txt = str(pasta / f"{nome}_relatorio_{stamp}.txt")
 
     linhas = [
         "=== RELATÓRIO DE IMPORTAÇÃO ===",

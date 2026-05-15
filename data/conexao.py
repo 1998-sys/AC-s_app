@@ -50,15 +50,23 @@ def criar_tabela():
 def migrar():
     """
     Aplica migrações incrementais ao banco existente.
-    Adiciona a coluna 'tipo' caso ainda não exista (bancos criados antes desta versão).
+    Cada bloco ADD COLUMN é idempotente: só executa se a coluna ainda não existir.
     """
     conn = conectar()
     cursor = conn.cursor()
     colunas = [row[1] for row in cursor.execute("PRAGMA table_info(instrumentos)")]
+
     if "tipo" not in colunas:
         cursor.execute(
             "ALTER TABLE instrumentos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'SEC'"
         )
+    if "sistema" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN sistema TEXT")
+    if "aplicacao" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN aplicacao TEXT")
+    if "ativo" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN ativo TEXT")
+
     # Normaliza valores legados para as abreviações atuais
     cursor.execute("UPDATE instrumentos SET tipo = 'SEC' WHERE tipo = 'secundario'")
     cursor.execute("UPDATE instrumentos SET tipo = 'PO'  WHERE tipo = 'placa_orificio'")
