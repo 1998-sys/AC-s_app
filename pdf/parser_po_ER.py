@@ -44,7 +44,7 @@ def extrair_numero_evaluation(texto_pdf: str):
     texto_pdf = re.sub(r"[‐-–—]", "-", texto_pdf)
 
     padrao = re.compile(
-        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9\- ]+?)\s*-?\s*ER\b',
+        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9._\- ]+?)\s*-?\s*\bER\b',
         flags=re.IGNORECASE
     )
 

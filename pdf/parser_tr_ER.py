@@ -21,7 +21,7 @@ def _to_aprovado(s):
 def extrair_numero_evaluation_tr(texto):
     texto = re.sub(r"[‐\-–—]", "-", texto)
     m = re.compile(
-        r"(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9\- ]+?)\s*-?\s*ER\b",
+        r"(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9._\- ]+?)\s*-?\s*\bER\b",
         flags=re.IGNORECASE,
     ).search(texto)
     if m:
