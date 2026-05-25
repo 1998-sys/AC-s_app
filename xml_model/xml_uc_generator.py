@@ -4,6 +4,12 @@ from xml.dom import minidom
 from pathlib import Path
 
 _NUM_RE = re.compile(r'^\d[\d.,]*$')
+# Caracteres inválidos em XML 1.0 (exceto tab \x09, newline \x0A e CR \x0D)
+_INVALID_XML = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]')
+
+
+def _sanitize(text: str) -> str:
+    return _INVALID_XML.sub(' ', str(text)).strip()
 
 
 def _num(v: str) -> str:
@@ -12,7 +18,7 @@ def _num(v: str) -> str:
 
 def sub(parent, tag, text="", **attrs):
     el = ET.SubElement(parent, tag, **attrs)
-    el.text = str(text)
+    el.text = _sanitize(text)
     return el
 
 
