@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O **AC's Generator** é uma aplicação desktop (Windows) que automatiza a geração de **Análises Críticas (ACs)** de calibração de instrumentos de medição para clientes como PRIO, ORIGEM Energia e YINSON. A partir de um PDF de certificado de calibração, o sistema extrai os dados, valida as informações contra o banco de dados e os schemas XSD, e gera os arquivos finais (XML Petrobras + PDF da AC).
+O **AC's Generator** é uma aplicação desktop (Windows) que automatiza a geração de **Análises Críticas (ACs)** de calibração de instrumentos de medição para clientes como PRIO, ORIGEM Energia, YINSON e SBM. A partir de um PDF de certificado de calibração, o sistema extrai os dados, valida as informações contra o banco de dados e os schemas XSD, e gera os arquivos finais (XML Petrobras + PDF da AC).
 
 ---
 
@@ -25,7 +25,7 @@ AC's_app/
 │   ├── parser_certificados.py  # Parser pressão/temperatura
 │   ├── parser_po.py            # Parser placa de orifício
 │   ├── parser_po_ER.py         # Parser evaluation report (PO)
-│   ├── parser_tr.py            # Parser Gas Meter Run (DIM report)
+│   ├── parser_tr.py            # Parser Gas Meter Run / Meter Run for Flare (DIM report)
 │   ├── parser_tr_ER.py         # Parser evaluation report (trecho reto)
 │   ├── parser_UC.py            # Parser relatório de incerteza (CI)
 │   └── parser_sgs.py           # Parser cromatografia SGS
@@ -55,6 +55,7 @@ AC's_app/
 │   ├── xml_cromato.py          # XML cromatografia
 │   ├── xml_extractor.py        # Extração de pontos de calibração do PDF
 │   ├── xml_extractor_PO.py     # Extração de medições PO
+│   ├── xml_extractor_TR.py     # Extração de tabelas DIM report (trecho reto)
 │   └── xml_table_extractor.py  # Extração de tabelas Petrobras
 │
 ├── form/                       # Geração do PDF da AC (Excel → PDF)
@@ -139,7 +140,7 @@ flowchart TD
     U -->|YINSON FPSO Atlanta| X1[gerar_xml_certificado\ngerar_ac_yinson_atlanta\n⚠ template com logo Brava Energia]
     U -->|YINSON| X2[gerar_xml_certificado\ngerar_ac_yinson]
     U -->|PRIO + PO| Y[gerar_xml_certificado_po\ngerar_ac_prio_po]
-    U -->|PRIO + Gas Meter Run| TR2[xml_petro_tr.py\ngerar_xml_certificado_tr\n⚠ AC PDF pendente]
+    U -->|qualquer + Gas Meter Run| TR2[xml_petro_tr.py\ngerar_xml_certificado_tr\n⚠ AC PDF pendente]
     U -->|PRIO| Z2[gerar_xml_calibracao\ngerar_xml_certificado\ngerar_ac_prio]
 
     V --> VAL[xsd_validator\nvalidar_e_logar]
@@ -235,7 +236,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([PDF: Dimensional Report\nGas Meter Run]) --> B[parser_tr.py\nidentificar_tr + extrair_campos_tr]
+    A([PDF: Dimensional Report\nGas Meter Run / Meter Run for Flare]) --> B[parser_tr.py\nidentificar_tr + extrair_campos_tr]
     B --> C[TrechoProcessor\nprocessar]
     C --> D[Solicitar Evaluation Report\nfiledialog]
     D --> E[parser_tr_ER.py\nextrair_campos_er_tr]
@@ -244,10 +245,41 @@ flowchart TD
     F -->|Não| H[app.processar_comparacao]
     G --> H
     H --> I[ValidationEngine\ntrecho_rules — vazio por ora]
-    I --> J[gerar_ac_escolha\nPRIO + GAS METER RUN]
+    I --> J[gerar_ac_escolha\ninstrumento = GAS METER RUN]
     J --> K[xml_petro_tr.py\ngerar_xml_certificado_tr]
     K --> L([XML gerado na pasta do PDF\nsem validação XSD])
 ```
+
+### Formatos de DIM Report suportados
+
+| Formato | Cliente | Norma | Detecção |
+|---|---|---|---|
+| Gas Meter Run (padrão PRIO/ORIGEM) | PRIO, ORIGEM Energia | AGA3-2 / ISO 5167 | `"Meter Run"` ou `"Trecho Reto"` no texto |
+| Meter Run for Flare Ultrasonic | SBM (Single Buoy Moorings INC.) | ISO 17089-2 | `"Meter Run for Flare"` → seção `meter_run_for_flare_ultrasonic` |
+
+### Regras de extração — parser_tr.py
+
+| Campo | Padrão reconhecido |
+|---|---|
+| TAG do sistema | `Identification / identificação: TAG` ou `Identification TAG/SN / Identificação TAG/NS: TAG / SN` |
+| Nome do cliente | `Name / Nome: ... Contact / Contato:` (com ou sem espaços ao redor da `/`) |
+| Material | `Material of Pipe / ...: Carbon Steel` ou `Material: Stainless Steel` |
+| Norma | AGA3 → `AGA3-2:YEAR`; ISO 17089 → `ISO 17089-2:YEAR`; ISO 5167 → `ISO 5167-2:YEAR`; default `ISO 5167-2:2022` |
+| Diâmetro nominal | `Nominal Diameter: 2"` → unidade `"` ; `Diameter / Diâmetro: 742,2 mm` → unidade `mm` |
+| Data de medição | `Measurement Date: DD/MM/YYYY` ou `Calibration Date: DD/MM/YYYY` |
+| Procedimento | Detecta AGA 3 ou ISO (`\d+`) no texto de medições |
+| Condicionador de fluxo | `Zanker TAG / SN: N/A` ou `Não consta` → `"Nenhum"`; `19 tubos` → `"19 tubos"` |
+| Componentes (TAG/SN) | Orifice Carrier, Upstream/Downstream Pipe, Zanker/19-Tube Bundle; `N/A` como TAG → `"NI"`; ausente completo → `tag="NI"`, `sn="NI"` |
+
+### Extração DIM Report — xml_extractor_TR.py
+
+O extrator lê as tabelas do PDF dimensional e organiza os dados por seção:
+
+| Seção detectada | Chave interna | Dados extraídos |
+|---|---|---|
+| `Orifice Carrier` / `Porta Placa` | `porta_placa` | Diâmetros D (exceto cilindricidade e 2D/4D) |
+| `Orifice Flange` / `Flange de Orifício` | `flange_de_orificio` | Diâmetro interno a 20°C |
+| `Meter Run for Flare` / `Trecho Reto para Medidor` | `meter_run_for_flare_ultrasonic` | `Medium Internal Pipe Diameter (D) at 20°C` |
 
 ---
 
@@ -310,6 +342,29 @@ flowchart TD
 
 > **Nota:** O fluxo de Gas Meter Run ainda não passa pela validação XSD — o XML é gerado diretamente para testes.
 
+### Enumerações do schema (PetrobrasSchemaV3.0.0.xsd)
+
+#### `t_lista_componente` — valores válidos para `<TIPO>` em `DEMAIS_COMPONENTES`
+
+| Valor no XML | Quando usar |
+|---|---|
+| `PORTA PLACA` | Orifice Carrier padrão |
+| `FLANGE DE ORIFICIO` | Orifice Flange (sem Orifice Carrier) |
+| `CONDICIONADOR DE FLUXO` | Zanker ou 19-tube bundle |
+| `TRECHO RETO PARA MEDIDOR DE FLARE ULTRASSÔNICO` | Meter Run for Flare Ultrasonic (SBM) |
+| `TRECHO A MONTANTE 1` | Upstream Pipe 1 |
+| `TRECHO A MONTANTE 2` | Upstream Pipe 2 |
+| `TRECHO A JUSANTE` | Downstream Pipe |
+
+#### `t_norma` — valores válidos para `<NORMA_AVALIACAO>`
+
+| Valor | Uso |
+|---|---|
+| `AGA3-2:1991` / `AGA3-2:2000` / `AGA3-2:2016` | Gas Meter Run com norma AGA |
+| `ISO 5167-2:2022` | Gas Meter Run padrão (PRIO/ORIGEM) |
+| `ABNT NBR ISO 5167-2:2022` | Variante ABNT |
+| `ISO 17089-2:2010` | Meter Run for Flare Ultrasonic (SBM) |
+
 ---
 
 ## Regras de Validação — Instrumentos Secundários
@@ -345,8 +400,11 @@ flowchart TD
 | YINSON (FPSO Atlanta) | Secundário | `TemplateAC_YINSON - ATLANTA.xlsx` ¹ | `xml_petro_generator.py` | ✅ |
 | YINSON | Placa de Orifício | `TemplateAC_PO_YINSON.xlsx` | `xml_petro_po.py` | ✅ |
 | YINSON (FPSO Atlanta) | Placa de Orifício | `TemplateAC_PO_YINSON - ATLANTA.xlsx` ¹ | `xml_petro_po.py` | ✅ |
+| SBM (Single Buoy Moorings INC.) | Gas Meter Run (Meter Run for Flare) | — | `xml_petro_tr.py` | ⏳ pendente |
 
 > ¹ Os templates **FPSO Atlanta** incluem o logo da **Brava Energia**, exigido contratualmente para instrumentos localizados nessa unidade. O roteador (`gerar_ac_escolha`) verifica `"ATLANTA" in local` antes de despachar para o template padrão YINSON.
+
+> O roteamento para Gas Meter Run é feito **exclusivamente pelo instrumento** (`instrumento == "GAS METER RUN"`), independentemente do cliente — o que permite suportar qualquer cliente que envie este tipo de relatório.
 
 ---
 
@@ -368,6 +426,40 @@ A função `migrar()` em `data/conexao.py` é chamada na inicialização e aplic
 
 ---
 
+## Comportamentos Conhecidos / Limitações
+
+### pdfplumber — fusão de colunas em PDFs multi-coluna
+
+Em certificados com layout de duas colunas lado a lado (ex: certificados TEM), o pdfplumber pode mesclar o texto de colunas adjacentes, gerando strings como `Ca4lTibBrMat2iGon1 Range:` em vez de `Calibration Range:`. O `parser_certificados.py` possui um fallback que ancora no padrão `Range: Min: X - Max: Y` para contornar esse problema.
+
+Se um novo certificado apresentar campos ausentes (`"None"` no XML), verificar o texto extraído com:
+
+```python
+import pdfplumber
+with pdfplumber.open("certificado.pdf") as pdf:
+    for i, page in enumerate(pdf.pages):
+        print(f"=== Página {i} ===")
+        print(repr(page.extract_text()))
+```
+
+### Número de CI com sufixo REV
+
+O parser `parser_UC.py` reconhece o sufixo de revisão no número do CI:
+
+```
+CI-1600.0000-6252-813-O2C-357_REV.01   ✅ reconhecido
+CI-1600.0000-6252-813-O2C-357.REV.01   ✅ reconhecido
+CI-1600.0000-6252-813-O2C-357          ✅ reconhecido (sem REV)
+```
+
+### Componentes ausentes no trecho reto
+
+Quando `TAG / SN: Não consta` (ou `N/A`, `Not present`, `N/C`) sem nenhum SN válido a seguir, o componente aparece no XML com `tag="NI"` e `sn="NI"` — **não é omitido**. Isso força a revisão manual do caso em vez de silenciar o problema.
+
+A distinção entre `N/A / TR00434-01 M1` (TAG ausente mas SN presente) e `N/A` simples é feita por lookahead: `(?!\s*/\s*[A-Z0-9])`.
+
+---
+
 ## Dependências Principais
 
 | Biblioteca | Uso |
@@ -380,3 +472,16 @@ A função `migrar()` em `data/conexao.py` é chamada na inicialização e aplic
 | `sqlite3` | Banco de dados de instrumentos |
 | `holidays` | Cálculo de dias úteis |
 | `PyInstaller` | Empacotamento do executável |
+
+---
+
+## Arquitetura Futura
+
+A interface atual (CustomTkinter) pode ser substituída por um frontend web moderno sem abrir mão da instalação local. A abordagem recomendada:
+
+1. **Backend**: expor a lógica Python via **FastAPI** (servidor local, porta `127.0.0.1:PORT`)
+2. **Frontend**: qualquer tecnologia web (React, Vue, etc.) servida como arquivos estáticos pelo próprio FastAPI
+3. **Janela desktop**: **PyWebView** abre o frontend em uma janela nativa sem navegador externo
+4. **Empacotamento**: PyInstaller empacota Python + FastAPI + arquivos estáticos em um único instalador `.exe`
+
+O usuário instala normalmente; a "API" roda localmente no computador dele — sem necessidade de servidor externo.

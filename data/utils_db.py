@@ -32,6 +32,22 @@ def inserir_placa(tag, sn_instrumento, sistema=None, aplicacao=None, ativo=None)
     conn.close()
 
 
+def buscar_placa_por_sn(sn):
+    """Busca uma placa de orifício pelo número de série (para placas sem TAG)."""
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT tag, sn_instrumento
+        FROM instrumentos
+        WHERE sn_instrumento = ? AND tipo = 'PO'
+    """, (sn,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"tag": row[0], "sn_instrumento": row[1]}
+
+
 def buscar_placa_por_tag(tag):
     """
     Busca uma placa de orifício pelo tag.

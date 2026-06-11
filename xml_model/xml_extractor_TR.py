@@ -40,6 +40,8 @@ MAPA_SECOES = {
     "zanker": "zanker",
     "orifice flange": "flange_de_orificio",
     "flange de orificio": "flange_de_orificio",
+    "meter run for flare": "meter_run_for_flare_ultrasonic",
+    "trecho reto para medidor": "meter_run_for_flare_ultrasonic",
 }
 
 
@@ -96,7 +98,7 @@ def extrair_dados_dim_tr(caminho_pdf):
                 if secao_nova:
                     secao_atual = secao_nova
 
-                if secao_atual not in ("porta_placa", "flange_de_orificio"):
+                if secao_atual not in ("porta_placa", "flange_de_orificio", "meter_run_for_flare_ultrasonic"):
                     continue
 
                 dados = tab_obj.extract()
@@ -122,11 +124,15 @@ def extrair_dados_dim_tr(caminho_pdf):
                         continue
 
                     # porta_placa: só os diâmetros D; flange_de_orificio: só diâmetro a 20°C
+                    # meter_run_for_flare_ultrasonic: só Medium Internal Pipe Diameter (D) at 20°C
                     if secao_atual == "porta_placa":
                         if "diameter" not in chave or "cilindricity" in chave or "2d_4d" in chave:
                             continue
                     elif secao_atual == "flange_de_orificio":
                         if "diameter" not in chave or "at_20" not in chave:
+                            continue
+                    elif secao_atual == "meter_run_for_flare_ultrasonic":
+                        if "diameter_d_at_20c" not in chave or "between" in chave:
                             continue
 
                     valor_raw, unidade = separar_valor_unidade(

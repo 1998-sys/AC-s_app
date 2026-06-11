@@ -1,6 +1,6 @@
 import re
 from validation.issue import ValidationIssue
-from data.utils_db import inserir_placa, buscar_placa_por_tag
+from data.utils_db import inserir_placa, buscar_placa_por_tag, buscar_placa_por_sn
 
 
 def normalizar_numero_certificado(valor):
@@ -13,13 +13,33 @@ def normalizar_numero_certificado(valor):
     return valor
 
 
-def regra_nova_placa(ctx):
-    tag = (ctx.pdf.get("tag") or "").upper()
-    sn  = ctx.pdf.get("sn_inst")
+_TAG_AUSENTE_PO = {"N/A", "N/C", "NI", "NA"}
 
-    if not tag or not sn:
+def regra_nova_placa(ctx):
+    tag_raw = (ctx.pdf.get("tag") or "").strip().upper()
+    sn      = ctx.pdf.get("sn_inst")
+
+    if not sn:
         return None
 
+    # Placa sem TAG (N/A, N/C, etc.): identificar pelo SN para evitar conflito entre placas
+    if not tag_raw or tag_raw in _TAG_AUSENTE_PO:
+        registro = buscar_placa_por_sn(sn)
+        if registro is None:
+            return ValidationIssue(
+                key="nova_placa",
+                title="Placa não cadastrada",
+                message=(
+                    f"Placa sem TAG — identificada pelo SN: {sn}\n\n"
+                    "Deseja cadastrar a placa?"
+                ),
+                action=lambda: inserir_placa(sn, sn),
+                blocking=False
+            )
+        return None
+
+    # Placa com TAG: comportamento padrão
+    tag = tag_raw
     registro = buscar_placa_por_tag(tag)
 
     if registro is None:

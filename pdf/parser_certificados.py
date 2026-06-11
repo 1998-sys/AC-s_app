@@ -92,7 +92,7 @@ def extrair_tag(texto):
 
 def extrair_sn(texto):
     encontrados = re.findall(
-        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w.-]+(?:[ \t]+(?![\w.-]+\s*:|Nominal\b)[\w.-]+)*)",
+        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+\s*:|Nominal\b)[\w./-]+)*)",
         texto,
         flags=re.IGNORECASE
     )
@@ -183,6 +183,7 @@ def extrair_sistema(texto):
     return sistema
 
 def extrair_range_calibrado(texto):
+    # Padrão principal: "Calibration Range ... Min: X ... Max: Y"
     padrao = r"""
     Calibration\s*Range.*?
     Min\s*[:\-]?\s*([-+]?[0-9.,]+)
@@ -190,10 +191,19 @@ def extrair_range_calibrado(texto):
     Max\s*[:\-]?\s*([-+]?[0-9.,]+)
     """
     m = re.search(padrao, texto, flags=re.I | re.S | re.VERBOSE)
-    return (
-        normalizar_num(m.group(1)) if m else None,
-        normalizar_num(m.group(2)) if m else None
+    if m:
+        return normalizar_num(m.group(1)), normalizar_num(m.group(2))
+
+    # Fallback: pdfplumber fragmenta "Calibration" em layouts multi-coluna,
+    # mesclando-a com o número de modelo. "Range:" permanece intacto.
+    m = re.search(
+        r"Range\s*:\s*Min\s*:\s*([-+]?[0-9.,]+).*?Max\s*:\s*([-+]?[0-9.,]+)",
+        texto, flags=re.I | re.S,
     )
+    if m:
+        return normalizar_num(m.group(1)), normalizar_num(m.group(2))
+
+    return None, None
 
 def extrair_range_indicado(texto):
     padrao = r"""

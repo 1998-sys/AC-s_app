@@ -117,6 +117,7 @@
 			<xs:enumeration value="AGA3-2:1991" />
 			<xs:enumeration value="AGA3-2:2000" />
 			<xs:enumeration value="AGA3-2:2016" />
+			<xs:enumeration value="ISO 17089-2:2010" />
 		</xs:restriction>
 	</xs:simpleType>
 
@@ -148,6 +149,10 @@
 			<xs:enumeration value="TRECHO JUSANTE" />
 			<xs:enumeration value="TRECHO MONTANTE" />
 			<xs:enumeration value="PORTA PLACA" />
+			<xs:enumeration value="FLANGE DE ORIFICIO" />
+			<xs:enumeration value="CONDICIONADOR DE FLUXO" />
+			<xs:enumeration value="TRECHO RETO PARA MEDIDOR DE FLARE ULTRASSÔNICO" />
+
 		</xs:restriction>
 	</xs:simpleType>
 

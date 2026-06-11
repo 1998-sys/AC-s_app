@@ -16,6 +16,12 @@ from xml_model.xml_petro_generator import (
 
 
 
+_TIPO_COMPONENTE_MAP = {
+    "porta_placa":                    "PORTA PLACA",
+    "flange_de_orificio":             "FLANGE DE ORIFICIO",
+    "meter_run_for_flare_ultrasonic": "TRECHO RETO PARA MEDIDOR DE FLARE ULTRASSÔNICO",
+}
+
 _MATERIAL_MAP = {
     "carbon steel":        "Aço Carbono",
     "galvanized steel":    "Aço Galvanizado",
@@ -43,12 +49,14 @@ def criar_trecho_reto(dados, dados_dim, root):
     ET.SubElement(bloco, "DATA_INSPECAO").text = data_xs_date(dados.get("data_calibracao", ""))
     ET.SubElement(bloco, "NUM_SERIE").text     = dados.get("sn_inst", "")
     ET.SubElement(bloco, "TAG").text           = dados.get("tag", "")
-    ET.SubElement(bloco, "TIPO_COMPONENTE").text = next(iter(dim), "").replace("_", " ").upper()
+    tipo_raw = next(iter(dim), "")
+    ET.SubElement(bloco, "TIPO_COMPONENTE").text = _TIPO_COMPONENTE_MAP.get(tipo_raw, tipo_raw.replace("_", " ").upper())
     ET.SubElement(bloco, "MATERIAL").text       = _traduzir_material(dados.get("material", ""))
     ET.SubElement(bloco, "COEF_DILATACAO", UNIDADE_ENG="mm/mm°C").text = str(dados.get("coef", ""))
     ET.SubElement(bloco, "NORMA_AVALIACAO").text         = dados.get("norma", "")
-    ET.SubElement(bloco, "DIAMETRO_TUBULACAO", UNIDADE_ENG='"').text = str(dados.get("diametro_tubo", ""))
-    d_ref  = next(iter(dim.values()), {}).get("diameter_d_at_20c_0d_025d_e_05d", {})
+    ET.SubElement(bloco, "DIAMETRO_TUBULACAO", UNIDADE_ENG=dados.get("diametro_tubo_unidade", '"')).text = str(dados.get("diametro_tubo", ""))
+    inner  = next(iter(dim.values()), {})
+    d_ref  = next(iter(inner.values()), {})
     cref   = ET.SubElement(bloco, "DIAMETRO_TRECHO_COND_REF")
     ET.SubElement(cref, "VALOR",        UNIDADE_ENG=str(d_ref.get("unidade", "mm"))).text = str(d_ref.get("valor", ""))
     ET.SubElement(cref, "INCERTEZA_EXP", UNIDADE_ENG=str(d_ref.get("unidade", "mm")),

@@ -61,7 +61,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         )
         return gerar_ac_origem_PO(dados, caminho_pdf_atual)
     
-    elif "PRIO" in cliente or "ORIGEM ENERGIA ALAGOAS S.A." in cliente and dados.get("instrumento", "").upper() == "GAS METER RUN":
+    elif instrumento == "GAS METER RUN":
         print(">>> GERANDO XML TRECHO RETO (PRIO) <<<")
         print(dados)
         print(dados_dim_tr)
@@ -69,6 +69,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         gerar_xml_certificado_tr(dados, dados_dim_tr, caminho_xml)
         #validar_e_logar(caminho_xml)
         # AC PDF ainda não implementado
+        return
 
     elif "ORIGEM ENERGIA ALAGOAS S.A." in cliente:
         print(">>> GERANDO AC ORIGEM <<<")
@@ -131,15 +132,6 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
 
         return gerar_ac_prio_po(dados, caminho_pdf_atual)
     
-    # elif "PRIO" in cliente or "ORIGEM ENERGIA ALAGOAS S.A." in cliente and dados.get("instrumento", "").upper() == "GAS METER RUN":
-    #     print(">>> GERANDO XML TRECHO RETO (PRIO) <<<")
-    #     print(dados)
-    #     print(dados_dim_tr)
-    #     caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
-    #     gerar_xml_certificado_tr(dados, dados_dim_tr, caminho_xml)
-    #     validar_e_logar(caminho_xml)
-    #     # AC PDF ainda não implementado
-
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
         dados_pdf = dados

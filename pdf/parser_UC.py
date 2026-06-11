@@ -92,7 +92,7 @@ def extrair_numero_relatorio(texto: str) -> str | None:
     - Formato novo:   número após 'Relatório de Cálculo de Incerteza' ou 'Uncertainty Calculation Report'
                       ex: CI-FQI-1900002A-02-01.26
     """
-    match = re.search(r'[A-Z]{2}-\d+\.\d+-\d+-\d+-[A-Z0-9]+-\d+', texto)
+    match = re.search(r'[A-Z]{2}-\d+\.\d+-\d+-\d+-[A-Z0-9]+-\d+(?:[_\.]REV\.\d+)?', texto)
     if match:
         return match.group()
 
