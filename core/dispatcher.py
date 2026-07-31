@@ -17,4 +17,4 @@ class Dispatcher:
             dados (dict): Dados extraídos do PDF / Data extracted from the PDF.
         """
         processor = ProcessorFactory.get_processor(tipo, self.app)
-        processor.processar(caminho, dados)
+        processor.processar(caminho, dados) 

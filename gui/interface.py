@@ -207,14 +207,20 @@ class App(ctk.CTk):
         )
     
     def selecionar_pdf(self):
-        caminho = filedialog.askopenfilename(filetypes=[("PDF", "*.pdf")])
+        caminho = filedialog.askopenfilename(
+            filetypes=[("PDF e XML", "*.pdf *.xml"), ("PDF", "*.pdf"), ("XML", "*.xml")]
+        )
         if not caminho: return
         self.caminho_pdf_atual = caminho
         self.lbl_pdf.configure(text=f"Processando: {os.path.basename(caminho)}", font=(FONT_FAMILY, 11, "bold"), text_color=ODS_TEXT)
         Thread(target=self._processar_pdf_thread, args=(caminho,), daemon=True).start()
 
     def _processar_pdf_thread(self, caminho):
-       
+
+        if caminho.lower().endswith(".xml"):
+            self._processar_xml_ft(caminho)
+            return
+
         try:
             dados_pdf, tipo = select_extract(caminho)
 
@@ -237,6 +243,35 @@ class App(ctk.CTk):
         except Exception as e:
                 traceback.print_exc()
                 self.after(0, lambda e=e: messagebox.showerror("Erro no PDF", str(e)))
+
+    def _processar_xml_ft(self, caminho):
+        try:
+            from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
+            from form.utils_print_linearizacao import gerar_linearizacao
+
+            if not is_certificado_ft(caminho):
+                self.after(0, lambda: messagebox.showerror(
+                    "XML não suportado",
+                    "Este XML não é um certificado de calibração de medidor de vazão.\n"
+                    "Tipo esperado: CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO"
+                ))
+                return
+
+            dados = extrair_dados_ft(caminho)
+            caminho_saida = gerar_linearizacao(dados, caminho)
+
+            self.after(0, lambda: messagebox.showinfo(
+                "Linearização gerada",
+                f"Planilha gerada com sucesso:\n{os.path.basename(caminho_saida)}"
+            ))
+            self.after(0, lambda: self.lbl_pdf.configure(
+                text=f"Linearização: {dados.get('tag', '')} — {dados.get('numero_certificado', '')}",
+                font=(FONT_FAMILY, 11, "bold"), text_color=ODS_OK
+            ))
+
+        except Exception as e:
+            traceback.print_exc()
+            self.after(0, lambda e=e: messagebox.showerror("Erro no XML", str(e)))
         
     def solicitar_dados_origem(self, dados_pdf, callback):
         win = ctk.CTkToplevel(self)
