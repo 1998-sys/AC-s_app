@@ -117,7 +117,9 @@ def buscar_instrumento_por_tag(tag):
                      Dictionary with instrument data or None if not found.
     """
     row = _query_one("""
-        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo
+        SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo,
+               data_calibracao, proxima_calibracao, numero_certificado, laboratorio, observacoes,
+               modificado_por, modificado_em
         FROM instrumentos
         WHERE tag = ?
     """, (tag,))
@@ -135,6 +137,13 @@ def buscar_instrumento_por_tag(tag):
         "sistema": row[6],
         "aplicacao": row[7],
         "ativo": row[8],
+        "data_calibracao": row[9],
+        "proxima_calibracao": row[10],
+        "numero_certificado": row[11],
+        "laboratorio": row[12],
+        "observacoes": row[13],
+        "modificado_por": row[14],
+        "modificado_em": row[15],
     }
 
 
@@ -297,6 +306,33 @@ def atualizar_campos_extras(tag, sistema=None, aplicacao=None, ativo=None):
 
     if not set(campos).issubset(_CAMPOS_EXTRAS_PERMITIDOS):
         raise ValueError(f"Campo(s) não permitido(s): {set(campos) - _CAMPOS_EXTRAS_PERMITIDOS}")
+
+    sets = ", ".join(f"{c} = ?" for c in campos)
+    _execute(
+        f"UPDATE instrumentos SET {sets} WHERE tag = ?",
+        (*campos.values(), tag)
+    )
+
+
+_CAMPOS_CADASTRO_PERMITIDOS = {
+    "data_calibracao", "proxima_calibracao", "numero_certificado",
+    "laboratorio", "observacoes", "modificado_por", "modificado_em",
+}
+
+
+def atualizar_dados_cadastro(tag, **campos):
+    """
+    Atualiza os campos de cadastro estendido (calibração, certificado,
+    laboratório, observações, metadados de última alteração) de um
+    instrumento identificado pelo tag. Apenas sobrescreve os campos
+    não-None recebidos.
+    """
+    campos = {k: v for k, v in campos.items() if v is not None}
+    if not campos:
+        return
+
+    if not set(campos).issubset(_CAMPOS_CADASTRO_PERMITIDOS):
+        raise ValueError(f"Campo(s) não permitido(s): {set(campos) - _CAMPOS_CADASTRO_PERMITIDOS}")
 
     sets = ", ".join(f"{c} = ?" for c in campos)
     _execute(

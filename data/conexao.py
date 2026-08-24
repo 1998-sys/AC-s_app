@@ -66,6 +66,20 @@ def migrar():
         cursor.execute("ALTER TABLE instrumentos ADD COLUMN aplicacao TEXT")
     if "ativo" not in colunas:
         cursor.execute("ALTER TABLE instrumentos ADD COLUMN ativo TEXT")
+    if "data_calibracao" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN data_calibracao TEXT")
+    if "proxima_calibracao" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN proxima_calibracao TEXT")
+    if "numero_certificado" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN numero_certificado TEXT")
+    if "laboratorio" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN laboratorio TEXT")
+    if "observacoes" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN observacoes TEXT")
+    if "modificado_por" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN modificado_por TEXT")
+    if "modificado_em" not in colunas:
+        cursor.execute("ALTER TABLE instrumentos ADD COLUMN modificado_em TEXT")
 
     # Normaliza valores legados para as abreviações atuais
     cursor.execute("UPDATE instrumentos SET tipo = 'SEC' WHERE tipo = 'secundario'")
