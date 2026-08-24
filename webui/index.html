@@ -4,36 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CertiFlow — AC's Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <div id="app">
 
-  <div class="brand">
-    <span class="brand-title">CertiFlow</span>
-    <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
-    <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
-  </div>
-
-  <div class="tracker">
-    <div class="tracker-step" id="tk-1">1</div>
-    <span class="tracker-label" id="tkl-1">PDF</span>
-    <div class="tracker-line" id="tkline-1"></div>
-    <div class="tracker-step" id="tk-2">2</div>
-    <span class="tracker-label" id="tkl-2">Revisão</span>
-    <div class="tracker-line" id="tkline-2"></div>
-    <div class="tracker-step" id="tk-3">3</div>
-    <span class="tracker-label" id="tkl-3">Saída</span>
-  </div>
-
   <!-- Tela 1: Selecionar certificado -->
   <div class="view active" id="view-select">
+    <div class="brand brand-lg">
+      <span class="brand-title">CertiFlow</span>
+      <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
+      <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
+    </div>
+    <div class="tracker" data-tracker></div>
     <div class="view-body">
       <div class="dropzone" id="dropzone">
         <div class="dropzone-icon">PDF</div>
-        <span class="dropzone-title">Clique para selecionar o certificado</span>
-        <span class="dropzone-sub">PDF ou XML de linearização</span>
-        <span class="dropzone-hint">PDF até 20 MB · SGS, LMV, Metroval e certificados RBC</span>
+        <span class="dropzone-title">Arraste o certificado aqui</span>
+        <span class="dropzone-sub">ou clique para procurar no computador — pode selecionar vários</span>
+        <span class="dropzone-hint">PDF até 20 MB ou XML de linearização · SGS, LMV, Metroval e certificados RBC</span>
+      </div>
+      <div class="file-chip" id="selected-file-chip" style="display:none;">
+        <div class="file-chip-icon">PDF</div>
+        <span class="file-chip-name" id="selected-file-name" style="flex:1;">—</span>
+        <span class="btn-link" id="btn-trocar-arquivo">Trocar</span>
       </div>
       <div id="recent-section" style="display:none;flex-direction:column;gap:10px;">
         <span class="section-label">Processados recentemente</span>
@@ -41,13 +38,30 @@
       </div>
     </div>
     <div class="view-footer">
-      <button class="btn btn-outline" id="btn-editar-instrumento">Editar instrumento</button>
+      <button class="btn" id="btn-ler-certificado" disabled>Ler certificado</button>
+      <div class="footer-row">
+        <span class="footer-hint" id="select-hint">Selecione um PDF para continuar</span>
+        <button class="btn-link" id="btn-editar-instrumento">Editar instrumento</button>
+      </div>
     </div>
   </div>
 
   <!-- Tela 2: Lendo o PDF -->
   <div class="view" id="view-reading">
+    <div class="brand brand-lg">
+      <span class="brand-title">CertiFlow</span>
+      <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
+      <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
+    </div>
+    <div class="tracker" data-tracker></div>
     <div class="view-body">
+      <div class="instr-summary" id="reading-instr-summary" style="display:none;">
+        <img id="reading-photo" class="instr-photo" alt="" style="display:none;">
+        <div>
+          <span class="instr-badge" id="reading-badge"></span>
+          <div class="instr-fields" id="reading-fields" style="margin-top:6px;"></div>
+        </div>
+      </div>
       <div class="file-chip">
         <div class="file-chip-icon">PDF</div>
         <span class="file-chip-name" id="reading-filename">—</span>
@@ -67,6 +81,13 @@
         <div class="checklist-item" id="chk-build"><span class="checklist-dot">✓</span><span class="checklist-label">Montando relatório e XML</span></div>
       </div>
     </div>
+    <div class="view-footer">
+      <button class="btn btn-outline" id="btn-cancelar-leitura">Cancelar leitura</button>
+      <div class="footer-row">
+        <span class="footer-hint" id="reading-started-at"></span>
+        <span class="footer-hint" id="reading-fila-progresso" style="display:none;"></span>
+      </div>
+    </div>
   </div>
 
   <!-- Tela 3: Revisar divergências -->
@@ -76,7 +97,9 @@
         <div class="instr-tag" id="review-tag">—</div>
         <div class="instr-sub" id="review-sub"></div>
       </div>
+      <span class="instr-head-badge" id="review-error-badge"></span>
     </div>
+    <div class="tracker" data-tracker></div>
     <div class="instr-summary">
       <img id="review-photo" class="instr-photo" alt="" style="display:none;">
       <div>
@@ -105,6 +128,12 @@
 
   <!-- Tela 4: Arquivos gerados -->
   <div class="view" id="view-output">
+    <div class="brand">
+      <span class="brand-title">CertiFlow</span>
+      <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
+      <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
+    </div>
+    <div class="tracker" data-tracker></div>
     <div class="view-body">
       <div class="output-summary">
         <div class="output-check">✓</div>
@@ -113,7 +142,17 @@
           <div class="output-sub" id="output-sub"></div>
         </div>
       </div>
-      <div class="output-file" id="output-files"></div>
+      <div id="output-single" style="display:flex;flex-direction:column;gap:16px;flex:1;min-height:0;">
+        <div class="output-file" id="output-files"></div>
+      </div>
+      <div id="output-lote" style="display:none;flex-direction:column;gap:12px;flex:1;min-height:0;">
+        <div class="output-count-row">
+          <span class="output-count-label" id="output-count-label"></span>
+          <span class="output-open-all" id="btn-abrir-todos">Abrir todos</span>
+        </div>
+        <div class="output-groups" id="output-groups"></div>
+        <div class="output-events" id="output-events"></div>
+      </div>
     </div>
     <div class="view-footer">
       <button class="btn btn-primary" id="btn-processar-outro">Processar outro certificado</button>
@@ -157,6 +196,38 @@
             </div>
           </div>
         </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Data de calibração</label>
+            <input type="text" id="edit-data-calibracao" placeholder="dd/mm/aaaa" readonly>
+          </div>
+          <div class="field">
+            <label>Próxima calibração</label>
+            <input type="text" id="edit-proxima-calibracao" placeholder="dd/mm/aaaa" readonly>
+          </div>
+        </div>
+        <div class="field">
+          <label>Nº do certificado</label>
+          <input type="text" id="edit-numero-certificado" placeholder="Ex.: RBC-88421" readonly>
+        </div>
+        <div class="field">
+          <label>Laboratório</label>
+          <select id="edit-laboratorio" disabled>
+            <option value="">—</option>
+            <option value="SGS">SGS</option>
+            <option value="LMV">LMV</option>
+            <option value="Metroval">Metroval</option>
+            <option value="RBC">RBC</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Observações</label>
+          <textarea id="edit-observacoes" placeholder="Opcional — aparece no rodapé do relatório." readonly></textarea>
+        </div>
+        <div class="field-hint" id="edit-ultima-alteracao" style="display:none;"></div>
+
         <div class="btn-row">
           <button class="btn btn-outline" id="btn-editar-campos">Editar</button>
           <button class="btn btn-primary" id="btn-salvar-instrumento">Salvar</button>
