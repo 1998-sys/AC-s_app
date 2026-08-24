@@ -157,7 +157,11 @@ def regra_sn_instrumento(ctx):
             action=lambda: (
                 atualizar_sn(ctx.db["tag"], ctx.pdf["sn_instrumento"]),
                 ctx.pdf.__setitem__("sn_atualizado", True)
-            )
+            ),
+            opcoes=[
+                {"label": "Usar o certificado", "valor": ctx.pdf["sn_instrumento"], "recomendado": True},
+                {"label": "Manter o cadastro", "valor": ctx.db.get("sn_instrumento")},
+            ],
         )
 
 # SN do Sensor
@@ -179,7 +183,11 @@ def regra_sn_sensor(ctx):
             action=lambda: (
                 atualizar_sn_sensor(ctx.db["tag"], ctx.pdf["sn_sensor"]),
                 ctx.pdf.__setitem__("sn_atualizado", True)
-            )
+            ),
+            opcoes=[
+                {"label": "Usar o certificado", "valor": ctx.pdf["sn_sensor"], "recomendado": True},
+                {"label": "Manter o cadastro", "valor": ctx.db.get("sn_sensor")},
+            ],
         )
 
 # RANGE
@@ -226,7 +234,11 @@ def regra_range(ctx):
             action=lambda: (
                 atualizar_range(ctx.db["tag"], pdf_min, pdf_max),
                 ctx.pdf.__setitem__("range_atualizado", True)
-            )
+            ),
+            opcoes=[
+                {"label": "Usar o certificado", "valor": f"{pdf_min} – {pdf_max}", "recomendado": True},
+                {"label": "Manter o cadastro", "valor": f"{db_min} – {db_max}"},
+            ],
         )
 
     return None
