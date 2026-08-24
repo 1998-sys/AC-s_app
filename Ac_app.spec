@@ -1,7 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [
+    ('gui', 'gui'),
+    ('webui', 'webui'),
+    ('form', 'form'),
+    ('pdf', 'pdf'),
+    ('data', 'data'),
+    ('logo', 'logo'),
+    ('xml_model\\PetrobrasSchemaV3.0.0 (1) (1).xsd', 'xml_model'),
+]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('holidays')

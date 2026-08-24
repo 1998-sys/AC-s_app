@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertiFlow — AC's Generator</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="brand">
+    <span class="brand-title">CertiFlow</span>
+    <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
+    <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
+  </div>
+
+  <div class="tracker">
+    <div class="tracker-step" id="tk-1">1</div>
+    <span class="tracker-label" id="tkl-1">PDF</span>
+    <div class="tracker-line" id="tkline-1"></div>
+    <div class="tracker-step" id="tk-2">2</div>
+    <span class="tracker-label" id="tkl-2">Revisão</span>
+    <div class="tracker-line" id="tkline-2"></div>
+    <div class="tracker-step" id="tk-3">3</div>
+    <span class="tracker-label" id="tkl-3">Saída</span>
+  </div>
+
+  <!-- Tela 1: Selecionar certificado -->
+  <div class="view active" id="view-select">
+    <div class="view-body">
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">PDF</div>
+        <span class="dropzone-title">Clique para selecionar o certificado</span>
+        <span class="dropzone-sub">PDF ou XML de linearização</span>
+        <span class="dropzone-hint">PDF até 20 MB · SGS, LMV, Metroval e certificados RBC</span>
+      </div>
+      <div id="recent-section" style="display:none;flex-direction:column;gap:10px;">
+        <span class="section-label">Processados recentemente</span>
+        <div id="recent-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+    <div class="view-footer">
+      <button class="btn btn-outline" id="btn-editar-instrumento">Editar instrumento</button>
+    </div>
+  </div>
+
+  <!-- Tela 2: Lendo o PDF -->
+  <div class="view" id="view-reading">
+    <div class="view-body">
+      <div class="file-chip">
+        <div class="file-chip-icon">PDF</div>
+        <span class="file-chip-name" id="reading-filename">—</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="progress-head">
+          <span class="progress-title">Lendo o certificado</span>
+          <span class="progress-pct" id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <span class="progress-note">Não feche a janela. A leitura leva alguns segundos.</span>
+      </div>
+      <div class="checklist">
+        <div class="checklist-item" id="chk-extract"><span class="checklist-dot">✓</span><span class="checklist-label">Extraindo texto do certificado</span></div>
+        <div class="checklist-item" id="chk-compare"><span class="checklist-dot">✓</span><span class="checklist-label">Comparando com o cadastro do instrumento</span></div>
+        <div class="checklist-item" id="chk-validate"><span class="checklist-dot">✓</span><span class="checklist-label">Validando regras da ANP</span></div>
+        <div class="checklist-item" id="chk-build"><span class="checklist-dot">✓</span><span class="checklist-label">Montando relatório e XML</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tela 3: Revisar divergências -->
+  <div class="view" id="view-review">
+    <div class="instr-head">
+      <div>
+        <div class="instr-tag" id="review-tag">—</div>
+        <div class="instr-sub" id="review-sub"></div>
+      </div>
+    </div>
+    <div class="instr-summary">
+      <img id="review-photo" class="instr-photo" alt="" style="display:none;">
+      <div>
+        <span class="instr-badge" id="review-badge"></span>
+        <div class="instr-fields" id="review-fields" style="margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="view-body">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="issue-progress-head">
+          <span style="font-size:16px;font-weight:600;">Divergências</span>
+          <span style="font-size:12px;color:var(--navy-lighter);" id="issue-count"></span>
+        </div>
+        <div class="issue-progress-bar"><div class="issue-progress-fill" id="issue-progress-fill"></div></div>
+      </div>
+      <div id="issue-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+    <div class="view-footer">
+      <button class="btn" id="btn-gerar" disabled>Gerar relatório e XML</button>
+      <div class="footer-row">
+        <span class="footer-hint" id="review-hint"></span>
+        <button class="btn-link" id="link-editar-instrumento">Editar instrumento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tela 4: Arquivos gerados -->
+  <div class="view" id="view-output">
+    <div class="view-body">
+      <div class="output-summary">
+        <div class="output-check">✓</div>
+        <div>
+          <div class="output-title">Arquivos gerados</div>
+          <div class="output-sub" id="output-sub"></div>
+        </div>
+      </div>
+      <div class="output-file" id="output-files"></div>
+    </div>
+    <div class="view-footer">
+      <button class="btn btn-primary" id="btn-processar-outro">Processar outro certificado</button>
+    </div>
+  </div>
+
+  <!-- Tela 5: Editar / consultar instrumento -->
+  <div class="view" id="view-edit-instrument">
+    <div class="edit-head">
+      <button class="edit-back" id="edit-back">←</button>
+      <div>
+        <div class="edit-title">Editar instrumento</div>
+        <div class="edit-sub">Cadastro usado na comparação dos certificados</div>
+      </div>
+    </div>
+    <div class="view-body">
+      <div class="field">
+        <label>TAG do instrumento</label>
+        <input type="text" id="edit-tag" placeholder="Ex.: PIT-2104">
+      </div>
+      <button class="btn btn-outline" id="btn-consultar">Consultar</button>
+
+      <div id="edit-fields" style="display:none;flex-direction:column;gap:16px;">
+        <div class="field">
+          <label>Nº de série do instrumento</label>
+          <input type="text" id="edit-sn" readonly>
+        </div>
+        <div id="edit-sec-fields" style="display:flex;flex-direction:column;gap:16px;">
+          <div class="field">
+            <label>Nº de série do sensor</label>
+            <input type="text" id="edit-sn-sensor" readonly>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Faixa mínima</label>
+              <input type="text" id="edit-min-range" readonly>
+            </div>
+            <div class="field">
+              <label>Faixa máxima</label>
+              <input type="text" id="edit-max-range" readonly>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" id="btn-editar-campos">Editar</button>
+          <button class="btn btn-primary" id="btn-salvar-instrumento">Salvar</button>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;">
+        <span class="section-label">Importação / exportação em massa</span>
+        <div class="btn-row">
+          <button class="btn btn-outline" id="btn-importar-xlsx">Importar XLSX</button>
+          <button class="btn btn-outline" id="btn-exportar-xlsx">Exportar XLSX</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="modal-root"></div>
+
+<script src="js/dialogs.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

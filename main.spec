@@ -3,6 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [
     ('gui', 'gui'),
+    ('webui', 'webui'),
     ('form', 'form'),
     ('pdf', 'pdf'),
     ('data', 'data'),
