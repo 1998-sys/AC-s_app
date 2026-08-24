@@ -9,9 +9,9 @@ from pdf.parser_tr import identificar_tr, extrair_campos_tr
 def select_extract(caminho):
     texto = extrair_texto(caminho)
 
-    if identificar_uc(caminho):
+    if identificar_uc(texto):
         print('Relatório de Cálculo de Incerteza (CI)')
-        dados = extrair_campos_uc(caminho)
+        dados = extrair_campos_uc(caminho, texto)
         tipo = "ci"
 
     elif identificar_tr(texto):

@@ -1,5 +1,4 @@
 import re
-from pdf.extrator import extrair_texto
 from pdf.parser_certificados import (extrair_certificado, extrair_datas, extrair_nome_cliente, endereco_cliente, extrair_local,
 SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_ambientais, extrair_padroes, extrair_sn,
 obter_procedimento_por_categoria)
@@ -78,7 +77,6 @@ def extrair_campos_po(texto):
         'exec_sig': exec_sig,
         'cond_amb': cond_amb,
         'padroes_utilizados': padroes,
-        'sn_inst': sn_inst,
         'tag': tag,
         'material': material_placa,
         'coef': coef,

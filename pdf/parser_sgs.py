@@ -1,6 +1,4 @@
 import re
-from pdf.extrator import extrair_texto
-from xml_model.xml_cromato import xml_cromatografia
 
 
 

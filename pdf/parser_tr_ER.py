@@ -1,10 +1,9 @@
 import re
-from pdf.extrator import extrair_texto
-from xml_model.xml_generator import normalizar_certificado
+from pdf.parser_er_common import extrair_numero_evaluation, normalizar_espacos
 
 
 def _normalizar(texto):
-    return re.sub(r"\s+", " ", texto)
+    return normalizar_espacos(texto)
 
 
 def _to_aprovado(s):
@@ -19,14 +18,7 @@ def _to_aprovado(s):
 
 
 def extrair_numero_evaluation_tr(texto):
-    texto = re.sub(r"[‐\-–—]", "-", texto)
-    m = re.compile(
-        r"(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9._\- ]+?)\s*-?\s*\bER\b",
-        flags=re.IGNORECASE,
-    ).search(texto)
-    if m:
-        return normalizar_certificado(m.group(1).strip())
-    return None
+    return extrair_numero_evaluation(texto)
 
 
 def extrair_d_er(texto):

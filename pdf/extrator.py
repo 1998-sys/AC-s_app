@@ -1,3 +1,4 @@
+import traceback
 import pdfplumber
 
 def extrair_texto(caminho_pdf: str) -> str:
@@ -15,7 +16,8 @@ def extrair_texto(caminho_pdf: str) -> str:
         texto_final = texto_final.replace("\xa0", " ").strip()
         return texto_final
 
-    except Exception as e:
-        print(f"Erro ao ler PDF '{caminho_pdf}': {e}")
+    except Exception:
+        print(f"Erro ao ler PDF '{caminho_pdf}':")
+        traceback.print_exc()
         return ""
 

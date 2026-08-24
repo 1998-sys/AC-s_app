@@ -1,8 +1,16 @@
 import re
-from pdf.extrator import extrair_texto
-from xml_model.xml_generator import normalizar_certificado
+from pdf.parser_er_common import extrair_numero_evaluation
 
 
+def _resultado_aceite(resultado):
+    if not resultado:
+        return "NÃO ENCONTRADO"
+    resultado = resultado.strip().lower()
+    if resultado in ("accepted", "aceito"):
+        return "Sim"
+    if resultado in ("rejected", "reprovado"):
+        return "Não"
+    return "NÃO ENCONTRADO"
 
 
 def resultado_diametro(texto):
@@ -13,16 +21,8 @@ def resultado_diametro(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
@@ -39,21 +39,6 @@ def extrair_valores_d(texto_pdf: str):
 
     return resultados
 
-
-def extrair_numero_evaluation(texto_pdf: str):
-    texto_pdf = re.sub(r"[‐-–—]", "-", texto_pdf)
-
-    padrao = re.compile(
-        r'(?:RELATÓRIO\s+DE\s+AVALIAÇÃO\s+)?N[º°\.]?\s*([A-Z0-9._\- ]+?)\s*-?\s*\bER\b',
-        flags=re.IGNORECASE
-    )
-
-    match = padrao.search(texto_pdf)
-
-    if match:
-        numero = match.group(1).strip()
-        numero = normalizar_certificado(numero)
-        return numero
 
 def extrair_beta(texto_pdf: str) -> str:
     padrao = re.compile(
@@ -78,16 +63,10 @@ def resultado_beta(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1).lower()
+        return _resultado_aceite(match.group(1))
 
-        if resultado in ("accepted", "aceito"):
-            return "Sim"
-        elif resultado in ("not accepted", "não aceito"):
-            return "Não"
-
-    return None
+    return "NÃO ENCONTRADO"
 
 def resultado_circularidade(texto):
     texto = re.sub(r'\s+', ' ', texto)
@@ -100,16 +79,8 @@ def resultado_circularidade(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
@@ -125,16 +96,8 @@ def resultado_espessura(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(2)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(2))
 
     return "NÃO ENCONTRADO"
 
@@ -160,16 +123,8 @@ def resultado_rugosidade(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
@@ -184,22 +139,14 @@ def resultado_planeza(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
 def resultado_angulo_chanfro(texto):
 
-    
+
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -209,23 +156,15 @@ def resultado_angulo_chanfro(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
 def extrair_angulo_gh(texto):
     if not texto:
         return None
-   
+
     texto_limpo = texto.replace("\n", " ")
 
     padrao = re.search(
@@ -236,7 +175,7 @@ def extrair_angulo_gh(texto):
 
     if padrao:
         return padrao.group(1).strip().replace(",", ".")
-    
+
     return None
 
 def resultado_espessura_furo(texto):
@@ -248,16 +187,8 @@ def resultado_espessura_furo(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1)
-
-        if resultado.lower() in ["accepted", "aceito"]:
-            return "Sim"
-        elif resultado.lower() in ["not accepted", "não aceito"]:
-            return "Não"
-
-        return resultado.upper()
+        return _resultado_aceite(match.group(1))
 
     return "NÃO ENCONTRADO"
 
@@ -284,16 +215,10 @@ def resultado_comp_cilin(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1).lower()
+        return _resultado_aceite(match.group(1))
 
-        if resultado in ("accepted", "aceito"):
-            return "Sim"
-        elif resultado in ("not accepted", "não aceito"):
-            return "Não"
-
-    return None
+    return "NÃO ENCONTRADO"
 
 def resultado_montante(texto):
     texto = re.sub(r'\s+', ' ', texto)
@@ -305,13 +230,9 @@ def resultado_montante(texto):
     )
     match = padrao.search(texto)
     if match:
-        resultado = match.group(1).lower()
+        return _resultado_aceite(match.group(1))
 
-        if resultado in ("accepted", "aceito"):
-            return "Sim"
-        elif resultado in ("not accepted", "não aceito"):
-            return "Não"
-    return None
+    return "NÃO ENCONTRADO"
 
 def resultado_angulo_face_montante(texto):
     texto = re.sub(r'\s+', ' ', texto)
@@ -324,16 +245,9 @@ def resultado_angulo_face_montante(texto):
     )
 
     match = padrao.search(texto)
-
     if match:
-        resultado = match.group(1).lower()
+        return _resultado_aceite(match.group(1))
 
-        if resultado in ("accepted", "aceito"):
-            return "Sim"
-        elif resultado in ("not accepted", "não aceito"):
-            return "Não"
-
-    # fallback inteligente (evita None)
     return "NÃO ENCONTRADO"
 
 def extrair_campos_er(texto):
@@ -354,7 +268,7 @@ def extrair_campos_er(texto):
     comp_cil = resultado_comp_cilin(texto)
     montante = resultado_montante(texto)
     ang_montante = resultado_angulo_face_montante(texto)
-   
+
     return {
         'Numero_Evaluation': num_er,
         'Diametro_Interno': result_diam,
@@ -374,6 +288,3 @@ def extrair_campos_er(texto):
         'montante': montante,
         'angulo_face_montante': ang_montante
     }
-
-
-

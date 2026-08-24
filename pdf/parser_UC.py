@@ -1,5 +1,6 @@
 import re
 import logging
+import traceback
 import pdfplumber
 from pdf.extrator import extrair_texto
 from xml_model.xml_generator import normalizar_certificado
@@ -136,8 +137,9 @@ def extrair_tabelas_uc(caminho_pdf: str) -> dict:
                         texto = " ".join(linha).lower()
                         if "documentos" in texto and "certificado" in texto:
                             return extrair_apos_cabecalho(dados, i)
-    except Exception as e:
-        print(f"Erro ao extrair tabelas de '{caminho_pdf}': {e}")
+    except Exception:
+        print(f"Erro ao extrair tabelas de '{caminho_pdf}':")
+        traceback.print_exc()
 
     return None
 
@@ -267,18 +269,21 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> d
                 dados_instrumento.update(fluxo_dp)
 
         resultado[chave] = dados_instrumento
-    
-    print("Dados organizados por instrumento:", resultado)
 
     return resultado
 
 
-def extrair_campos_uc(caminho: str) -> dict:
+def extrair_campos_uc(caminho: str, texto: str = None) -> dict:
     """
     Ponto de entrada do parser: coordena a extração completa de um PDF de CI.
     Retorna um dict pronto para ser consumido pelo xml_uc_generator.
+
+    `texto` é opcional — se o chamador já extraiu o texto do PDF (ex.:
+    select_extract, que já roda extrair_texto antes de rotear), passe-o aqui
+    para evitar reabrir e reprocessar o mesmo PDF.
     """
-    texto = extrair_texto(caminho)
+    if texto is None:
+        texto = extrair_texto(caminho)
     numero_ci = extrair_numero_relatorio(texto)
     ativo = identificar_instalacao(numero_ci) if numero_ci else None
     data = extrair_data_ci(texto)
@@ -286,7 +291,6 @@ def extrair_campos_uc(caminho: str) -> dict:
     tag = extrair_tag(texto)
     nome_sistema = extrair_descricao_malha(texto)
     documentos = extrair_tabelas_uc(caminho)
-    print("Tabelas extraídas:", documentos)
     fluxos = extrair_fluxos_dp(texto)
     dados = organizar_dados_uc(documentos, fluxos)
     ci_dados = {
@@ -299,16 +303,15 @@ def extrair_campos_uc(caminho: str) -> dict:
         "tipo": "ci",
         **dados,
     }
-    print(ci_dados)
     return ci_dados
 
 
-def identificar_uc(caminho: str) -> bool:
+def identificar_uc(texto: str) -> bool:
     """
     Verificação rápida usada pelo utils_parser para rotear o PDF antes de
-    processar qualquer dado. Lê apenas o texto e testa o padrão do número CI.
+    processar qualquer dado — recebe o texto já extraído (não reabre o PDF)
+    e testa o padrão do número CI.
     """
-    texto = extrair_texto(caminho)
     if extrair_numero_relatorio(texto) is not None:
         return True
     return bool(re.search(r"Relatório de Cálculo de Incerteza|Uncertainty Calculation Report", texto, re.IGNORECASE))

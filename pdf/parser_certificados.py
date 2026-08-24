@@ -62,7 +62,7 @@ def normalizar_num(valor):
         return None
     try:
         return float(str(valor).replace(",", "."))
-    except Exception:
+    except ValueError:
         return None
 
 def normalizar_texto(texto):
