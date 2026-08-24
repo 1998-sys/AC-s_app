@@ -1,101 +1,47 @@
 from processors.base_processor import BaseProcessor
-from tkinter import filedialog, messagebox
-from threading import Thread
-from pdf.extrator import extrair_texto
 from pdf.parser_po_ER import extrair_campos_er
 from xml_model.xml_extractor_PO import extrair_valores_medidos
-from processors.utils import fluxo_origem
+
 
 class PlacaProcessor(BaseProcessor):
 
     def processar(self, caminho_certificado, dados_pdf):
-
-        if not dados_pdf:
-            messagebox.showerror(
-                "Erro",
-                "Dados do certificado não foram carregados corretamente."
-            )
-            return
-
-        self.app.dados_certificado_atual = dados_pdf
-        self.app.dados_report_atual = None
-
-        self.app.after(
-            0,
-            lambda: self._solicitar_report(caminho_certificado)
+        self._iniciar_fluxo_com_report(
+            caminho_certificado,
+            dados_pdf,
+            "Dados do certificado não foram carregados corretamente."
         )
 
-    def _solicitar_report(self, caminho_certificado):
+    def _titulo_instrumento(self):
+        return "Placa de Orifício"
 
-        resposta = messagebox.askyesno(
-            "Placa de Orifício",
+    def _mensagem_confirmacao(self):
+        return (
             "Instrumento identificado como Placa de Orifício.\n\n"
             "Deseja selecionar o Report Valuation?"
         )
 
-        if not resposta:
-            return
+    def _titulo_selecionar_arquivo(self):
+        return "Selecionar Report Valuation"
 
-        caminho_report = filedialog.askopenfilename(
-            title="Selecionar Report Valuation",
-            filetypes=[("PDF", "*.pdf")]
-        )
+    def _msg_nenhum_arquivo(self):
+        return "Nenhum Report selecionado."
 
-        if not caminho_report:
-            messagebox.showerror("Erro", "Nenhum Report selecionado.")
-            return
+    def _extrair_dados_er(self, texto_report):
+        return extrair_campos_er(texto_report)
 
-        Thread(
-            target=self._processar_report,
-            args=(caminho_certificado, caminho_report),
-            daemon=True
-        ).start()
-
-    def _processar_report(self, caminho_certificado, caminho_report):
-        try:
-            texto_report = extrair_texto(caminho_report)
-            if not texto_report:
-                raise ValueError(
-                    "Não foi possível extrair texto do Evaluation Report."
-                )
-
-            dados_er = extrair_campos_er(texto_report)
-            if not dados_er:
-                raise ValueError(
-                    "Não foi possível extrair informações do Evaluation Report."
-                )
-
-            self.app.dados_report_atual = dados_er
-
-            pontos = extrair_valores_medidos(caminho_certificado)
-            if not pontos:
-                raise ValueError(
-                    "Não foi possível extrair os pontos de calibração do certificado."
-                )
-
-            self.app.pontos_calibracao = pontos
-
-            if not self.app.dados_certificado_atual:
-                raise ValueError(
-                    "Dados do certificado não estão disponíveis para comparação."
-                )
-            def continuar(dados):
-                self.app.processar_comparacao(dados)
-
-            self.app.after(
-                0,
-                lambda: fluxo_origem(
-                    app=self.app,
-                    dados_certificado=self.app.dados_certificado_atual,
-                    callback=continuar
-                )
-            )   
-            
-        except Exception as e:
-            erro_msg = str(e)
-            self.app.after(
-                0,
-                messagebox.showerror,
-                "Erro no Report",
-                erro_msg
+    def _pos_processar_er(self, caminho_certificado):
+        pontos = extrair_valores_medidos(caminho_certificado)
+        if not pontos:
+            raise ValueError(
+                "Não foi possível extrair os pontos de calibração do certificado."
             )
+        self.app.pontos_calibracao = pontos
+
+        if not self.app.dados_certificado_atual:
+            raise ValueError(
+                "Dados do certificado não estão disponíveis para comparação."
+            )
+
+    def _titulo_erro_report(self):
+        return "Erro no Report"

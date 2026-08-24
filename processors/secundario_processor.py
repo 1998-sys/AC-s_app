@@ -1,4 +1,5 @@
 from processors.base_processor import BaseProcessor
+from processors.utils import fluxo_origem
 from xml_model.xml_extractor import extrair_pontos_calibracao_pdf
 from xml_model.xml_table_extractor import processar_pdf
 
@@ -11,15 +12,13 @@ class SecundarioProcessor(BaseProcessor):
         self.app.pontos_calibracao_petro = processar_pdf(caminho)
 
         def continuar(dados):
-            self.app.processar_comparacao(dados)
+            self.app.iniciar_revisao(dados)
 
-        if "ORIGEM" in (dados_pdf.get("local") or "").upper():
-            self.app.after(
-                0,
-                lambda: self.app.solicitar_dados_origem(dados_pdf, continuar)
+        self.app.after(
+            0,
+            lambda: fluxo_origem(
+                app=self.app,
+                dados_certificado=dados_pdf,
+                callback=continuar
             )
-        else:
-            self.app.after(
-                0,
-                lambda: continuar(dados_pdf)
-            )
+        )

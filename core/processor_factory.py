@@ -1,6 +1,5 @@
 from processors.secundario_processor import SecundarioProcessor
 from processors.placa_processor import PlacaProcessor
-from processors.ci_processor import CIProcessor
 from processors.trecho_processor import TrechoProcessor
 
 
@@ -14,7 +13,9 @@ class ProcessorFactory:
 
         Args:
             tipo (str): Tipo do instrumento / Instrument type.
-                        Valores suportados / Supported values: 'secundario', 'placa_orificio', 'ci'.
+                        Valores suportados / Supported values: 'secundario', 'placa_orificio', 'trecho'.
+                        Obs.: 'ci' e 'cromatografia' são tratados diretamente em
+                        gui/pdf_service.py::PdfProcessingService e nunca chegam a este factory.
             app: Referência à instância da aplicação / Reference to the application instance.
 
         Returns:
@@ -23,14 +24,13 @@ class ProcessorFactory:
         Raises:
             ValueError: Se o tipo não for suportado / If the type is not supported.
         """
-        processors = {
-            "secundario": SecundarioProcessor(app),
-            "placa_orificio": PlacaProcessor(app),
-            "ci": CIProcessor(app),
-            "trecho": TrechoProcessor(app),
+        classes = {
+            "secundario": SecundarioProcessor,
+            "placa_orificio": PlacaProcessor,
+            "trecho": TrechoProcessor,
         }
 
-        if tipo not in processors:
+        if tipo not in classes:
             raise ValueError(f"Tipo não suportado: {tipo}")
 
-        return processors[tipo]
+        return classes[tipo](app)
