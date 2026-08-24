@@ -24,6 +24,7 @@ class BaseProcessor:
     def _iniciar_fluxo_com_report(self, caminho_certificado, dados_pdf, msg_dados_ausentes):
         if not dados_pdf:
             self.app.alert("Erro", msg_dados_ausentes, "error")
+            self.app._voltar_para_selecao()
             return
 
         self.app.dados_certificado_atual = dados_pdf
@@ -36,6 +37,7 @@ class BaseProcessor:
         resposta = self.app.confirm(self._titulo_instrumento(), self._mensagem_confirmacao())
 
         if not resposta:
+            self.app._voltar_para_selecao()
             return
 
         caminho_report = self.app.escolher_arquivo(
@@ -45,6 +47,7 @@ class BaseProcessor:
 
         if not caminho_report:
             self.app.alert("Erro", self._msg_nenhum_arquivo(), "error")
+            self.app._voltar_para_selecao()
             return
 
         Thread(
@@ -79,10 +82,11 @@ class BaseProcessor:
             )
 
         except Exception as e:
-            self.app.after(
-                0,
-                lambda: self.app.alert(self._titulo_erro_report(), str(e), "error")
-            )
+            def mostrar_erro():
+                self.app.alert(self._titulo_erro_report(), str(e), "error")
+                self.app._voltar_para_selecao()
+
+            self.app.after(0, mostrar_erro)
 
     # Hooks que cada subclasse que usar _iniciar_fluxo_com_report deve implementar.
 
