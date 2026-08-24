@@ -5,6 +5,9 @@ from openpyxl.cell.text import InlineFont
 from datetime import datetime, timedelta
 import win32com.client as win32
 import os
+import shutil
+import tempfile
+import uuid
 
 
 def primeira_celula_merge(ws, cell):
@@ -44,7 +47,13 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
     print(dados)
 
     caminho_template = "TemplateAC_ORIGEM.xlsx"
-    wb = openpyxl.load_workbook(caminho_template)
+    caminho_temp = os.path.join(
+        tempfile.gettempdir(),
+        f"temp_ac_origem_{uuid.uuid4().hex}.xlsx"
+    )
+    shutil.copy(caminho_template, caminho_temp)
+
+    wb = openpyxl.load_workbook(caminho_temp)
     ws = wb["Template Formulário"]
 
     ws.page_setup.orientation = "portrait"
@@ -169,7 +178,8 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
     rich = CellRichText(*blocos) if blocos else ""
     escrever(ws, "A42", rich)
 
-    wb.save(caminho_template)
+    wb.save(caminho_temp)
+    wb.close()
 
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     n_ac = dados.get("n_ac", "").replace(" ", "")
@@ -184,10 +194,15 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
     excel.DisplayAlerts = False
 
     try:
-        wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_template))
+        wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
         wb_excel.ExportAsFixedFormat(0, caminho_pdf_final)
         wb_excel.Close(False)
     finally:
         excel.Quit()
+        if os.path.exists(caminho_temp):
+            try:
+                os.remove(caminho_temp)
+            except Exception:
+                pass
 
     return caminho_pdf_final

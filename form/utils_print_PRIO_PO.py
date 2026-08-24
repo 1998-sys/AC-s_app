@@ -2,6 +2,9 @@ import openpyxl
 import win32com.client as win32
 import os
 import re
+import shutil
+import tempfile
+import uuid
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Border, Side
 from openpyxl.worksheet.page import PageMargins
@@ -27,7 +30,13 @@ def gerar_ac_prio_po(
     if not os.path.isfile(caminho_template):
         raise FileNotFoundError(f"Template não encontrado: {os.path.abspath(caminho_template)}")
 
-    wb = openpyxl.load_workbook(caminho_template)
+    caminho_temp = os.path.join(
+        tempfile.gettempdir(),
+        f"temp_ac_prio_po_{uuid.uuid4().hex}.xlsx"
+    )
+    shutil.copy(caminho_template, caminho_temp)
+
+    wb = openpyxl.load_workbook(caminho_temp)
 
     if nome_aba not in wb.sheetnames:
         raise KeyError(f"Aba '{nome_aba}' não encontrada.")
@@ -107,7 +116,7 @@ def gerar_ac_prio_po(
         ws.print_area = print_area_fixa
 
 
-    wb.save(caminho_template)
+    wb.save(caminho_temp)
     wb.close()
 
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
@@ -134,7 +143,7 @@ def gerar_ac_prio_po(
         excel.Visible = False
         excel.DisplayAlerts = False
 
-        wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_template))
+        wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
         ws_excel = wb_excel.Worksheets(nome_aba)
 
         ps = ws_excel.PageSetup
@@ -173,5 +182,11 @@ def gerar_ac_prio_po(
                 excel.Quit()
         except:
             pass
+
+        if os.path.exists(caminho_temp):
+            try:
+                os.remove(caminho_temp)
+            except Exception:
+                pass
 
     return pdf_final

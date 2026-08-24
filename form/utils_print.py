@@ -1,11 +1,7 @@
-from form.utils_print_PRIO import gerar_ac_prio
 from form.utils_print_PRIO_PO import gerar_ac_prio_po
 from form.utils_print_ORIGEM import gerar_ac_origem
-from form.utils_print_YINSON import gerar_ac_yinson
-from form.utils_print_YINSON_ATLANTA import gerar_ac_yinson_atlanta
-from form.utils_print_ORIGEM_PO import gerar_ac_origem_PO
-from form.utils_print_YINSON_PO import gerar_ac_yinson_PO
-from form.utils_print_YINSON_ATLANTA_PO import gerar_ac_yinson_atlanta_PO
+from form.full_ac_templates import gerar_ac_prio, gerar_ac_yinson, gerar_ac_yinson_atlanta
+from form.po_templates import gerar_ac_origem_PO, gerar_ac_yinson_PO, gerar_ac_yinson_atlanta_PO
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
