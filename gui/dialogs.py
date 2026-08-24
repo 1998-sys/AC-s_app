@@ -54,6 +54,12 @@ class DialogBridge:
         return bool(self.js_await(f"Dialogs.confirm({json.dumps(title)}, {json.dumps(message)})"))
 
     def alert(self, title, message, variant="info"):
+        # Em modo lote, um alerta de sucesso/erro pararia a fila esperando o
+        # usuário clicar OK a cada arquivo — registra o evento e segue.
+        pdf_service = self.api._pdf_service
+        if pdf_service.em_lote_ativo():
+            pdf_service.registrar_evento_lote(title, message, variant)
+            return
         self.js_await(f"Dialogs.alert({json.dumps(title)}, {json.dumps(message)}, {json.dumps(variant)})")
 
     def prompt(self, title, message, fields):
@@ -65,6 +71,12 @@ class DialogBridge:
         )
         return resultado[0] if resultado else None
 
+    def escolher_arquivos(self, titulo, extensoes):
+        resultado = self.window.create_file_dialog(
+            FILE_DIALOG_OPEN, allow_multiple=True, file_types=extensoes
+        )
+        return list(resultado) if resultado else []
+
     def after(self, delay, fn, *args):
         """Compat shim para o .after() do tkinter usado pelos processors — pywebview
         não precisa de marshalling de thread para evaluate_js, então só executa direto."""
@@ -74,5 +86,10 @@ class DialogBridge:
         self.js(f"App.onProgress({percent}, {json.dumps(active)}, {json.dumps(done)})")
 
     def voltar_para_selecao(self):
+        # Em modo lote, este é o ponto de saída de todo item que não passa
+        # pela tela de revisão (erro, cancelamento, geração direta de XML) —
+        # avancar_fila decide se avança pro próximo item ou fecha o lote.
+        if self.api._pdf_service.avancar_fila():
+            return
         self.js("App.showView('select')")
         self.js("App.setTracker(1)")

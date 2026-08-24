@@ -1,9 +1,13 @@
+import getpass
+from datetime import datetime
+
 from data.utils_db import (
     buscar_instrumento_por_tag,
     atualizar_sn,
     atualizar_sn_sensor,
     atualizar_range,
     atualizar_sn_placa,
+    atualizar_dados_cadastro,
 )
 
 from gui.support import to_float_safe
@@ -26,6 +30,13 @@ class InstrumentService:
             "sn_sensor": reg.get("sn_sensor") or "",
             "min_range": "" if reg.get("min_range") is None else reg["min_range"],
             "max_range": "" if reg.get("max_range") is None else reg["max_range"],
+            "data_calibracao": reg.get("data_calibracao") or "",
+            "proxima_calibracao": reg.get("proxima_calibracao") or "",
+            "numero_certificado": reg.get("numero_certificado") or "",
+            "laboratorio": reg.get("laboratorio") or "",
+            "observacoes": reg.get("observacoes") or "",
+            "modificado_por": reg.get("modificado_por") or "",
+            "modificado_em": reg.get("modificado_em") or "",
         }
 
     def salvar_instrumento(self, payload):
@@ -46,5 +57,17 @@ class InstrumentService:
             atualizar_sn_sensor(tag, payload.get("sn_sensor", ""))
             atualizar_range(tag, min_r, max_r)
 
+        modificado_em = datetime.now().strftime("%d/%m/%Y %H:%M")
+        atualizar_dados_cadastro(
+            tag,
+            data_calibracao=payload.get("data_calibracao", ""),
+            proxima_calibracao=payload.get("proxima_calibracao", ""),
+            numero_certificado=payload.get("numero_certificado", ""),
+            laboratorio=payload.get("laboratorio", ""),
+            observacoes=payload.get("observacoes", ""),
+            modificado_por=getpass.getuser(),
+            modificado_em=modificado_em,
+        )
+
         self.api.alert("Sucesso", "Dados salvos.", "success")
-        return True
+        return {"modificado_por": getpass.getuser(), "modificado_em": modificado_em}

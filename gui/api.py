@@ -49,6 +49,14 @@ class Api:
         self._dados_pdf_review = None
         self._registro_review = None
 
+        # Estado da fila de processamento em lote (Fase 5 — múltiplos PDFs).
+        # Compartilhado entre PdfProcessingService (que a alimenta e avança) e
+        # RevisionService (que acrescenta um resultado a cada AC gerada).
+        self.fila_processamento = []
+        self.indice_fila = 0
+        self.resultados_lote = []
+        self.eventos_lote = []
+
         self._dialogs = DialogBridge(self)
         self._pdf_service = PdfProcessingService(self)
         self._revision_service = RevisionService(self)
@@ -75,6 +83,9 @@ class Api:
     def escolher_arquivo(self, titulo, extensoes):
         return self._dialogs.escolher_arquivo(titulo, extensoes)
 
+    def escolher_arquivos(self, titulo, extensoes):
+        return self._dialogs.escolher_arquivos(titulo, extensoes)
+
     def after(self, delay, fn, *args):
         self._dialogs.after(delay, fn, *args)
 
@@ -89,8 +100,17 @@ class Api:
 
     # ---------- Tela 1 → 2: seleção, leitura e classificação do PDF/XML ----------
 
-    def selecionar_pdf(self):
-        return self._pdf_service.selecionar_pdf()
+    def escolher_arquivos_pdf(self):
+        return self._pdf_service.escolher_arquivos_pdf()
+
+    def receber_arquivos_soltos(self, arquivos):
+        return self._pdf_service.receber_arquivos_soltos(arquivos)
+
+    def iniciar_leitura(self, itens):
+        return self._pdf_service.iniciar_leitura(itens)
+
+    def cancelar_leitura(self):
+        return self._pdf_service.cancelar_leitura()
 
     # ---------- Tela 3: revisar divergências / gerar AC ----------
 
@@ -99,6 +119,9 @@ class Api:
 
     def resolver_divergencia(self, key, aplicar):
         return self._revision_service.resolver_divergencia(key, aplicar)
+
+    def desfazer_divergencia(self, key):
+        return self._revision_service.desfazer_divergencia(key)
 
     def confirmar_geracao(self):
         return self._revision_service.confirmar_geracao()

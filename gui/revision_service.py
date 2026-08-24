@@ -92,8 +92,8 @@ class RevisionService:
             api._js(f"App.showReview({json.dumps(payload)})")
         except Exception as e:
             traceback.print_exc()
-            api._voltar_para_selecao()
             api.alert("Erro na revisão", str(e), "error")
+            api._voltar_para_selecao()
 
     def serializar_issues(self):
         return [
@@ -104,6 +104,13 @@ class RevisionService:
                 "blocking": issue.blocking,
                 "has_action": issue.action is not None,
                 "resolved": getattr(issue, "resolved", False),
+                # Qual opção foi escolhida ao resolver (True = usou o
+                # certificado/aplicou a ação; False = manteve o cadastro sem
+                # rodar a ação). None enquanto pendente. Permite a UI
+                # distinguir "divergência de fato corrigida" de "divergência
+                # mantida conscientemente" — ver renderIssueCard em app.js.
+                "aplicado": getattr(issue, "aplicado", None),
+                "opcoes": getattr(issue, "opcoes", None),
             }
             for issue in self.api._issues_pendentes.values()
         ]
@@ -117,6 +124,18 @@ class RevisionService:
                 if api._dados_pdf_review is not None:
                     api._dados_pdf_review["_novo_instrumento_inserido"] = True
             issue.resolved = True
+            issue.aplicado = aplicar
+        return self.serializar_issues()
+
+    def desfazer_divergencia(self, key):
+        """Volta uma divergência resolvida pra pendente, permitindo escolher de
+        novo. Não reverte a escrita no banco de uma ação já aplicada (ex.:
+        inserir_instrumento/atualizar_sn já executados) — as regras de
+        validação não carregam uma "ação reversa"; se o valor gravado estiver
+        errado, o ajuste é feito na tela Editar instrumento."""
+        issue = self.api._issues_pendentes.get(key)
+        if issue:
+            issue.resolved = False
         return self.serializar_issues()
 
     def confirmar_geracao(self):
@@ -130,6 +149,30 @@ class RevisionService:
         if pendentes:
             api.alert("Erro", "Existem divergências bloqueantes não resolvidas.", "error")
             return None
+
+        # Divergências resolvidas via "Manter o cadastro" (aplicar=False): o
+        # AC gerado sempre reflete os dados do certificado — a diferença é só
+        # se o cadastro interno foi atualizado ou não — mas ainda assim é uma
+        # divergência que não foi corrigida no cadastro, então pede
+        # confirmação explícita antes de gerar em vez de seguir direto.
+        mantidas = [
+            i for i in api._issues_pendentes.values()
+            if getattr(i, "resolved", False) and i.opcoes and getattr(i, "aplicado", None) is False
+        ]
+        if mantidas:
+            titulos = "\n".join(f"- {i.title}" for i in mantidas)
+            if not api.confirm(
+                "Certificado não corrigido",
+                f"As divergências abaixo foram mantidas sem corrigir o cadastro:\n\n{titulos}\n\n"
+                "Deseja gerar o relatório e o XML mesmo assim?",
+            ):
+                api.alert(
+                    "Certificado não gerado",
+                    "Geração cancelada — divergência mantida sem confirmar.",
+                    "error",
+                )
+                api._voltar_para_selecao()
+                return None
 
         try:
             if not api.caminho_pdf_atual:
@@ -164,7 +207,8 @@ class RevisionService:
             avisos = sum(1 for i in api._issues_pendentes.values() if not i.blocking)
             badge = (dados_pdf.get("tag") or "").split("-")[0] if dados_pdf.get("tag") else ""
 
-            return {
+            resultado = {
+                "tag": dados_pdf.get("tag") or "",
                 "sub": f"{dados_pdf.get('tag') or ''} · atestado e XML da ANP",
                 "pdf_name": os.path.basename(caminho_gerado) if caminho_gerado else None,
                 "badge": badge,
@@ -172,9 +216,24 @@ class RevisionService:
                 "files": self._listar_arquivos_gerados(caminho_gerado, api.caminho_pdf_atual),
             }
 
+            # Fase 5 (lote): em vez de devolver a saída de um único arquivo,
+            # registra este resultado e avança pro próximo item da fila (ou
+            # fecha o lote, se este era o último).
+            if api._pdf_service.em_lote_ativo():
+                return api._pdf_service.avancar_apos_sucesso_revisao(resultado)
+
+            return resultado
+
         except Exception as e:
             traceback.print_exc()
             api.alert("Erro", f"Erro na geração: {e}", "error")
+            # Modo lote: pula este item e segue pro próximo (não bloqueia a
+            # fila esperando o usuário resolver e clicar "Gerar" de novo).
+            # Fora do lote, o comportamento é inalterado — fica na revisão
+            # pra o usuário tentar de novo (ex.: depois de fechar um Excel
+            # que estava travando o arquivo).
+            if api._pdf_service.em_lote_ativo():
+                api._voltar_para_selecao()
             return None
 
     def _listar_arquivos_gerados(self, caminho_pdf_gerado, caminho_pdf_original):
