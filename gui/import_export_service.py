@@ -1,0 +1,89 @@
+from collections import defaultdict
+
+from importer.importador import ler_xlsx, executar
+from importer.relatorio import gerar as gerar_relatorio
+from importer.exportador import exportar as exportar_xlsx_db
+
+
+class ImportExportService:
+    """Importação/exportação da base de instrumentos via planilha XLSX."""
+
+    def __init__(self, api):
+        self.api = api
+
+    def importar_xlsx(self):
+        api = self.api
+        caminho = api.escolher_arquivo("Selecionar planilha de instrumentos", ("Excel (*.xlsx)",))
+        if not caminho:
+            return
+
+        try:
+            resultado = ler_xlsx(caminho)
+        except ValueError as e:
+            api.alert("Erro na planilha", str(e), "error")
+            return
+
+        sobrescrever = []
+        pulados = []
+        for item in resultado["divergente"]:
+            resposta = api.confirm(
+                "NS divergente",
+                f"TAG: {item['tag']}\n\n"
+                f"NS no banco : {item['sn_banco']}\n"
+                f"NS no xlsx  : {item['sn']}\n\n"
+                "Deseja sobrescrever o NS no banco?",
+            )
+            if resposta:
+                sobrescrever.append(item)
+            else:
+                pulados.append(item)
+
+        grupos_mvs = defaultdict(list)
+        for item in resultado["mvs_candidato"]:
+            grupos_mvs[item["sn"]].append(item)
+
+        for sn, itens in grupos_mvs.items():
+            tag_existente = itens[0]["tag_existente"]
+            lista_tags = "\n".join(f"  • Linha {i['linha']} — {i['tag']}" for i in itens)
+            resposta = api.confirm(
+                "Instrumento MVS?",
+                f"O NS '{sn}' já está cadastrado com a TAG '{tag_existente}'.\n\n"
+                f"Os seguintes instrumentos do xlsx também usam esse NS:\n{lista_tags}\n\n"
+                "Eles pertencem ao mesmo MVS e compartilham o NS?\n\n"
+                "SIM → todos serão inseridos normalmente\n"
+                "NÃO → todos serão registrados como bloqueados",
+            )
+            for item in itens:
+                if resposta:
+                    resultado["inserir"].append(item)
+                else:
+                    item["motivo"] = f"NS já cadastrado com TAG '{tag_existente}' — não confirmado como MVS"
+                    resultado["bloqueado"].append(item)
+
+        executar(resultado, sobrescrever)
+        caminho_txt = gerar_relatorio(resultado, pulados, caminho)
+
+        total_ins = len(resultado["inserir"])
+        total_sob = len(sobrescrever)
+        total_mant = len(resultado["mantido"])
+        total_prob = len(resultado["bloqueado"]) + len(resultado["aviso"]) + len(pulados)
+
+        msg = (
+            f"Importação concluída.\n\n"
+            f"Inseridos   : {total_ins}\n"
+            f"Sobrescritos: {total_sob}\n"
+            f"Mantidos    : {total_mant}\n"
+            f"Problemas   : {total_prob}"
+        )
+        if caminho_txt:
+            msg += f"\n\nRelatório gerado em:\n{caminho_txt}"
+
+        api.alert("Importação", msg, "success")
+
+    def exportar_xlsx(self):
+        api = self.api
+        try:
+            caminho = exportar_xlsx_db()
+            api.alert("Exportação concluída", f"Base de dados exportada com sucesso.\n\n{caminho}", "success")
+        except Exception as e:
+            api.alert("Erro na exportação", str(e), "error")
