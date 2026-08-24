@@ -1,12 +1,12 @@
 import os
 from datetime import datetime
-from pathlib import Path
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from data.utils_db import listar_todos
+from data.utils_fs import pasta_documentos
 
 # Cores idênticas ao template de importação
 _FILL_HEADER = PatternFill("solid", fgColor="C0392B")   # vermelho ODS
@@ -34,22 +34,6 @@ _COLUNAS = [
     ("aplicacao",      "Opcional",                  20),
     ("ativo",          "Opcional",                  16),
 ]
-
-
-def _pasta_exportacao() -> Path:
-    try:
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
-        )
-        docs = winreg.QueryValueEx(key, "Personal")[0]
-        winreg.CloseKey(key)
-    except Exception:
-        docs = Path.home() / "Documents"
-    pasta = Path(docs) / "AC's Generator" / "Exportações"
-    pasta.mkdir(parents=True, exist_ok=True)
-    return pasta
 
 
 def exportar() -> str:
@@ -120,6 +104,6 @@ def exportar() -> str:
 
     # ── Salva ────────────────────────────────────────────────────────────
     stamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
-    caminho = str(_pasta_exportacao() / f"instrumentos_{stamp}.xlsx")
+    caminho = str(pasta_documentos("AC's Generator/Exportações") / f"instrumentos_{stamp}.xlsx")
     wb.save(caminho)
     return caminho

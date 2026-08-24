@@ -1,22 +1,7 @@
 import os
 from datetime import datetime
-from pathlib import Path
 
-
-def _pasta_relatorios() -> Path:
-    try:
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
-        )
-        docs = winreg.QueryValueEx(key, "Personal")[0]
-        winreg.CloseKey(key)
-    except Exception:
-        docs = Path.home() / "Documents"
-    pasta = Path(docs) / "AC's Generator" / "Relatórios"
-    pasta.mkdir(parents=True, exist_ok=True)
-    return pasta
+from data.utils_fs import pasta_documentos
 
 
 def gerar(resultado, pulados, caminho_xlsx):
@@ -33,7 +18,7 @@ def gerar(resultado, pulados, caminho_xlsx):
     if not bloqueados and not avisos and not pulados:
         return None
 
-    pasta = _pasta_relatorios()
+    pasta = pasta_documentos("AC's Generator/Relatórios")
     nome  = os.path.splitext(os.path.basename(caminho_xlsx))[0]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     caminho_txt = str(pasta / f"{nome}_relatorio_{stamp}.txt")

@@ -1,4 +1,30 @@
+from contextlib import closing
 from data.conexao import conectar
+
+
+def _query_one(sql, params=()):
+    """Executa um SELECT e retorna a primeira linha (ou None), fechando a conexão sempre."""
+    with closing(conectar()) as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        return cur.fetchone()
+
+
+def _query_all(sql, params=()):
+    """Executa um SELECT e retorna todas as linhas, fechando a conexão sempre."""
+    with closing(conectar()) as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        return cur.fetchall()
+
+
+def _execute(sql, params=()):
+    """Executa um INSERT/UPDATE, faz commit e fecha a conexão sempre (mesmo em erro)."""
+    with closing(conectar()) as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        conn.commit()
+
 
 def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None,
                         sistema=None, aplicacao=None, ativo=None, tipo='SEC'):
@@ -6,15 +32,11 @@ def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max
     Insere um instrumento na tabela 'instrumentos'.
     Inserts an instrument into the 'instrumentos' table.
     """
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute('''
+    _execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo,
                                   sistema, aplicacao, ativo)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo))
-    conn.commit()
-    conn.close()
 
 
 def inserir_placa(tag, sn_instrumento, sistema=None, aplicacao=None, ativo=None):
@@ -22,30 +44,34 @@ def inserir_placa(tag, sn_instrumento, sistema=None, aplicacao=None, ativo=None)
     Insere uma placa de orifício na tabela 'instrumentos'.
     Inserts an orifice plate into the 'instrumentos' table.
     """
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute('''
+    _execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, tipo, sistema, aplicacao, ativo)
         VALUES (?, ?, 'PO', ?, ?, ?)
     ''', (tag, sn_instrumento, sistema, aplicacao, ativo))
-    conn.commit()
-    conn.close()
+
+
+_CAMPOS_PLACA_PERMITIDOS = {"tag", "sn_instrumento"}
+
+
+def buscar_placa_por_campo(coluna, valor):
+    """Busca uma placa de orifício por 'tag' ou 'sn_instrumento'."""
+    if coluna not in _CAMPOS_PLACA_PERMITIDOS:
+        raise ValueError(f"Campo não permitido: {coluna}")
+
+    row = _query_one(f"""
+        SELECT tag, sn_instrumento
+        FROM instrumentos
+        WHERE {coluna} = ? AND tipo = 'PO'
+    """, (valor,))
+
+    if not row:
+        return None
+    return {"tag": row[0], "sn_instrumento": row[1]}
 
 
 def buscar_placa_por_sn(sn):
     """Busca uma placa de orifício pelo número de série (para placas sem TAG)."""
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT tag, sn_instrumento
-        FROM instrumentos
-        WHERE sn_instrumento = ? AND tipo = 'PO'
-    """, (sn,))
-    row = cur.fetchone()
-    conn.close()
-    if not row:
-        return None
-    return {"tag": row[0], "sn_instrumento": row[1]}
+    return buscar_placa_por_campo("sn_instrumento", sn)
 
 
 def buscar_placa_por_tag(tag):
@@ -59,18 +85,7 @@ def buscar_placa_por_tag(tag):
     Returns:
         dict | None: {'tag', 'sn_instrumento'} ou None se não encontrada.
     """
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT tag, sn_instrumento
-        FROM instrumentos
-        WHERE tag = ? AND tipo = 'PO'
-    """, (tag,))
-    row = cur.fetchone()
-    conn.close()
-    if not row:
-        return None
-    return {"tag": row[0], "sn_instrumento": row[1]}
+    return buscar_placa_por_campo("tag", tag)
 
 
 def atualizar_sn_placa(tag, novo_sn):
@@ -82,15 +97,11 @@ def atualizar_sn_placa(tag, novo_sn):
         tag    (str): Identificador da placa / Orifice plate tag identifier.
         novo_sn(str): Novo número de série / New serial number.
     """
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
+    _execute("""
         UPDATE instrumentos
         SET sn_instrumento = ?
         WHERE tag = ? AND tipo = 'PO'
     """, (novo_sn, tag))
-    conn.commit()
-    conn.close()
 
 
 def buscar_instrumento_por_tag(tag):
@@ -105,17 +116,11 @@ def buscar_instrumento_por_tag(tag):
         dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
                      Dictionary with instrument data or None if not found.
     """
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
+    row = _query_one("""
         SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo
         FROM instrumentos
         WHERE tag = ?
     """, (tag,))
-
-    row = cur.fetchone()
-    conn.close()
 
     if not row:
         return None
@@ -126,11 +131,12 @@ def buscar_instrumento_por_tag(tag):
         "sn_sensor": row[2],
         "min_range": row[3],
         "max_range": row[4],
-        "tipo": row[5] or "secundario",
+        "tipo": row[5] or "SEC",
         "sistema": row[6],
         "aplicacao": row[7],
         "ativo": row[8],
     }
+
 
 def atualizar_sn(tag, novo_sn):
     """
@@ -141,17 +147,12 @@ def atualizar_sn(tag, novo_sn):
         tag    (str): Identificador do instrumento / Instrument tag identifier.
         novo_sn(str): Novo número de série / New serial number.
     """
-    conn = conectar()
-    cursor = conn.cursor()
-
-    cursor.execute("""
+    _execute("""
         UPDATE instrumentos
         SET sn_instrumento = ?
         WHERE tag = ?
     """, (novo_sn, tag))
 
-    conn.commit()
-    conn.close()
 
 def atualizar_sn_sensor(tag, novo_sn_sensor):
     """
@@ -162,17 +163,36 @@ def atualizar_sn_sensor(tag, novo_sn_sensor):
         tag          (str): Identificador do instrumento / Instrument tag identifier.
         novo_sn_sensor(str): Novo número de série do sensor / New sensor serial number.
     """
-    conn = conectar()
-    cursor = conn.cursor()
-
-    cursor.execute("""
+    _execute("""
         UPDATE instrumentos
         SET sn_sensor = ?
         WHERE tag = ?
     """, (novo_sn_sensor, tag))
 
-    conn.commit()
-    conn.close()
+
+_CAMPOS_INSTRUMENTO_PERMITIDOS = {"sn_instrumento", "sn_sensor"}
+
+
+def buscar_por_campo(coluna, valor):
+    """Busca um instrumento por 'sn_instrumento' ou 'sn_sensor'."""
+    if coluna not in _CAMPOS_INSTRUMENTO_PERMITIDOS:
+        raise ValueError(f"Campo não permitido: {coluna}")
+
+    row = _query_one(f"""
+        SELECT tag, sn_instrumento, sn_sensor
+        FROM instrumentos
+        WHERE {coluna} = ?
+    """, (valor,))
+
+    if not row:
+        return None
+
+    return {
+        "tag": row[0],
+        "sn_instrumento": row[1],
+        "sn_sensor": row[2],
+    }
+
 
 def buscar_por_sn_instrumento(sn):
     """
@@ -186,26 +206,7 @@ def buscar_por_sn_instrumento(sn):
         dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
                      Dictionary with instrument data or None if not found.
     """
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT tag, sn_instrumento, sn_sensor
-        FROM instrumentos
-        WHERE sn_instrumento = ?
-    """, (sn,))
-
-    row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        return None
-
-    return {
-        "tag": row[0],
-        "sn_instrumento": row[1],
-        "sn_sensor": row[2]
-    }
+    return buscar_por_campo("sn_instrumento", sn)
 
 
 def buscar_por_sn_sensor(sn_sensor):
@@ -220,42 +221,19 @@ def buscar_por_sn_sensor(sn_sensor):
         dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
                      Dictionary with instrument data or None if not found.
     """
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT tag, sn_instrumento, sn_sensor
-        FROM instrumentos
-        WHERE sn_sensor = ?
-    """, (sn_sensor,))
-
-    row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        return None
-
-    return {
-        "tag": row[0],
-        "sn_instrumento": row[1],
-        "sn_sensor": row[2]
-    }
+    return buscar_por_campo("sn_sensor", sn_sensor)
 
 
 def listar_todos():
     """
     Retorna todos os instrumentos do banco ordenados por TAG.
     """
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("""
+    rows = _query_all("""
         SELECT tag, sn_instrumento, tipo, sn_sensor, min_range, max_range,
                sistema, aplicacao, ativo
         FROM instrumentos
         ORDER BY tag
     """)
-    rows = cur.fetchall()
-    conn.close()
     return [
         {
             "tag": r[0], "sn_instrumento": r[1], "tipo": r[2],
@@ -275,17 +253,11 @@ def atualizar_tag(sn_instrumento, nova_tag):
         sn_instrumento(str): Número de série do instrumento / Instrument serial number.
         nova_tag      (str): Novo tag identificador / New tag identifier.
     """
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
+    _execute("""
         UPDATE instrumentos
         SET tag = ?
         WHERE sn_instrumento = ?
     """, (nova_tag, sn_instrumento))
-
-    conn.commit()
-    conn.close()
 
 
 def atualizar_range(tag, min_range, max_range):
@@ -298,17 +270,14 @@ def atualizar_range(tag, min_range, max_range):
         min_range(float): Novo valor mínimo da faixa / New minimum range value.
         max_range(float): Novo valor máximo da faixa / New maximum range value.
     """
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
+    _execute("""
         UPDATE instrumentos
         SET min_range = ?, max_range = ?
         WHERE tag = ?
     """, (min_range, max_range, tag))
 
-    conn.commit()
-    conn.close()
+
+_CAMPOS_EXTRAS_PERMITIDOS = {"sistema", "aplicacao", "ativo"}
 
 
 def atualizar_campos_extras(tag, sistema=None, aplicacao=None, ativo=None):
@@ -326,12 +295,11 @@ def atualizar_campos_extras(tag, sistema=None, aplicacao=None, ativo=None):
     if not campos:
         return
 
-    conn = conectar()
-    cur = conn.cursor()
+    if not set(campos).issubset(_CAMPOS_EXTRAS_PERMITIDOS):
+        raise ValueError(f"Campo(s) não permitido(s): {set(campos) - _CAMPOS_EXTRAS_PERMITIDOS}")
+
     sets = ", ".join(f"{c} = ?" for c in campos)
-    cur.execute(
+    _execute(
         f"UPDATE instrumentos SET {sets} WHERE tag = ?",
         (*campos.values(), tag)
     )
-    conn.commit()
-    conn.close()
