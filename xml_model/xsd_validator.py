@@ -11,17 +11,27 @@ def _base_path() -> Path:
 
 XSD_PATH = _base_path() / "xml_model" / "PetrobrasSchemaV3.0.0 (1) (1).xsd"
 
+# resolve_entities=False evita expansão de entidades externas/DTD (XXE) —
+# defesa em profundidade mesmo o XML validado aqui sendo gerado internamente.
+_PARSER_SEGURO = etree.XMLParser(resolve_entities=False, no_network=True)
+
 
 def validar_xml(caminho_xml: Path) -> list:
+    """Valida caminho_xml contra o schema Petrobras e retorna a lista de erros
+    (vazia se válido). Só um XML malformado gera itens nessa lista — falhas de
+    ambiente (XSD ausente, permissão) propagam como exceção em vez de serem
+    confundidas com "XML gerado é inválido"."""
+    with open(XSD_PATH, "rb") as f:
+        schema = etree.XMLSchema(etree.parse(f))
+
     try:
-        with open(XSD_PATH, "rb") as f:
-            schema = etree.XMLSchema(etree.parse(f))
         with open(caminho_xml, "rb") as f:
-            doc = etree.parse(f)
-        schema.validate(doc)
-        return [str(e) for e in schema.error_log]
-    except Exception as e:
-        return [f"Erro interno na validação: {e}"]
+            doc = etree.parse(f, parser=_PARSER_SEGURO)
+    except etree.XMLSyntaxError as e:
+        return [f"XML malformado: {e}"]
+
+    schema.validate(doc)
+    return [str(e) for e in schema.error_log]
 
 
 def registrar_log(caminho_xml: Path, erros: list):

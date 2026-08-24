@@ -1,10 +1,9 @@
 import xml.etree.ElementTree as ET
 import calendar
-from xml.dom import minidom
 import os
 from datetime import datetime
-from pathlib import Path
 
+from xml_model.xml_common import salvar_xml_bonito
 from xml_model.xml_table_extractor import processar_pdf
 from pdf.parser_certificados import extrair_campos
 from pdf.extrator import extrair_texto
@@ -61,7 +60,6 @@ def normalizar_categoria(txt: str) -> str:
 
 def obter_unidade_eng(dados):
     categoria = normalizar_categoria(dados.get("categoria", "").upper())
-    print(f"categoria_unidade_eng: {categoria}")
 
     if not categoria:
         return {}
@@ -70,7 +68,6 @@ def obter_unidade_eng(dados):
 
     for categoria_map, unidades in mapeamento_eng.items():
         if categoria_map in categoria:
-            print(f'Mapeamento_encontrado: {categoria_map}:{unidades}')
             return unidades.copy()
 
     return {}
@@ -171,8 +168,9 @@ def criar_condicoes_ambientais(dados=None):
 
 def criar_procedimento(dados=None):
     bloco = ET.Element("PROCEDIMENTO_CALIBRACAO")
-    ET.SubElement(bloco, "IDENTIFICADOR").text = dados.get("procedimento", "").get("procedimento", "") if dados else ""
-    ET.SubElement(bloco, "DESCRICAO").text = dados.get("procedimento", "").get("descricao", "") if dados else ""
+    procedimento = (dados.get("procedimento") or {}) if dados else {}
+    ET.SubElement(bloco, "IDENTIFICADOR").text = procedimento.get("procedimento", "")
+    ET.SubElement(bloco, "DESCRICAO").text = procedimento.get("descricao", "")
     return bloco
 
 def observacoes():
@@ -239,17 +237,6 @@ def criar_identificacao_instrumento(dados, pontos ,root):
         criar_data_calibracao(bloco, informações)
         escrever_pontos_calibracao(informações, pontos, bloco, obter_unidade_eng(dados))
         
-# FAIXA NOMINNAL
-def criar_faixa_nominal(dados):
-    bloco = ET.Element("FAIXA_NOMINAL")
-    min_el = ET.SubElement(bloco, "MIN", UNIDADE_ENG="kPa")
-    min_el.text = str(dados.get("min_range", "")) if dados else ""
-
-    max_el = ET.SubElement(bloco, "MAX", UNIDADE_ENG="kPa")
-    max_el.text = str(dados.get("max_range", "")) if dados else ""
-
-    return bloco
-
 # Data calibração
 def criar_data_calibracao(root, dados):
     el = ET.SubElement(root, "DATA_CALIBRACAO")
@@ -415,8 +402,7 @@ def gerar_pontos_calibracao_termometro(registros, unidade_eng):
 
     return pontos
 
-def gerar_pontos_calibracao_pt100(resultados, unidade_eng="°C"):
-    pontos = ET.Element("PONTOS_DE_CALIBRACAO")
+def gerar_pontos_calibracao_pt100(resultados, unidade_eng=None):
     pontos = ET.Element("PONTOS_DE_CALIBRACAO")
     unidade_ref = unidade_eng.get("valor_referencia", "NI") if unidade_eng else "NI"
     unidade_indicado = unidade_eng.get("valor_indicado", "NI") if unidade_eng else "NI"
@@ -558,7 +544,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
                     )
                 )
                 escrever_indicadores_calibracao(
-                cal_as_found,
+                cal_as_left,
                 dados,
                 unidade_eng
             )
@@ -719,12 +705,6 @@ def gerar_xml_certificado(informacoes: dict, pontos: list, caminho_saida: str):
     root.append(criar_procedimento(informacoes))
     root.append(observacoes())
     criar_identificacao_instrumento(informacoes, pontos, root)
-    xml_str = ET.tostring(root, encoding="utf-8")
-    parsed = minidom.parseString(xml_str)
-    pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
-
-    Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
-    with open(caminho_saida, "wb") as f:
-        f.write(pretty_xml)
+    salvar_xml_bonito(root, caminho_saida)
 
     return caminho_saida

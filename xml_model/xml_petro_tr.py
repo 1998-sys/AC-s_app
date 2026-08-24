@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
-from pathlib import Path
 
+from xml_model.xml_common import salvar_xml_bonito
 from xml_model.xml_petro_generator import (
     data_xs_date,
     criar_identificacao_certificado,
@@ -92,13 +91,6 @@ def gerar_xml_certificado_tr(informacoes, dados_dim, caminho_saida):
     criar_trecho_reto(informacoes, dados_dim, root)
     demais_componentes(informacoes, root)
 
-    xml_str = ET.tostring(root, encoding="utf-8")
-    parsed = minidom.parseString(xml_str)
-    pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
+    salvar_xml_bonito(root, caminho_saida)
 
-    Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
-    with open(caminho_saida, "wb") as f:
-        f.write(pretty_xml)
-
-    print(f"[TR] XML gerado: {caminho_saida}")
     return caminho_saida

@@ -1,6 +1,7 @@
 from pathlib import Path
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
+from xml.etree.ElementTree import Element, SubElement
+
+from xml_model.xml_common import salvar_xml_bonito
 
 def xml_cromatografia(pdf_path: str, dados: dict, caminho_saida_xml: str | None = None) -> str:
     pdf_path = Path(pdf_path)
@@ -67,12 +68,4 @@ def xml_cromatografia(pdf_path: str, dados: dict, caminho_saida_xml: str | None 
         if p.get("incerteza") is not None:
             SubElement(prop_el, "INCERTEZA").text = str(p["incerteza"])
 
-    xml_str = tostring(root, encoding="utf-8")
-    parsed = minidom.parseString(xml_str)
-    pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
-
-    caminho_saida_xml.parent.mkdir(parents=True, exist_ok=True)
-    with open(caminho_saida_xml, "wb") as f:
-        f.write(pretty_xml)
-
-    return str(caminho_saida_xml)
+    return salvar_xml_bonito(root, caminho_saida_xml)

@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
-from pathlib import Path
 import re
+
+from xml_model.xml_common import salvar_xml_bonito
 
 
 def determinar_tipo_xml(pontos: list, dados_pdf: dict) -> str:
@@ -148,18 +148,6 @@ def gerar_xml_calibracao(
         ET.SubElement(grid, "K").text = fmt_num(p.get("k"), 2)
 
     
-    xml_str = ET.tostring(root, encoding="utf-8")
-    parsed = minidom.parseString(xml_str)
-    pretty_xml = parsed.toprettyxml(indent="  ", encoding="utf-8")
-
-    pretty_xml = pretty_xml.replace(
-        b'<?xml version="1.0" encoding="utf-8"?>',
-        b'<?xml version="1.0" encoding="utf-8" standalone="yes"?>'
-    )
-
-
-    Path(caminho_saida).parent.mkdir(parents=True, exist_ok=True)
-    with open(caminho_saida, "wb") as f:
-        f.write(pretty_xml)
+    salvar_xml_bonito(root, caminho_saida, standalone=True)
 
     return caminho_saida
