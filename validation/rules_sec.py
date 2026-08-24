@@ -80,7 +80,6 @@ def regra_tag_vs_sn(ctx):
         tipo_equipamento = ctx.pdf.get("categoria")
         
         if sn_pdf and sn_banco and sn_pdf == sn_banco and tipo_equipamento in tipos_mvs:
-            ctx.mvs = True
             return ValidationIssue(
                 key="mvs",
                 title="TAG compatível (MVS)",
@@ -234,7 +233,7 @@ def regra_range(ctx):
 
 # HASTE (somente TE)
 def regra_haste_te(ctx):
-    if "TE" not in ctx.pdf["tag"]:
+    if "TE" not in (ctx.pdf.get("tag") or ""):
         return None
 
     try:
@@ -350,7 +349,7 @@ def regra_incert_fidu(ctx):
                 "Incerteza ou Erro fiducial acima de  0.1%"
             ),
             action=None,     # Apenas informativo
-            blocking=None    # Bloqueia a geração da AC
+            blocking=True    # Bloqueia a geração da AC
         )
 
     return None
@@ -371,167 +370,69 @@ MAP_LOCAL = {
     "Calibration performed in the mobile installation (container)": "movel",
 }
 
-# Regras CMC 
+# Regras CMC
+# Nas 10 categorias abaixo, a CMC aplicável não varia por local de calibração
+# (permanente/cliente/movel sempre usam a mesma tabela de faixas) — por isso os
+# valores são declarados uma única vez e replicados para os 3 locais.
+def _mesma_faixa_todas_localidades(faixas):
+    return {"permanente": faixas, "cliente": faixas, "movel": faixas}
+
+
 CMC_REGRAS = {
-    "Manometro Analógico": {
-        "permanente": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-        "cliente": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-        "móvel": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-    },
- 
-    "Manometro Diferencial Analógico": {
-        "permanente": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-        "cliente": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-        "movel": [
-            (0.1, 16, 0.04),
-            (16, 70, 0.05),
-            (70, 68000, 0.03),
-        ],
-    },
- 
-    "Manometro Digital": {
-        "permanente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "cliente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "movel": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-    },
- 
-    "Manometro Diferencial Digital": {
-        "permanente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "cliente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "movel": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-    },
- 
-    "Manometro Digital Absoluto": {
-        "permanente": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-        "cliente": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-        "movel": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-    },
- 
-    "Transmissor de Pressão com Saída em Unidade Elétrica": {
-        "permanente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "cliente": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-        "movel": [
-            (0.01, 70, 0.04),
-            (70, 68000, 0.03),
-        ],
-    },
- 
-    "Transmissor de Pressão Absoluta com Saída em Unidade Elétrica": {
-        "permanente": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-        "cliente": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-        "movel": [
-            (15, 170, 0.04),
-            (170, 68000, 0.03),
-        ],
-    },
- 
-    "TERMORRESISTENCIA_PT100":{
-        "permanente": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-        "cliente": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-        "movel": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-    },
-    "Transmissor de Temperatura com saída em unidade elétrica":{        
-        "permanente": [
-            (-50, 350, 0.05),
-        ],
-        "cliente": [
-            (-50, 350, 0.05),
-        ],
-        "movel": [
-            (-50, 350, 0.05),
-        ],
-       
-    },
-    'Termômetro': {
-        "permanente": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-        "cliente": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-        "movel": [
-            (-50, -40, 0.16),
-            (-40, 140, 0.08),
-            (140, 350, 0.10),
-        ],
-    }
-    }
- 
+    "Manometro Analógico": _mesma_faixa_todas_localidades([
+        (0.1, 16, 0.04),
+        (16, 70, 0.05),
+        (70, 68000, 0.03),
+    ]),
+
+    "Manometro Diferencial Analógico": _mesma_faixa_todas_localidades([
+        (0.1, 16, 0.04),
+        (16, 70, 0.05),
+        (70, 68000, 0.03),
+    ]),
+
+    "Manometro Digital": _mesma_faixa_todas_localidades([
+        (0.01, 70, 0.04),
+        (70, 68000, 0.03),
+    ]),
+
+    "Manometro Diferencial Digital": _mesma_faixa_todas_localidades([
+        (0.01, 70, 0.04),
+        (70, 68000, 0.03),
+    ]),
+
+    "Manometro Digital Absoluto": _mesma_faixa_todas_localidades([
+        (15, 170, 0.04),
+        (170, 68000, 0.03),
+    ]),
+
+    "Transmissor de Pressão com Saída em Unidade Elétrica": _mesma_faixa_todas_localidades([
+        (0.01, 70, 0.04),
+        (70, 68000, 0.03),
+    ]),
+
+    "Transmissor de Pressão Absoluta com Saída em Unidade Elétrica": _mesma_faixa_todas_localidades([
+        (15, 170, 0.04),
+        (170, 68000, 0.03),
+    ]),
+
+    "TERMORRESISTENCIA_PT100": _mesma_faixa_todas_localidades([
+        (-50, -40, 0.16),
+        (-40, 140, 0.08),
+        (140, 350, 0.10),
+    ]),
+
+    "Transmissor de Temperatura com saída em unidade elétrica": _mesma_faixa_todas_localidades([
+        (-50, 350, 0.05),
+    ]),
+
+    "Termômetro": _mesma_faixa_todas_localidades([
+        (-50, -40, 0.16),
+        (-40, 140, 0.08),
+        (140, 350, 0.10),
+    ]),
+}
+
 
 
 def regra_cmc(ctx):
@@ -556,6 +457,9 @@ def regra_cmc(ctx):
             return None
         
         cmc = obter_cmc(categoria, local, abs(amplitude))
+
+        if cmc is None:
+            return None
 
         if incerteza < cmc:
             return ValidationIssue(
@@ -624,7 +528,6 @@ def regra_classe(ctx):
     if not classe_raw or classe_raw == "NA":
         return None
     classe = classe_raw.strip().upper().replace(" ", "")
-    print(f"Classe normalizada: {classe}")
 
     classes_validas = [
         "FISCAL",
@@ -674,9 +577,8 @@ def data_proxcal(ctx):
 def prazo_emissao(ctx):
     data_cal_str = ctx.pdf.get("data")
     data_emissao_str = ctx.pdf.get("report_date")
-    cliente = ctx.pdf.get("cliente").upper()
-    certificado = ctx.pdf.get("certificado").upper().replace(" ", "")
-   
+    cliente = (ctx.pdf.get("cliente") or "").upper()
+    certificado = (ctx.pdf.get("certificado") or "").upper().replace(" ", "")
 
     if not data_cal_str or not data_emissao_str or not cliente:
         return None
@@ -692,10 +594,9 @@ def prazo_emissao(ctx):
     elif cliente in ["YINSON", "ORIGEM ENERGIA ALAGOAS S.A."]:
         prazo = 10
     else:
-        return None  
+        return None
 
     dias_uteis = contar_dias_uteis(data_cal, data_emissao)
-    print(dias_uteis)
 
     if dias_uteis > prazo and "REV" not in certificado:
         return ValidationIssue(

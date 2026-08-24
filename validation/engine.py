@@ -1,3 +1,6 @@
+import traceback
+
+from validation.issue import ValidationIssue
 from validation.rules_sec import (
     regra_tag_vs_sn,
     regra_novo_instrumento,
@@ -53,24 +56,39 @@ class ValidationEngine:
             # regras para Gas Meter Run serão adicionadas aqui futuramente
         ]
 
+        # secundario_rules é o conjunto padrão: cobre "instrumento" ausente ou
+        # qualquer valor que não seja um dos tipos com regras próprias abaixo.
+        self._regras_por_instrumento = {
+            "Gas Meter Run": self.trecho_rules,
+            "Placa de Orificio": self.placa_rules,
+        }
+
     def run(self, context):
         issues = []
 
-        rules_to_run = list(self.common_rules)
-
-        if context.pdf.get("instrumento") == "Gas Meter Run":
-            rules_to_run += self.trecho_rules
-            print('entrou em trecho reto')
-
-        elif context.pdf.get("instrumento") == "Placa de Orificio":
-            rules_to_run += self.placa_rules
-            print('entrou em placa')
-
-        else:
-            rules_to_run += self.secundario_rules
+        instrumento = context.pdf.get("instrumento")
+        rules_to_run = list(self.common_rules) + self._regras_por_instrumento.get(
+            instrumento, self.secundario_rules
+        )
 
         for rule in rules_to_run:
-            issue = rule(context)
+            nome_regra = getattr(rule, "__name__", "desconhecida")
+            try:
+                issue = rule(context)
+            except Exception as exc:
+                traceback.print_exc()
+                issues.append(ValidationIssue(
+                    key=f"erro_regra_{nome_regra}",
+                    title="Erro ao executar regra de validação",
+                    message=(
+                        f"A regra '{nome_regra}' falhou durante a validação: {exc}\n\n"
+                        "As demais divergências continuam sendo exibidas normalmente. "
+                        "Verifique os dados do certificado antes de prosseguir."
+                    ),
+                    blocking=True
+                ))
+                continue
+
             if issue:
                 issues.append(issue)
 

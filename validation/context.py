@@ -27,8 +27,6 @@ class ValidationContext:
         self.report = dados_report
         self.valores_medidos = valores_medidos
 
-        self.mvs = False
-
     def _obter_tipo(self):
 
         
