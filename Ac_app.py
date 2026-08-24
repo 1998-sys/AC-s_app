@@ -29,7 +29,7 @@ def main():
 
     api = Api()
     window = webview.create_window(
-        "AC's Generator — CertiFlow",
+        "CERTIFLOW",
         _resource(os.path.join("webui", "index.html")),
         js_api=api,
         width=560,
@@ -37,7 +37,7 @@ def main():
         resizable=False,
     )
     api.set_window(window)
-    webview.start()
+    webview.start(icon=_resource(os.path.join("logo", "logo icon.ico")))
 
 
 if __name__ == "__main__":
