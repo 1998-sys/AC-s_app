@@ -174,6 +174,30 @@ const App = (() => {
     showView("select");
   }
 
+  async function voltarDaRevisao() {
+    // Fora do lote, o backend só limpa o estado e a gente navega aqui.
+    // Em lote, o backend já registrou esse certificado como pulado e
+    // disparou a próxima tela sozinho (ou fechou o lote) — nesse caso não
+    // navegamos de novo por cima.
+    const resultado = await pywebview.api.voltar_da_revisao();
+    if (!resultado || !resultado.em_lote) {
+      resetSelecao();
+      setTracker(1);
+      showView("select");
+    }
+  }
+
+  function voltarDaRevisaoLote() {
+    // Tela de divergências agregadas do lote: aborta o lote inteiro (igual
+    // a cancelar a leitura) e volta pra seleção, permitindo escolher outros
+    // PDFs — usado quando o usuário percebe que selecionou os certificados
+    // errados antes de resolver as divergências.
+    pywebview.api.cancelar_leitura();
+    resetSelecao();
+    setTracker(1);
+    showView("select");
+  }
+
   // ---------- Tela 2: Lendo o PDF ----------
 
   const CHECKLIST_STEPS = ["extract", "compare", "validate", "build"];
@@ -355,9 +379,20 @@ const App = (() => {
   function renderIssues(issues) {
     lastIssues = issues;
     const total = issues.length;
-    const resolved = issues.filter(i => i.resolved).length;
-    $("issue-count").textContent = total ? `${resolved} de ${total} resolvidas` : "sem divergências";
-    $("issue-progress-fill").style.width = total ? `${(resolved / total) * 100}%` : "0%";
+    // "Mantida" (opcoes + aplicado=false) conta como tratada pra fins de
+    // andamento da barra (o usuário já decidiu algo), mas NÃO como
+    // resolvida de fato — o cadastro segue divergente do certificado, então
+    // não entra na contagem "N de M resolvidas".
+    const tratadas = issues.filter(i => i.resolved).length;
+    const resolvidasDeVerdade = issues.filter(
+      i => i.resolved && !(i.opcoes && i.aplicado === false)
+    ).length;
+    const temMantida = tratadas > resolvidasDeVerdade;
+
+    $("issue-count").textContent = total ? `${resolvidasDeVerdade} de ${total} resolvidas` : "sem divergências";
+    const progressFill = $("issue-progress-fill");
+    progressFill.style.width = total ? `${(tratadas / total) * 100}%` : "0%";
+    progressFill.classList.toggle("mantido", temMantida);
     updateErrorBadge(issues);
 
     $("issue-list").innerHTML = issues.map(renderIssueCard).join("") || `<div class="issue-message">Nenhuma divergência encontrada.</div>`;
@@ -394,6 +429,13 @@ const App = (() => {
       ? `Resolva ${pendentesBloqueantes} erro${pendentesBloqueantes > 1 ? "s" : ""} para liberar a geração`
       : "Pronto para gerar";
     $("review-hint").classList.toggle("error", pendentesBloqueantes > 0);
+
+    // Bloqueante sem nenhuma ação (ex.: "Incerteza abaixo da CMC") nunca vai
+    // ficar resolvido nessa tela — em vez de deixar o usuário preso, oferece
+    // um jeito explícito de pular esse certificado e seguir (sozinho, se
+    // for lote; volta pra seleção, se for arquivo único).
+    const semSaida = issues.some(i => i.blocking && !i.resolved && !i.has_action);
+    $("btn-pular-certificado").style.display = semSaida ? "block" : "none";
   }
 
   async function resolverDivergencia(key, aplicar) {
@@ -418,25 +460,190 @@ const App = (() => {
   }
 
   async function confirmarGeracao() {
+    // Fluxo de um único arquivo — em lote quem gera é confirmarGeracaoLote,
+    // a partir da tela de divergências agregada (Fase 6).
     const resultado = await pywebview.api.confirmar_geracao();
     if (!resultado) return;
-
-    if (resultado.avancando_lote) {
-      // Backend já registrou este item e iniciou o próximo da fila — só
-      // registra nos recentes e segue (a tela de leitura já foi atualizada
-      // via setFilaProgresso).
-      pushRecenteFromResultado(resultado.item);
-      return;
-    }
-
-    if (resultado.lote) {
-      resultado.itens.forEach(pushRecenteFromResultado);
-      showOutputLote(resultado);
-      return;
-    }
-
     pushRecenteFromResultado(resultado);
     showOutput(resultado);
+  }
+
+  // ---------- Tela 3b (Fase 6): Divergências agregadas em lote ----------
+
+  let lastGruposLote = [];
+  let issueSelectionsLote = {};
+
+  function renderIssueCardLote(tag, issue) {
+    if (issue.resolved) {
+      // Escolher "Pular certificado" (a 2ª opção) já remove o instrumento
+      // inteiro da lista em resolver_divergencia_lote — o card só chega
+      // aqui resolvido quando "Usar o certificado"/"Aplicar correção" foi
+      // de fato aplicado, então é sempre uma resolução limpa.
+      return `
+        <div class="issue-card resolved">
+          <div class="issue-row">
+            <div>
+              <div class="issue-title">${issue.title}</div>
+              <div class="issue-message">${issue.message}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex:none;">
+              <span class="issue-undo" data-undo-lote="${tag}:${issue.key}">Desfazer</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (issue.opcoes && issue.opcoes.length === 2) {
+      const selChave = `${tag}:${issue.key}`;
+      const recomendadoIdx = issue.opcoes.findIndex(o => o.recomendado);
+      const selIdx = issueSelectionsLote[selChave] ?? (recomendadoIdx >= 0 ? recomendadoIdx : 0);
+      const opcoesHtml = issue.opcoes.map((o, i) => `
+        <div class="issue-option ${i === selIdx ? "selected" : ""}" data-option-lote="${tag}:${issue.key}:${i}">
+          <span class="issue-option-dot"></span>
+          <div class="issue-option-body">
+            <span class="issue-option-label">${o.label}</span>
+            <span class="issue-option-value">${o.valor ?? "—"}</span>
+          </div>
+          ${o.recomendado ? '<span class="issue-option-tag">Recomendado</span>' : ""}
+        </div>
+      `).join("");
+
+      return `
+        <div class="issue-card error">
+          <div class="issue-row">
+            <span class="issue-title">${issue.title}</span>
+            <span class="issue-tag error">ERRO</span>
+          </div>
+          <div class="issue-message">${issue.message}</div>
+          <div class="issue-options">${opcoesHtml}</div>
+          <button class="btn btn-primary" data-confirm-option-lote="${tag}:${issue.key}">Aplicar e ir para a próxima</button>
+        </div>
+      `;
+    }
+
+    const cls = issue.blocking ? "error" : "warn";
+    const tagHtml = issue.blocking
+      ? `<span class="issue-tag error">ERRO</span>`
+      : `<span class="issue-tag warn">AVISO</span>`;
+
+    let actions = "";
+    if (issue.has_action) {
+      actions = `<div class="issue-actions">
+        <button class="btn btn-outline" data-dismiss-lote="${tag}:${issue.key}">Ignorar</button>
+        <button class="btn btn-primary" data-apply-lote="${tag}:${issue.key}">Aplicar correção</button>
+      </div>`;
+    }
+
+    return `
+      <div class="issue-card ${cls}">
+        <div class="issue-row">
+          <span class="issue-title">${issue.title}</span>
+          ${tagHtml}
+        </div>
+        <div class="issue-message">${issue.message}</div>
+        ${actions}
+      </div>
+    `;
+  }
+
+  function renderGrupoLote(grupo) {
+    const semSaida = grupo.issues.some(i => i.blocking && !i.resolved && !i.has_action);
+    const photo = grupo.photo
+      ? `<img class="instr-photo" src="assets/${grupo.photo}" alt="${grupo.badge || ""}">`
+      : "";
+    return `
+      <div class="lote-grupo" data-grupo-tag="${grupo.tag}">
+        <div class="instr-summary">
+          ${photo}
+          <div>
+            <span class="instr-badge">${grupo.badge || ""}</span>
+            <div class="instr-tag" style="font-size:16px;margin-top:2px;">${grupo.tag}</div>
+            <div class="instr-fields" style="margin-top:6px;">${fieldsHtml(grupo.fields)}</div>
+          </div>
+        </div>
+        <div class="lote-grupo-issues">
+          ${grupo.issues.map(issue => renderIssueCardLote(grupo.tag, issue)).join("")}
+          ${semSaida ? `<button class="btn btn-outline" data-pular-lote="${grupo.tag}">Pular certificado</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDivergenciasLote(payload) {
+    lastGruposLote = payload.grupos || [];
+    $("lote-divergencias-grupos").innerHTML = lastGruposLote.map(renderGrupoLote).join("");
+
+    document.querySelectorAll("[data-apply-lote]").forEach(btn => {
+      btn.onclick = () => {
+        const [tag, key] = btn.dataset.applyLote.split(":");
+        resolverDivergenciaLote(tag, key, true);
+      };
+    });
+    document.querySelectorAll("[data-dismiss-lote]").forEach(btn => {
+      btn.onclick = () => {
+        const [tag, key] = btn.dataset.dismissLote.split(":");
+        resolverDivergenciaLote(tag, key, false);
+      };
+    });
+    document.querySelectorAll("[data-undo-lote]").forEach(el => {
+      el.onclick = () => {
+        const [tag, key] = el.dataset.undoLote.split(":");
+        desfazerDivergenciaLote(tag, key);
+      };
+    });
+    document.querySelectorAll("[data-option-lote]").forEach(el => {
+      el.onclick = () => {
+        const [tag, key, idx] = el.dataset.optionLote.split(":");
+        issueSelectionsLote[`${tag}:${key}`] = Number(idx);
+        renderDivergenciasLote({ grupos: lastGruposLote });
+      };
+    });
+    document.querySelectorAll("[data-confirm-option-lote]").forEach(btn => {
+      btn.onclick = () => {
+        const [tag, key] = btn.dataset.confirmOptionLote.split(":");
+        const idx = issueSelectionsLote[`${tag}:${key}`] ?? 0;
+        resolverDivergenciaLote(tag, key, idx === 0);
+      };
+    });
+    document.querySelectorAll("[data-pular-lote]").forEach(btn => {
+      btn.onclick = () => pularInstrumentoLote(btn.dataset.pularLote);
+    });
+
+    const pendentesBloqueantes = lastGruposLote.some(g => g.issues.some(i => i.blocking && !i.resolved));
+    const genBtn = $("btn-gerar-lote");
+    genBtn.disabled = pendentesBloqueantes;
+    genBtn.classList.toggle("btn-primary", !pendentesBloqueantes);
+    $("lote-divergencias-sub").textContent = `${lastGruposLote.length} instrumento${lastGruposLote.length !== 1 ? "s" : ""} com divergência`;
+    $("lote-divergencias-hint").textContent = pendentesBloqueantes
+      ? "Resolva as divergências bloqueantes para liberar a geração"
+      : "Pronto para gerar";
+    $("lote-divergencias-hint").classList.toggle("error", pendentesBloqueantes);
+
+    setTracker(2);
+    showView("review-lote");
+  }
+
+  async function resolverDivergenciaLote(tag, key, aplicar) {
+    delete issueSelectionsLote[`${tag}:${key}`];
+    const payload = await pywebview.api.resolver_divergencia_lote(tag, key, aplicar);
+    renderDivergenciasLote(payload);
+  }
+
+  async function desfazerDivergenciaLote(tag, key) {
+    const payload = await pywebview.api.desfazer_divergencia_lote(tag, key);
+    renderDivergenciasLote(payload);
+  }
+
+  async function pularInstrumentoLote(tag) {
+    const payload = await pywebview.api.pular_instrumento_lote(tag);
+    renderDivergenciasLote(payload);
+  }
+
+  async function confirmarGeracaoLote() {
+    // A tela de saída em lote é disparada pelo próprio backend
+    // (App.showOutputLote), não pelo valor de retorno daqui.
+    await pywebview.api.confirmar_geracao_lote();
   }
 
   // ---------- Tela 4: Arquivos gerados ----------
@@ -483,16 +690,18 @@ const App = (() => {
           <span class="output-group-meta">${item.sub || ""}</span>
           ${item.avisos ? `<span class="output-group-warn">${item.avisos} aviso${item.avisos > 1 ? "s" : ""}</span>` : ""}
         </div>
-        ${(item.files || []).map(f => `
-          <div class="output-file-row">
-            <div class="output-file-icon ${f.kind === "XML" ? "xml" : ""}">${f.kind}</div>
-            <div class="recent-info">
-              <span class="output-file-name">${f.name}</span>
-              <span class="output-file-meta">${f.meta}</span>
+        <div class="output-group-files">
+          ${(item.files || []).map(f => `
+            <div class="output-file-row">
+              <div class="output-file-icon ${f.kind === "XML" ? "xml" : ""}">${f.kind}</div>
+              <div class="recent-info">
+                <span class="output-file-name">${f.name}</span>
+                <span class="output-file-meta">${f.meta}</span>
+              </div>
+              <button class="btn btn-outline" style="width:auto;padding:0 12px;height:28px;font-size:11px;" data-open="${encodeURIComponent(f.path)}">Abrir</button>
             </div>
-            <button class="btn btn-outline" style="width:auto;padding:0 12px;height:28px;font-size:11px;" data-open="${encodeURIComponent(f.path)}">Abrir</button>
-          </div>
-        `).join("")}
+          `).join("")}
+        </div>
       </div>
     `).join("");
     wireOpenButtons($("output-groups"));
@@ -600,6 +809,9 @@ const App = (() => {
     $("btn-trocar-arquivo").onclick = trocarArquivo;
     $("btn-ler-certificado").onclick = iniciarLeitura;
     $("btn-cancelar-leitura").onclick = cancelarLeitura;
+    $("btn-voltar-revisao").onclick = voltarDaRevisao;
+    $("btn-pular-certificado").onclick = voltarDaRevisao;
+    $("btn-voltar-revisao-lote").onclick = voltarDaRevisaoLote;
     $("btn-editar-instrumento").onclick = () => abrirEditarInstrumento(null);
     $("edit-back").onclick = () => showView("select");
     $("btn-consultar").onclick = consultarInstrumento;
@@ -608,6 +820,7 @@ const App = (() => {
     $("btn-importar-xlsx").onclick = () => pywebview.api.importar_xlsx();
     $("btn-exportar-xlsx").onclick = () => pywebview.api.exportar_xlsx();
     $("btn-gerar").onclick = confirmarGeracao;
+    $("btn-gerar-lote").onclick = confirmarGeracaoLote;
     $("btn-processar-outro").onclick = processarOutro;
     $("link-editar-instrumento").onclick = () => abrirEditarInstrumento(currentTag);
     setTracker(1);
@@ -632,6 +845,7 @@ const App = (() => {
 
   return {
     onProgress, showReadingInstrument, showReview, showOutput, showOutputLote,
+    showDivergenciasLote: renderDivergenciasLote,
     setFilaProgresso, showView, setTracker,
   };
 })();

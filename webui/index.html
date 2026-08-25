@@ -93,9 +93,12 @@
   <!-- Tela 3: Revisar divergências -->
   <div class="view" id="view-review">
     <div class="instr-head">
-      <div>
-        <div class="instr-tag" id="review-tag">—</div>
-        <div class="instr-sub" id="review-sub"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="edit-back" id="btn-voltar-revisao" title="Voltar e selecionar outro certificado">←</button>
+        <div>
+          <div class="instr-tag" id="review-tag">—</div>
+          <div class="instr-sub" id="review-sub"></div>
+        </div>
       </div>
       <span class="instr-head-badge" id="review-error-badge"></span>
     </div>
@@ -119,10 +122,35 @@
     </div>
     <div class="view-footer">
       <button class="btn" id="btn-gerar" disabled>Gerar relatório e XML</button>
+      <button class="btn btn-outline" id="btn-pular-certificado" style="display:none;">Pular certificado e continuar</button>
       <div class="footer-row">
         <span class="footer-hint" id="review-hint"></span>
         <button class="btn-link" id="link-editar-instrumento">Editar instrumento</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Tela 3b (Fase 6): Revisar divergências agregadas do lote -->
+  <div class="view" id="view-review-lote">
+    <div class="brand">
+      <span class="brand-title">CertiFlow</span>
+      <span class="brand-tag">ODS ENERGY SOLUTIONS</span>
+      <img src="assets/ods-logo-trim.jpg" alt="ODS Metering Systems">
+    </div>
+    <div class="tracker" data-tracker></div>
+    <div class="view-body" style="overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="edit-back" id="btn-voltar-revisao-lote" title="Voltar e selecionar outros certificados">←</button>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span style="font-size:16px;font-weight:600;">Divergências do lote</span>
+          <span style="font-size:12px;color:var(--navy-lighter);" id="lote-divergencias-sub"></span>
+        </div>
+      </div>
+      <div id="lote-divergencias-grupos" style="display:flex;flex-direction:column;gap:16px;"></div>
+    </div>
+    <div class="view-footer">
+      <button class="btn" id="btn-gerar-lote" disabled>Gerar relatórios</button>
+      <span class="footer-hint" id="lote-divergencias-hint"></span>
     </div>
   </div>
 

@@ -239,6 +239,7 @@ input, textarea, select { font-family: var(--font-body); }
 .issue-progress-head { display: flex; align-items: baseline; justify-content: space-between; }
 .issue-progress-bar { height: 4px; border-radius: 2px; background: var(--border-light); overflow: hidden; }
 .issue-progress-fill { height: 4px; background: var(--green); width: 0%; }
+.issue-progress-fill.mantido { background: var(--badge-text); }
 
 .issue-card { border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .issue-card.resolved { border-left-color: var(--green); background: #F4FAF5; }
@@ -279,26 +280,32 @@ input, textarea, select { font-family: var(--font-body); }
 .output-file-row:first-child { border-top: none; background: var(--bg-app); }
 .output-file-icon { width: 30px; height: 30px; border-radius: 4px; background: var(--badge-bg); color: var(--red); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
 .output-file-icon.xml { background: var(--bg-muted); color: var(--navy-light); }
-.output-file-name { font-size: 12px; font-weight: 500; }
-.output-file-meta { font-size: 11px; color: var(--navy-lighter); }
+.output-file-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.output-file-meta { font-size: 11px; color: var(--navy-lighter); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Saída em lote (Fase 5) */
 .output-count-row { display: flex; align-items: baseline; justify-content: space-between; }
 .output-count-label { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--navy-lighter); }
 .output-open-all { font-size: 12px; font-weight: 500; color: var(--red); cursor: pointer; }
-.output-groups { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-.output-group { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.output-groups { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; }
+.output-group { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: none; }
 .output-group-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-app); }
 .output-group-tag { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
 .output-group-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 3px; background: var(--navy); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
 .output-group-meta { font-size: 11px; color: var(--navy-lighter); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .output-group-warn { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 3px; background: var(--orange-bg); color: var(--orange); font-size: 10px; font-weight: 500; }
+.output-group-files { max-height: 168px; overflow-y: auto; }
 .output-group .output-file-row { border-top: 1px solid var(--border-light); background: none; }
-.output-events { display: flex; flex-direction: column; gap: 8px; }
-.output-event { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 4px; }
+.output-events { display: flex; flex-direction: column; gap: 8px; flex: none; max-height: 200px; overflow-y: auto; }
+.output-event { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 4px; flex: none; }
 .output-event.erro { border-left-color: var(--badge-text); }
 .output-event-title { font-size: 12px; font-weight: 500; }
 .output-event-msg { font-size: 11px; color: var(--navy-lighter); white-space: pre-line; }
+
+/* Divergências agregadas em lote (Fase 6) */
+.lote-grupo { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: none; }
+.lote-grupo .instr-summary { border-bottom: 1px solid var(--border); }
+.lote-grupo-issues { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 
 /* Edit instrument view */
 .edit-head { padding: 16px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-light); flex: none; }

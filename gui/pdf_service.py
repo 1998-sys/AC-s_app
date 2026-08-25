@@ -1,16 +1,16 @@
 import base64
 import json
 import os
-import tempfile
+import time
 import traceback
-from pathlib import Path
 from threading import Thread
 
 from pdf.utils_parser import select_extract
 from xml_model.xml_uc_generator import gerar_xml_uc
 from xml_model.xml_cromato import xml_cromatografia
 
-from gui.support import CHECKLIST_ALL, foto_instrumento
+from data.utils_fs import pasta_documentos
+from gui.support import CHECKLIST_ALL, PASTA_CERTIFICADOS_SOLTOS, foto_instrumento, limpar_certificado_solto
 
 
 class PdfProcessingService:
@@ -19,9 +19,15 @@ class PdfProcessingService:
     Dispatcher/ProcessorFactory (secundário, placa de orifício, trecho reto).
     """
 
+    # Tempo mínimo (segundos) que cada certificado do lote fica visível na
+    # tela de leitura antes de trocar pro próximo — dá sensação de progresso
+    # contínuo em vez de um flash entre telas quando a extração é rápida.
+    TEMPO_MINIMO_POR_ITEM = 2.0
+
     def __init__(self, api):
         self.api = api
         self._cancelado = False
+        self._inicio_item_ts = None
 
         # Tipos que geram XML diretamente a partir do PDF, sem passar pela tela
         # de revisão — diferente dos tipos despachados via Dispatcher/ProcessorFactory.
@@ -47,14 +53,19 @@ class PdfProcessingService:
 
         O navegador não dá acesso ao caminho real do arquivo no disco por
         segurança (a API padrão de drag-and-drop só expõe o conteúdo) — o JS
-        lê cada arquivo como base64 e manda aqui pra ser salvo numa pasta
-        temporária, devolvendo a mesma estrutura {caminho, nome} de
+        lê cada arquivo como base64 e manda aqui pra ser salvo em disco,
+        devolvendo a mesma estrutura {caminho, nome} de
         `escolher_arquivos_pdf`, pra reusar o fluxo existente sem duplicação.
+
+        Salva em Documentos (não numa pasta temporária): o relatório/XML
+        gerado sempre vai pra mesma pasta do certificado de origem
+        (`obter_caminho_ac`), então usar uma pasta temporária aqui faria os
+        arquivos gerados também caírem lá — um lugar que o Windows pode
+        limpar sozinho e que ninguém pensaria em procurar.
 
         `arquivos` é uma lista de {"nome": str, "conteudo_base64": str}.
         """
-        pasta = Path(tempfile.gettempdir()) / "certiflow_drop"
-        pasta.mkdir(parents=True, exist_ok=True)
+        pasta = pasta_documentos(PASTA_CERTIFICADOS_SOLTOS)
 
         resultado = []
         for arquivo in arquivos:
@@ -77,16 +88,27 @@ class PdfProcessingService:
         self.api.indice_fila = 0
         self.api.resultados_lote = []
         self.api.eventos_lote = []
+        self.api.instrumentos_lote = []
         self._processar_item_da_fila()
 
     def _processar_item_da_fila(self):
+        self._inicio_item_ts = time.time()
         item = self.api.fila_processamento[self.api.indice_fila]
         caminho = item["caminho"]
         self.api.caminho_pdf_atual = caminho
         total = len(self.api.fila_processamento)
         if total > 1:
-            self.api._js(f"App.setFilaProgresso({self.api.indice_fila + 1}, {total})")
+            nome = json.dumps(item.get("nome") or os.path.basename(caminho))
+            self.api._js(f"App.setFilaProgresso({self.api.indice_fila + 1}, {total}, {nome})")
         Thread(target=self._processar_pdf_thread, args=(caminho,), daemon=True).start()
+
+    def _aguardar_tempo_minimo_item(self):
+        inicio = self._inicio_item_ts
+        if inicio is None:
+            return
+        faltam = self.TEMPO_MINIMO_POR_ITEM - (time.time() - inicio)
+        if faltam > 0:
+            time.sleep(faltam)
 
     def cancelar_leitura(self):
         """Cancelamento cooperativo: não interrompe a extração do PDF já em
@@ -98,13 +120,15 @@ class PdfProcessingService:
         self._cancelado = True
         self.api.fila_processamento = []
         self.api.indice_fila = 0
+        self.api.instrumentos_lote = []
 
     # ---------- Fila / modo lote ----------
-    # Dois pontos de entrada cobrem toda saída possível de um item da fila:
-    # `avancar_fila` (via DialogBridge.voltar_para_selecao — erro, cancelamento
-    # ou os tipos de geração direta como cromatografia/incerteza/linearização)
-    # e `avancar_apos_sucesso_revisao` (via RevisionService.confirmar_geracao,
-    # o caminho SEC/PO/TR que passa pela tela de revisão).
+    # Todo item da fila termina de um jeito só: `avancar_fila`, chamado via
+    # DialogBridge.voltar_para_selecao — seja por erro/cancelamento, pelos
+    # tipos de geração direta (cromatografia/incerteza/linearização), ou pela
+    # coleta de revisão da Fase 6 (RevisionService.coletar_revisao_lote), que
+    # nunca gera nada por item — só quando a fila esgota é que se decide
+    # mostrar a revisão agregada, gerar tudo, ou ir direto pra saída.
 
     def em_lote_ativo(self):
         return (
@@ -113,12 +137,17 @@ class PdfProcessingService:
             and not self._cancelado
         )
 
-    def registrar_evento_lote(self, titulo, mensagem, variant):
+    def registrar_evento_lote(self, titulo, mensagem, variant, nome=None):
         """Chamado por DialogBridge.alert no lugar de exibir o alerta, quando
         em modo lote — evita que cada sucesso/erro pare a fila esperando o
-        usuário clicar OK."""
+        usuário clicar OK. `nome` é opcional: por padrão usa
+        `caminho_pdf_atual` (correto durante a leitura, quando esse é
+        realmente o item em processamento); `gerar_lote` passa o nome
+        explícito, já que ali `caminho_pdf_atual` não reflete mais o item
+        do laço (a leitura de todos já terminou antes de gerar qualquer
+        um)."""
         self.api.eventos_lote.append({
-            "nome": os.path.basename(self.api.caminho_pdf_atual or ""),
+            "nome": nome or os.path.basename(self.api.caminho_pdf_atual or ""),
             "titulo": titulo,
             "mensagem": mensagem,
             "ok": variant in ("success", "info"),
@@ -127,35 +156,52 @@ class PdfProcessingService:
     def avancar_fila(self):
         """Chamado por DialogBridge.voltar_para_selecao no lugar da navegação
         padrão. Retorna True se assumiu a navegação (avançou pro próximo item
-        ou finalizou o lote exibindo a tela agregada); False se não havia
-        lote ativo (fluxo de um único arquivo, comportamento inalterado)."""
+        ou encerrou a fila); False se não havia lote ativo (fluxo de um
+        único arquivo, comportamento inalterado)."""
         if not self.em_lote_ativo():
             return False
 
+        self._aguardar_tempo_minimo_item()
         self.api.indice_fila += 1
         total = len(self.api.fila_processamento)
         if self.api.indice_fila < total:
             self._processar_item_da_fila()
             return True
 
-        if self.api.resultados_lote or self.api.eventos_lote:
-            payload = self._finalizar_lote()
-            self.api._js(f"App.showOutputLote({json.dumps(payload)})")
-        else:
-            self.api.fila_processamento = []
+        self._ao_fila_esgotada()
         return True
 
-    def avancar_apos_sucesso_revisao(self, item_resultado):
-        """Chamado por RevisionService.confirmar_geracao quando a AC de um
-        item da fila é gerada com sucesso. Retorna o payload que
-        confirmar_geracao deve devolver pro front: um marcador de avanço (se
-        ainda há itens na fila) ou o payload agregado final."""
-        self.api.resultados_lote.append(item_resultado)
-        self.api.indice_fila += 1
-        total = len(self.api.fila_processamento)
-        if self.api.indice_fila < total and not self._cancelado:
-            self._processar_item_da_fila()
-            return {"avancando_lote": True, "item": item_resultado}
+    def _ao_fila_esgotada(self):
+        """A fila terminou de ler todos os itens. Decide o que mostrar:
+        - Algum instrumento coletado (Fase 6) com divergência pendente →
+          tela de divergências agregada.
+        - Instrumentos coletados mas todos sem pendência → gera tudo direto.
+        - Nada coletado (só eventos de geração direta / erro) → tela de
+          saída com o que tiver."""
+        api = self.api
+        if api.instrumentos_lote:
+            tem_pendencia = any(
+                any(not getattr(i, "resolved", False) for i in inst["issues"].values())
+                for inst in api.instrumentos_lote
+            )
+            if tem_pendencia:
+                payload = api._revision_service._montar_payload_divergencias_lote()
+                api._js(f"App.showDivergenciasLote({json.dumps(payload)})")
+            else:
+                api._revision_service.gerar_lote()
+            return
+
+        if api.resultados_lote or api.eventos_lote:
+            payload = self._finalizar_lote()
+            api._js(f"App.showOutputLote({json.dumps(payload)})")
+        else:
+            api.fila_processamento = []
+
+    def finalizar_lote_manualmente(self):
+        """Wrapper público de _finalizar_lote — chamado por
+        RevisionService.gerar_lote depois de gerar tudo, fora do fluxo normal
+        de avancar_fila (que já chamaria isso sozinho se a fila ainda
+        estivesse "ativa", mas nesse ponto ela já foi esgotada)."""
         return self._finalizar_lote()
 
     def _finalizar_lote(self):
@@ -256,6 +302,7 @@ class PdfProcessingService:
 
     def _gerar_cromatografia(self, caminho, dados_pdf):
         xml_path = xml_cromatografia(caminho, dados_pdf)
+        limpar_certificado_solto(caminho)
         self.api._progress(100, "build", CHECKLIST_ALL)
         self.api.alert("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}", "success")
         self.api._voltar_para_selecao()
@@ -264,6 +311,7 @@ class PdfProcessingService:
         numero_ci = dados_pdf.get("numero_ci", "NI")
         xml_path = os.path.splitext(caminho)[0] + ".xml"
         gerar_xml_uc(numero_ci, dados_pdf, xml_path)
+        limpar_certificado_solto(caminho)
         self.api._progress(100, "build", CHECKLIST_ALL)
         self.api.alert("Sucesso", f"XML de Incerteza gerado:\n{xml_path}", "success")
         self.api._voltar_para_selecao()
@@ -290,6 +338,7 @@ class PdfProcessingService:
                 return
             self.api._progress(70, "build", ["extract", "compare", "validate"])
             caminho_saida = gerar_linearizacao(dados, caminho)
+            limpar_certificado_solto(caminho)
             self.api._progress(100, "build", CHECKLIST_ALL)
 
             self.api.alert(

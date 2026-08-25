@@ -28,6 +28,21 @@ def tag_te(tag: str | None) -> bool:
     partes = tag.upper().split("-")
     return "TE" in partes
 
+
+_PREFIXOS_TIPO_TE_TT = {"TE", "TT", "TIT"}
+
+
+def chave_par_te(tag: str | None) -> str | None:
+    """Chave usada para casar um TE com o TT/TIT correspondente: o TAG sem
+    o prefixo do tipo (TE, TT ou TIT), já que os dois compartilham o mesmo
+    número base (ex.: TE-1234-56 e TT-1234-56/TIT-1234-56 → "1234-56").
+    Retorna None se não sobrar nada além do prefixo (TAG mal formado)."""
+    if not tag:
+        return None
+
+    partes = [p for p in tag.upper().split("-") if p not in _PREFIXOS_TIPO_TE_TT]
+    return "-".join(partes) or None
+
 def normalizar_certificado(cert: str | None) -> str:
     if not cert:
         return ""

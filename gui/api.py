@@ -38,7 +38,16 @@ class Api:
         # Estado da sessão de revisão em andamento, compartilhado pelos serviços abaixo.
         self.pontos_calibracao = []
         self.caminho_pdf_atual = None
-        self.certificado_te_atual = None
+        # TE (elemento de temperatura) → TT/TIT (transmissor) usa o mesmo
+        # número de certificado do TE que o mede; casados pela parte do TAG
+        # sem o prefixo de tipo (ver xml_model.xml_generator.chave_par_te).
+        # Um dict por par evita que, com vários pares TE+TT num mesmo lote,
+        # um TT pegue por engano o certificado do TE de outro instrumento —
+        # o que aconteceria com um único valor "último TE visto" (bug real
+        # encontrado nesta sessão). Vive pela sessão inteira do app (não é
+        # resetado por leitura), já que o usuário pode processar o TE e o
+        # TT em ações separadas, não necessariamente no mesmo lote.
+        self.certificados_te_por_par = {}
         self.pontos_calibracao_petro = None
         self.dados_certificado_atual = None
         self.dados_report_atual = None
@@ -56,6 +65,13 @@ class Api:
         self.indice_fila = 0
         self.resultados_lote = []
         self.eventos_lote = []
+
+        # Fase 6: revisão agregada em lote — um item por certificado lido
+        # com sucesso (dados/registro/divergências), preenchido por
+        # RevisionService.coletar_revisao_lote enquanto a fila é lida sem
+        # pausar, e consumido pela tela de divergências agregada/gerar_lote
+        # só depois que todos os itens da fila terminam de ser lidos.
+        self.instrumentos_lote = []
 
         self._dialogs = DialogBridge(self)
         self._pdf_service = PdfProcessingService(self)
@@ -123,11 +139,28 @@ class Api:
     def desfazer_divergencia(self, key):
         return self._revision_service.desfazer_divergencia(key)
 
+    def voltar_da_revisao(self):
+        return self._revision_service.voltar_da_revisao()
+
     def confirmar_geracao(self):
         return self._revision_service.confirmar_geracao()
 
     def abrir_arquivo(self, caminho):
         return self._revision_service.abrir_arquivo(caminho)
+
+    # ---------- Tela 3 (Fase 6): revisão agregada em lote ----------
+
+    def resolver_divergencia_lote(self, tag, key, aplicar):
+        return self._revision_service.resolver_divergencia_lote(tag, key, aplicar)
+
+    def desfazer_divergencia_lote(self, tag, key):
+        return self._revision_service.desfazer_divergencia_lote(tag, key)
+
+    def pular_instrumento_lote(self, tag):
+        return self._revision_service.pular_instrumento_lote(tag)
+
+    def confirmar_geracao_lote(self):
+        return self._revision_service.confirmar_geracao_lote()
 
     # ---------- Tela 5: editar / consultar instrumento ----------
 
