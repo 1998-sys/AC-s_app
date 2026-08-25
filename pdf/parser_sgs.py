@@ -2,12 +2,6 @@ import re
 
 
 
-
-
-
-
-
-
 def extrair_empresa(texto):
     if not texto:
         return None
@@ -18,13 +12,50 @@ def extrair_empresa(texto):
     return None
 
 
+def extrair_cliente(texto):
+    """Extrai o nome do cliente do relatório (rótulo "Cliente:") — esse é o
+    valor que vai pra tag <EMPRESA> do XML, não o laboratório (extrair_empresa
+    só serve pra identificar o TIPO de relatório em select_extract).
+
+    No layout mais comum, o valor está na mesma linha do rótulo. Em alguns
+    PDFs da SGS observados, o rótulo é extraído isolado (sem valor na
+    mesma linha) e o valor reaparece bem mais adiante no texto, logo depois
+    do título "RELATÓRIO DE ANÁLISES DE GÁS NATURAL" — usado como fallback."""
+    if not texto:
+        return None
+    t = texto.replace("\r\n", "\n").replace("\r", "\n")
+
+    m = re.search(r"Cliente:[ \t]*(\S[^\n]*)", t)
+    if m:
+        return m.group(1).strip()
+
+    m_titulo = re.search(r"RELAT[ÓO]RIO DE AN[ÁA]LISES DE G[ÁA]S NATURAL[^\n]*", t, re.IGNORECASE)
+    if m_titulo:
+        for linha in t[m_titulo.end():].splitlines():
+            linha = linha.strip()
+            if linha:
+                return linha
+
+    return None
+
+
 def numero_cert(texto):
     if not texto:
         return None
     primeira = next((l.strip() for l in texto.splitlines() if l.strip()), "")
 
     m = re.search(r"(\d{3,6}(?:[.,]\d{2,3})?.*)$", primeira)
-    return m.group(1).strip() if m else None
+    if m:
+        return m.group(1).strip()
+
+    # Fallback: no mesmo layout "fora de ordem" tratado em extrair_cliente,
+    # o número do certificado aparece colado no título do relatório, não na
+    # primeira linha extraída.
+    m_titulo = re.search(
+        r"RELAT[ÓO]RIO DE AN[ÁA]LISES DE G[ÁA]S NATURAL\s+(\S.*)$",
+        texto, re.IGNORECASE | re.MULTILINE
+    )
+    return m_titulo.group(1).strip() if m_titulo else None
 
 
 def composicao(texto: str):
@@ -110,10 +141,15 @@ def propriedades_padrao(texto: str):
     t = texto.replace("\r\n", "\n").replace("\r", "\n").replace("\xa0", " ")
     m_ini = re.search(r"Propriedades do Gas\s*-\s*Condiç[ãa]o Padr[ãa]o\s*\(1\)\s*Refer[êe]ncia", t, re.IGNORECASE)
     if not m_ini:
-        
+
         m_ini = re.search(r"Propriedades do G[aá]s\s*-\s*Condi[cç][aã]o Padr[aã]o\s*\(1\)\s*Refer[êe]ncia", t, re.IGNORECASE)
-        if not m_ini:
-            return {"propriedades_padrao": []}
+    if not m_ini:
+        # Fallback: mesmo layout "fora de ordem" tratado em extrair_cliente —
+        # o título da seção fica separado do cabeçalho "Referência", que
+        # aparece isolado numa linha própria antes das propriedades.
+        m_ini = re.search(r"^\s*Refer[êe]ncia\s*$", t, re.IGNORECASE | re.MULTILINE)
+    if not m_ini:
+        return {"propriedades_padrao": []}
     start = m_ini.end()
 
   
@@ -202,7 +238,7 @@ def propriedades_amostragem(texto: str):
 
 
 def extrair_campos_cromato(texto):
-    empre = extrair_empresa(texto)
+    empre = extrair_cliente(texto)
     cert = numero_cert(texto)
     comp = composicao(texto)
     prop_pad = propriedades_padrao(texto)
