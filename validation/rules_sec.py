@@ -160,7 +160,7 @@ def regra_sn_instrumento(ctx):
             ),
             opcoes=[
                 {"label": "Usar o certificado", "valor": ctx.pdf["sn_instrumento"], "recomendado": True},
-                {"label": "Manter o cadastro", "valor": ctx.db.get("sn_instrumento")},
+                {"label": "Pular certificado", "valor": ctx.db.get("sn_instrumento")},
             ],
         )
 
@@ -186,7 +186,7 @@ def regra_sn_sensor(ctx):
             ),
             opcoes=[
                 {"label": "Usar o certificado", "valor": ctx.pdf["sn_sensor"], "recomendado": True},
-                {"label": "Manter o cadastro", "valor": ctx.db.get("sn_sensor")},
+                {"label": "Pular certificado", "valor": ctx.db.get("sn_sensor")},
             ],
         )
 
@@ -237,7 +237,7 @@ def regra_range(ctx):
             ),
             opcoes=[
                 {"label": "Usar o certificado", "valor": f"{pdf_min} – {pdf_max}", "recomendado": True},
-                {"label": "Manter o cadastro", "valor": f"{db_min} – {db_max}"},
+                {"label": "Pular certificado", "valor": f"{db_min} – {db_max}"},
             ],
         )
 
