@@ -3,6 +3,7 @@ from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos
 from pdf.parser_po import extrair_campos_po, extrair_item
 from pdf.parser_sgs import extrair_empresa, extrair_campos_cromato
+from pdf.parser_origem_cromato import identificar_origem_cromato, extrair_campos_cromato_origem
 from pdf.parser_UC import extrair_campos_uc, identificar_uc
 from pdf.parser_tr import identificar_tr, extrair_campos_tr
 
@@ -25,8 +26,13 @@ def select_extract(caminho):
         tipo = "placa_orificio"
 
     elif extrair_empresa(texto) == 'SGS':
-        print('Relatório de Cromatografia')
+        print('Relatório de Cromatografia (SGS)')
         dados = extrair_campos_cromato(texto)
+        tipo = 'cromatografia'
+
+    elif identificar_origem_cromato(texto):
+        print('Relatório de Cromatografia (Origem Energia Alagoas)')
+        dados = extrair_campos_cromato_origem(texto)
         tipo = 'cromatografia'
 
     else:
