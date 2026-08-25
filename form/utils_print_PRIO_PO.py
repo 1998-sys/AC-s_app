@@ -18,7 +18,8 @@ def gerar_ac_prio_po(
     print_area_fixa: str | None = None,
     linhas_extra_topo: int = 2,
     aplicar_borda_fallback: bool = True,
-    cor_faixa_teal_hex = "0099A8"
+    cor_faixa_teal_hex = "0099A8",
+    excel=None
 ):
     """Preenche o template AC PRIO PO e exporta como PDF via Excel COM.
     Fills the AC PRIO PO template and exports it as PDF via Excel COM.
@@ -134,14 +135,15 @@ def gerar_ac_prio_po(
         os.remove(pdf_final)
 
 
-    excel = None
+    excel_proprio = excel is None
     wb_excel = None
 
     try:
 
-        excel = win32.DispatchEx("Excel.Application")
-        excel.Visible = False
-        excel.DisplayAlerts = False
+        if excel_proprio:
+            excel = win32.DispatchEx("Excel.Application")
+            excel.Visible = False
+            excel.DisplayAlerts = False
 
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
         ws_excel = wb_excel.Worksheets(nome_aba)
@@ -178,7 +180,7 @@ def gerar_ac_prio_po(
             pass
 
         try:
-            if excel:
+            if excel_proprio and excel:
                 excel.Quit()
         except:
             pass

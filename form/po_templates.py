@@ -21,7 +21,7 @@ def limpar_nome_arquivo(texto):
     return texto.strip()
 
 
-def gerar_ac_po(config, dados, caminho_pdf_original):
+def gerar_ac_po(config, dados, caminho_pdf_original, excel=None):
     """Preenche um template Excel de AC de placa de orifício (variante PO) e
     exporta como PDF via Excel COM.
 
@@ -78,9 +78,11 @@ def gerar_ac_po(config, dados, caminho_pdf_original):
                 f"⚠ O PDF está aberto:\n{caminho_pdf_final}"
             )
 
-    excel = win32.DispatchEx("Excel.Application")
-    excel.Visible = False
-    excel.DisplayAlerts = False
+    excel_proprio = excel is None
+    if excel_proprio:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
 
     try:
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
@@ -96,7 +98,8 @@ def gerar_ac_po(config, dados, caminho_pdf_original):
         wb_excel.Close(False)
 
     finally:
-        excel.Quit()
+        if excel_proprio:
+            excel.Quit()
         if os.path.exists(caminho_temp):
             try:
                 os.remove(caminho_temp)
@@ -147,16 +150,16 @@ CONFIG_YINSON_ATLANTA_PO = {
 }
 
 
-def gerar_ac_origem_PO(dados, caminho_pdf_original):
+def gerar_ac_origem_PO(dados, caminho_pdf_original, excel=None):
     """Preenche o template Excel de AC Origem PO e exporta como PDF via Excel COM."""
-    return gerar_ac_po(CONFIG_ORIGEM_PO, dados, caminho_pdf_original)
+    return gerar_ac_po(CONFIG_ORIGEM_PO, dados, caminho_pdf_original, excel=excel)
 
 
-def gerar_ac_yinson_PO(dados, caminho_pdf_original):
+def gerar_ac_yinson_PO(dados, caminho_pdf_original, excel=None):
     """Preenche o template Excel de AC YINSON PO e exporta como PDF via Excel COM."""
-    return gerar_ac_po(CONFIG_YINSON_PO, dados, caminho_pdf_original)
+    return gerar_ac_po(CONFIG_YINSON_PO, dados, caminho_pdf_original, excel=excel)
 
 
-def gerar_ac_yinson_atlanta_PO(dados, caminho_pdf_original):
+def gerar_ac_yinson_atlanta_PO(dados, caminho_pdf_original, excel=None):
     """Preenche o template Excel de AC YINSON ATLANTA PO e exporta como PDF via Excel COM."""
-    return gerar_ac_po(CONFIG_YINSON_ATLANTA_PO, dados, caminho_pdf_original)
+    return gerar_ac_po(CONFIG_YINSON_ATLANTA_PO, dados, caminho_pdf_original, excel=excel)

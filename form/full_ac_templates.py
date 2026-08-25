@@ -67,13 +67,16 @@ def _titulo_categoria(categoria, permitir_split_pt_pdt, max_range):
     return None
 
 
-def gerar_ac_completo(config, dados, caminho_pdf_original):
+def gerar_ac_completo(config, dados, caminho_pdf_original, excel=None):
     """Preenche o template AC completo (PRIO/YINSON/YINSON ATLANTA) e exporta
     como PDF via Excel COM.
 
     Trata título por categoria de instrumento, quebra de linha do campo local,
     data de entrega ajustada para dia útil (+1 dia) e observações em rich text
     (range/SN atualizado ou sem alteração). Retorna o caminho absoluto do PDF.
+
+    Se `excel` for passado (instância COM já aberta, reaproveitada em lote),
+    usa essa instância e não a encerra; senão abre e encerra a própria.
     """
     caminho_template = config["template"]
     caminho_temp = os.path.join(
@@ -187,11 +190,13 @@ def gerar_ac_completo(config, dados, caminho_pdf_original):
                 f"⚠ O arquivo PDF está aberto e não pode ser sobrescrito:\n{caminho_pdf_final}"
             )
 
-    excel = win32.DispatchEx("Excel.Application")
-    excel.Visible = False
-    excel.DisplayAlerts = False
-    excel.ScreenUpdating = False
-    excel.Interactive = False
+    excel_proprio = excel is None
+    if excel_proprio:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
+        excel.ScreenUpdating = False
+        excel.Interactive = False
 
     try:
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
@@ -199,7 +204,8 @@ def gerar_ac_completo(config, dados, caminho_pdf_original):
         wb_excel.Close(SaveChanges=False)
 
     finally:
-        excel.Quit()
+        if excel_proprio:
+            excel.Quit()
         if os.path.exists(caminho_temp):
             try:
                 os.remove(caminho_temp)
@@ -237,16 +243,16 @@ CONFIG_YINSON_ATLANTA = {
 }
 
 
-def gerar_ac_prio(dados, caminho_pdf_original):
+def gerar_ac_prio(dados, caminho_pdf_original, excel=None):
     """Preenche o template AC PRIO e exporta como PDF via Excel COM."""
-    return gerar_ac_completo(CONFIG_PRIO, dados, caminho_pdf_original)
+    return gerar_ac_completo(CONFIG_PRIO, dados, caminho_pdf_original, excel=excel)
 
 
-def gerar_ac_yinson(dados, caminho_pdf_original):
+def gerar_ac_yinson(dados, caminho_pdf_original, excel=None):
     """Preenche o template AC YINSON e exporta como PDF via Excel COM."""
-    return gerar_ac_completo(CONFIG_YINSON, dados, caminho_pdf_original)
+    return gerar_ac_completo(CONFIG_YINSON, dados, caminho_pdf_original, excel=excel)
 
 
-def gerar_ac_yinson_atlanta(dados, caminho_pdf_original):
+def gerar_ac_yinson_atlanta(dados, caminho_pdf_original, excel=None):
     """Preenche o template AC YINSON ATLANTA e exporta como PDF via Excel COM."""
-    return gerar_ac_completo(CONFIG_YINSON_ATLANTA, dados, caminho_pdf_original)
+    return gerar_ac_completo(CONFIG_YINSON_ATLANTA, dados, caminho_pdf_original, excel=excel)

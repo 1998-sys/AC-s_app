@@ -30,7 +30,7 @@ def escrever(ws, endereco, valor, wrap=True, vertical="top"):
     celula.alignment = Alignment(wrap_text=wrap, vertical=vertical)
 
 
-def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
+def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
     """Preenche o template AC Origem e exporta como PDF via Excel COM.
     Fills the AC Origem template and exports it as PDF via Excel COM.
 
@@ -189,16 +189,19 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro):
     if os.path.exists(caminho_pdf_final):
         os.remove(caminho_pdf_final)
 
-    excel = win32.DispatchEx("Excel.Application")
-    excel.Visible = False
-    excel.DisplayAlerts = False
+    excel_proprio = excel is None
+    if excel_proprio:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
 
     try:
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_temp))
         wb_excel.ExportAsFixedFormat(0, caminho_pdf_final)
         wb_excel.Close(False)
     finally:
-        excel.Quit()
+        if excel_proprio:
+            excel.Quit()
         if os.path.exists(caminho_temp):
             try:
                 os.remove(caminho_temp)
