@@ -799,3 +799,83 @@ confirma que o mapeamento padrão/CL definido na 1ª fonte estava certo.
       bate 100% com o exemplo aprovado (mesma estrutura, mesmos valores,
       incluindo a conversão de "5E-05"/"0.0015" pra "0,00005"/"0,0015").
       Teste com o app real ainda pendente de confirmação do usuário.
+
+## Tela de leitura da cromatografia igual à dos secundários (executado)
+
+Hoje a leitura de um certificado de cromatografia usa o checklist genérico
+de 4 passos (Extraindo/Comparando com o cadastro/Validando regras da
+ANP/Montando relatório e XML) — mas "Comparando com o cadastro" e
+"Validando regras da ANP" não fazem sentido pra cromatografia (não há
+comparação com instrumento cadastrado nem validação de divergência, é só
+extrair e montar o XML). No final, em vez de ir pra tela de Saída como o
+fluxo normal, aparece um `alert()` bloqueante com "Sucesso — XML de
+Cromatografia gerado: <caminho completo>" que o usuário precisa clicar OK
+pra fechar.
+
+**Pedido do usuário:**
+- Checklist da tela de leitura, só pra cromatografia, com **2 passos**
+  (não 4): "Extraindo texto do certificado" → "Montando XML de
+  cromatografia" — com ~2s de intervalo entre os dois pra dar sensação de
+  progresso (mesmo padrão de pacing já usado em `coletar_revisao_lote`).
+- Ao terminar, **sem** o alert de confirmação com o caminho — segue direto
+  pra tela de Saída (como o fluxo de AC), mostrando o XML gerado.
+- Mesmo comportamento (checklist de 2 passos + sem alert bloqueante + item
+  aparecendo na saída) também **em lote**, não só arquivo único.
+
+**Levantamento já feito (pra não repetir na hora de executar):**
+- `gui/pdf_service.py::_processar_pdf_thread` sempre chama
+  `_progress(15,"extract",[])` e depois `_progress(35,"compare",["extract"])`
+  **antes** de despachar pro gerador direto (`_gerar_cromatografia`/
+  `_gerar_incerteza` em `self._geradores_diretos`) — esse `"compare"`
+  genérico precisa ser pulado (ou substituído) só pro caso cromatografia.
+- O checklist do HTML (`webui/index.html`, ids `chk-extract`/`chk-compare`/
+  `chk-validate`/`chk-build`) e o `CHECKLIST_STEPS` fixo em `app.js` têm
+  textos e passos **estáticos** — não existe hoje um jeito de trocar
+  labels/nº de passos por tipo de documento. Precisa de um mecanismo novo
+  (ex.: `App.setChecklistTipo('cromatografia' | 'completo')` chamado pelo
+  backend assim que `select_extract` identifica o tipo, escondendo
+  `chk-compare`/`chk-validate` e trocando o texto de `chk-build`).
+- `DialogBridge.alert` **já** redireciona pra `registrar_evento_lote` em
+  vez de bloquear quando `em_lote_ativo()` (não é um bug novo) — mas o
+  XML da cromatografia gerado em lote hoje só vira uma linha de "evento"
+  (texto), não entra em `api.resultados_lote` como os cards de AC entram
+  — por isso não aparece na tela de Saída agregada como arquivo baixável.
+  Precisa montar um resultado (`kind: "XML"`, nome, tamanho, caminho,
+  igual `RevisionService._listar_arquivos_gerados` monta pra AC) e
+  adicionar em `resultados_lote` em vez de só registrar o evento.
+- Fora de lote, `_gerar_cromatografia` precisa montar um payload
+  `{sub, files:[...]}` e chamar `App.showOutput(...)` (em vez de
+  `alert()` + `_voltar_para_selecao()`), reaproveitando a mesma forma que
+  `RevisionService` já usa pra montar entradas de `files`.
+- **Fora de escopo por enquanto** (não pedido, mas mesmo padrão problemático):
+  `_gerar_incerteza` (tipo "ci") tem exatamente o mesmo alert bloqueante
+  e checklist genérico — usuário confirmou deixar de fora por enquanto
+  ("por enquanto só cromatografia").
+
+**Implementação:**
+- [x] `webui/js/app.js`: nova `setChecklistTipo(tipo)` — em modo
+      `'cromatografia'` esconde `chk-compare`/`chk-validate` (`display:
+      none`) e troca o texto de `chk-build` pra "Montando XML de
+      cromatografia"; em `'completo'` (padrão) desfaz os dois. Chamada
+      dentro de `resetChecklist()` com `'completo'` (garante reset a cada
+      novo item, single ou lote), e exposta em `window.App`.
+- [x] `gui/pdf_service.py::_processar_pdf_thread`: intercepta
+      `tipo == "cromatografia"` logo após `select_extract` — **antes** do
+      `_progress(35,"compare",...)` genérico e do `_resumo_instrumento`
+      (que já retornava `None` pra esse tipo mesmo) — chamando
+      `_gerar_cromatografia` diretamente. Removida a entrada
+      `"cromatografia"` de `_geradores_diretos` (ficou inalcançável).
+- [x] `_gerar_cromatografia` reescrito: `App.setChecklistTipo('cromatografia')`
+      → passo "extract" ativo → `time.sleep(2)` → passo "build" ativo →
+      gera o XML → monta resultado (`_montar_resultado_cromatografia`,
+      mesmo formato `{tag, badge, sub, avisos, files}` usado pelos cards
+      de AC) → se `em_lote_ativo()`, adiciona em `api.resultados_lote` e
+      chama `_voltar_para_selecao()` (avança a fila normalmente); senão
+      chama `App.showOutput({sub, files})` direto — sem `alert()`.
+- [x] Testado via script isolado que injeta estado direto na janela real
+      (sem precisar do PDF binário): checklist de 2 passos confirmado
+      visualmente (screenshot), e `_montar_resultado_cromatografia`
+      confirmado isoladamente (formato do dict, serializa OK em JSON).
+      Não deu pra capturar a tela de Saída final por timing do
+      screenshot externo (não é um problema de código, só da captura).
+      Testado pelo usuário no app real (arquivo único e em lote) — aprovado.
