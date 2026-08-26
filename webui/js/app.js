@@ -201,6 +201,8 @@ const App = (() => {
   // ---------- Tela 2: Lendo o PDF ----------
 
   const CHECKLIST_STEPS = ["extract", "compare", "validate", "build"];
+  const CHECKLIST_LABEL_BUILD_PADRAO = "Montando relatório e XML";
+  const CHECKLIST_LABEL_BUILD_CROMATOGRAFIA = "Montando XML de cromatografia";
 
   function resetChecklist() {
     $("progress-fill").style.width = "0%";
@@ -210,6 +212,19 @@ const App = (() => {
       el.classList.remove("done", "active");
     });
     $(`chk-extract`).classList.add("active");
+    setChecklistTipo("completo");
+  }
+
+  function setChecklistTipo(tipo) {
+    // Cromatografia não compara com cadastro nem valida regras da ANP — só
+    // extrai e monta o XML. Chamado pelo backend assim que o tipo do
+    // documento é identificado (não dá pra saber antes de ler o PDF).
+    const cromatografia = tipo === "cromatografia";
+    $("chk-compare").style.display = cromatografia ? "none" : "flex";
+    $("chk-validate").style.display = cromatografia ? "none" : "flex";
+    $("chk-build").querySelector(".checklist-label").textContent = cromatografia
+      ? CHECKLIST_LABEL_BUILD_CROMATOGRAFIA
+      : CHECKLIST_LABEL_BUILD_PADRAO;
   }
 
   function setFilaProgresso(indice, total, nome) {
@@ -846,6 +861,6 @@ const App = (() => {
   return {
     onProgress, showReadingInstrument, showReview, showOutput, showOutputLote,
     showDivergenciasLote: renderDivergenciasLote,
-    setFilaProgresso, showView, setTracker,
+    setFilaProgresso, showView, setTracker, setChecklistTipo,
   };
 })();

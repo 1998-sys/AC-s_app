@@ -32,8 +32,9 @@ class PdfProcessingService:
         # Tipos que geram XML diretamente a partir do PDF, sem passar pela tela
         # de revisão — diferente dos tipos despachados via Dispatcher/ProcessorFactory.
         # Adicionar um novo tipo aqui não exige editar _processar_pdf_thread.
+        # ("cromatografia" tem checklist/saída próprios — interceptado antes
+        # desse dict em _processar_pdf_thread, ver _gerar_cromatografia.)
         self._geradores_diretos = {
-            "cromatografia": self._gerar_cromatografia,
             "ci": self._gerar_incerteza,
         }
 
@@ -258,6 +259,13 @@ class PdfProcessingService:
                 self.api._voltar_para_selecao()
                 return
 
+            if tipo == "cromatografia":
+                # Sem comparação com cadastro nem validação de regras da ANP
+                # (não há instrumento/divergência aqui) — checklist e fluxo
+                # de saída próprios, ver _gerar_cromatografia.
+                self._gerar_cromatografia(caminho, dados_pdf)
+                return
+
             resumo = self._resumo_instrumento(dados_pdf)
             if resumo:
                 self.api._js(f"App.showReadingInstrument({json.dumps(resumo)})")
@@ -301,11 +309,49 @@ class PdfProcessingService:
         }
 
     def _gerar_cromatografia(self, caminho, dados_pdf):
+        api = self.api
+        api._js("App.setChecklistTipo('cromatografia')")
+        api._progress(50, "extract", [])
+
+        # Dá tempo do usuário ver "Extraindo texto" ativo antes de já pular
+        # pro "Montando XML de cromatografia" — sem isso os dois passos
+        # completam rápido demais pra perceber (mesmo motivo do sleep em
+        # RevisionService.coletar_revisao_lote).
+        time.sleep(2)
+        if self._cancelado:
+            api._voltar_para_selecao()
+            return
+
+        api._progress(75, "build", ["extract"])
+
         xml_path = xml_cromatografia(caminho, dados_pdf)
         limpar_certificado_solto(caminho)
-        self.api._progress(100, "build", CHECKLIST_ALL)
-        self.api.alert("Sucesso", f"XML de Cromatografia gerado:\n{xml_path}", "success")
-        self.api._voltar_para_selecao()
+
+        api._progress(100, "build", ["extract", "build"])
+        resultado = self._montar_resultado_cromatografia(xml_path, dados_pdf)
+
+        if self.em_lote_ativo():
+            api.resultados_lote.append(resultado)
+            api._voltar_para_selecao()
+        else:
+            payload = {"sub": resultado["sub"], "files": resultado["files"]}
+            api._js(f"App.showOutput({json.dumps(payload)})")
+
+    def _montar_resultado_cromatografia(self, xml_path, dados_pdf):
+        tamanho = os.path.getsize(xml_path) // 1024
+        titulo = dados_pdf.get("certificado") or dados_pdf.get("empresa") or "Cromatografia"
+        return {
+            "tag": titulo,
+            "badge": "XML",
+            "sub": f"{titulo} · XML de cromatografia",
+            "avisos": 0,
+            "files": [{
+                "kind": "XML",
+                "name": os.path.basename(xml_path),
+                "meta": f"{tamanho} KB",
+                "path": xml_path,
+            }],
+        }
 
     def _gerar_incerteza(self, caminho, dados_pdf):
         numero_ci = dados_pdf.get("numero_ci", "NI")
