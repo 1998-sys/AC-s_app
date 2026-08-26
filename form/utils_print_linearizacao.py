@@ -1,57 +1,53 @@
+from copy import copy
 import openpyxl
-from openpyxl.styles import PatternFill, Alignment
+from openpyxl.styles import Border, Side
 import win32com.client as win32
 import os
 from datetime import datetime
 
 
 # ── MAPA DE CÉLULAS ─────────────────────────────────────────────────────────
-# Confirmar endereços abrindo Template_Linearizacao.xlsx e clicando nas células
+# Endereços confirmados abrindo Template_Linearizacao.xlsx (aba "Linearização").
+# Frequência (E), K-factor corrigido (O), Status (S), a 2ª tabela "Dados a
+# Serem Configurados" (linhas 56-75), KF médio (L76) e os limites de alarme
+# (J79/M79) já são FÓRMULAS no próprio template — todas derivadas das
+# colunas que preenchemos aqui (C/G/I/K/M/Q). Não escrever nelas: o Excel
+# recalcula sozinho ao abrir/exportar (inclusive a cor aprovado/reprovado,
+# que é formatação condicional nativa em S22:T41 — não precisa de PatternFill).
 CELLS = {
-    # Cabeçalho esquerda (col B = rótulo, col C = valor)
-    "cliente":         "C9",
-    "instalacao":      "C10",
-    "tag_sistema":     "C11",
-    "aplicacao":       "C12",
-    "sistema":         "C13",
-    "data_calibracao": "C14",
-    "tipo_medidor":    "C15",
-    # Cabeçalho direita (col K = rótulo, col L = valor)
-    "num_certificado": "L9",
-    "modelo":          "L10",
-    "fabricante":      "L11",
-    "tag":             "L12",
-    "num_serie":       "L13",
-    "diametro":        "L14",
-    "faixa_calibrada": "L15",
+    # Cabeçalho esquerda
+    "cliente":         "D9",
+    "instalacao":      "D10",
+    "tag_sistema":     "D11",
+    "aplicacao":       "D12",
+    "sistema":         "D13",
+    "data_calibracao": "D14",
+    "tipo_medidor":    "D15",
+    # Cabeçalho direita ("TAG" em M12 é fórmula "=D11", não escrever)
+    "num_certificado": "M9",
+    "modelo":          "M10",
+    "fabricante":      "M11",
+    "num_serie":       "M13",
+    "diametro":        "M14",
+    "faixa_calibrada": "M15",
     # K-Factor nominal
     "fator_k":         "D19",
-    # Tabela de calibração — colunas (escrever na top-left da célula mesclada)
+    # Tabela de calibração (linhas 22 a 41 — até 20 pontos)
     "tabela_linha_ini": 22,
-    "col_vazao":       "B",
-    "col_freq":        "D",
-    "col_vol_ref":     "F",
-    "col_vol_med":     "H",
-    "col_mf":          "J",
-    "col_erro":        "L",
-    "col_kfc":         "N",
-    "col_incerteza":   "O",
-    "col_status":      "R",
-    # Segunda tabela "Dados à Serem Configurados"
-    "tab2_linha_ini":  53,   # TODO: confirmar linha
-    "col2_num":        "C",
-    "col2_vazao":      "D",
-    "col2_freq":       "F",
-    "col2_kfc":        "H",  # TODO: confirmar coluna
-    # KF médio e alarmes
-    "kf_medio":        "H64",  # TODO: confirmar
-    "alarme_baixo":    "D68",  # TODO: confirmar
-    "alarme_alto":     "H68",  # TODO: confirmar
+    "tabela_linha_fim": 41,
+    "col_vazao":       "C",
+    "col_vol_ref":     "G",
+    "col_vol_med":     "I",
+    "col_mf":          "K",
+    "col_erro":        "M",
+    "col_incerteza":   "Q",
 }
 
-_FILL_APROVADO  = PatternFill("solid", fgColor="00B050")
-_FILL_REPROVADO = PatternFill("solid", fgColor="D81F3C")
-_ALIGN_CENTER   = Alignment(horizontal="center", vertical="center")
+# Colunas com borda na tabela de calibração (B = borda externa esquerda até
+# T = borda externa direita). Linha 30 é usada como referência de borda
+# "normal" (fina) do meio da tabela — ver _ajustar_bordas_tabela.
+_BORDA_COLS = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"]
+_LINHA_BORDA_REF = 30
 
 
 def _data_br(data_iso: str) -> str:
@@ -88,6 +84,42 @@ def _celula(col: str, linha: int) -> str:
     return f"{col}{linha}"
 
 
+def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
+    """Mostra exatamente as `n_pontos` linhas usadas (linha_ini até
+    linha_ini+n_pontos-1) — ocultando as demais, mesmo que originalmente
+    fossem visíveis — e normaliza a borda de cada uma pela linha
+    _LINHA_BORDA_REF (uma linha "do meio" da tabela, com borda fina),
+    fechando a última linha usada com borda grossa embaixo. Sem isso,
+    linhas reexibidas (originalmente ocultas, com < 10 pontos) saem com
+    contorno mais grosso, e a antiga última linha (31), quando deixa de
+    ser a última por causa de pontos extras, ficaria com a borda grossa
+    "sobrando" no meio da tabela.
+
+    TABELA2_OFFSET: a tabela "Dados a Serem Configurados" espelha, na
+    linha N+34, a linha N desta tabela (ex.: linha 22 -> linha 56)."""
+    TABELA2_OFFSET = 34
+    linha_fim_usada = linha_ini + n_pontos - 1 if n_pontos else linha_ini - 1
+
+    for row in range(linha_ini, linha_fim_max + 1):
+        usada = row <= linha_fim_usada
+        ws.row_dimensions[row].hidden = not usada
+        ws.row_dimensions[row + TABELA2_OFFSET].hidden = not usada
+
+        if not usada or row == linha_ini:
+            continue  # linha de cabeçalho da tabela: mantém a borda original
+
+        for col in _BORDA_COLS:
+            ws[f"{col}{row}"].border = copy(ws[f"{col}{_LINHA_BORDA_REF}"].border)
+
+    if n_pontos:
+        for col in _BORDA_COLS:
+            atual = ws[f"{col}{linha_fim_usada}"].border
+            ws[f"{col}{linha_fim_usada}"].border = Border(
+                top=atual.top, left=atual.left, right=atual.right,
+                bottom=Side(style="medium"),
+            )
+
+
 def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     """
     Preenche Template_Linearizacao.xlsx com os dados do medidor de vazão e
@@ -98,7 +130,7 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     caminho_template = os.path.join(base_dir, "Template_Linearizacao.xlsx")
 
     wb = openpyxl.load_workbook(caminho_template)
-    ws = wb.active
+    ws = wb["Linearização"]
 
     C = CELLS  # atalho
 
@@ -118,7 +150,6 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     ws[C["num_certificado"]] = dados.get("numero_certificado", "")
     ws[C["modelo"]]          = dados.get("modelo", "")
     ws[C["fabricante"]]      = dados.get("fabricante", "")
-    ws[C["tag"]]             = dados.get("tag", "")
     ws[C["num_serie"]]       = dados.get("num_serie", "")
     ws[C["diametro"]]        = dados.get("diametro", "")
     ws[C["faixa_calibrada"]] = dados.get("faixa_calibrada", "")
@@ -126,43 +157,35 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     # ── K-Factor nominal ──────────────────────────────────────────────────
     ws[C["fator_k"]] = dados.get("fator_k", "")
 
-    # ── Tabela de calibração (10 pontos) ──────────────────────────────────
+    # ── Tabela de calibração ────────────────────────────────────────────
+    # Frequência (E), K-factor corrigido (O) e Status (S) são fórmulas do
+    # template — calculadas a partir do que escrevemos aqui, não tocar.
     pontos = dados.get("pontos", [])
     linha_ini = C["tabela_linha_ini"]
+    max_pontos = C["tabela_linha_fim"] - linha_ini + 1
+    if len(pontos) > max_pontos:
+        raise ValueError(
+            f"Template de linearização suporta no máximo {max_pontos} pontos "
+            f"de calibração (certificado tem {len(pontos)})."
+        )
 
     for i, p in enumerate(pontos):
         row = linha_ini + i
 
-        ws[_celula(C["col_vazao"],    row)] = p["vazao"]
-        ws[_celula(C["col_freq"],     row)] = p["frequencia"]
-        ws[_celula(C["col_vol_ref"],  row)] = p["vol_referencia_l"]
-        ws[_celula(C["col_vol_med"],  row)] = p["vol_medidor_l"]
-        ws[_celula(C["col_mf"],       row)] = p["meter_factor"]
-        ws[_celula(C["col_erro"],     row)] = p["erro_pct"]
-        ws[_celula(C["col_kfc"],      row)] = p["kfc"]
-        ws[_celula(C["col_incerteza"],row)] = p["incerteza"]
+        ws[_celula(C["col_vazao"],     row)] = p["vazao"]
+        ws[_celula(C["col_vol_ref"],   row)] = p["vol_referencia_l"]
+        ws[_celula(C["col_vol_med"],   row)] = p["vol_medidor_l"]
+        ws[_celula(C["col_mf"],        row)] = p["meter_factor"]
+        ws[_celula(C["col_erro"],      row)] = p["erro_pct"]
+        ws[_celula(C["col_incerteza"], row)] = p["incerteza"]
 
-        status_cell = ws[_celula(C["col_status"], row)]
-        status_cell.value     = p["status"]
-        status_cell.fill      = _FILL_APROVADO if p["status"] == "APROVADO" else _FILL_REPROVADO
-        status_cell.alignment = _ALIGN_CENTER
-
-    # ── Segunda tabela "Dados à Serem Configurados" ───────────────────────
-    linha2 = C["tab2_linha_ini"]
-
-    for i, p in enumerate(pontos):
-        row = linha2 + i
-        ws[_celula(C["col2_num"],   row)] = i + 1
-        ws[_celula(C["col2_vazao"], row)] = p["vazao"]
-        ws[_celula(C["col2_freq"],  row)] = p["frequencia"]
-        ws[_celula(C["col2_kfc"],   row)] = p["kfc"]
-
-    # KF médio
-    ws[C["kf_medio"]] = dados.get("kf_medio", "")
-
-    # ── Limites de alarme (faixa nominal = limites de alarme) ─────────────
-    ws[C["alarme_baixo"]] = dados.get("faixa_min", "")
-    ws[C["alarme_alto"]]  = dados.get("faixa_max", "")
+    # O template só vem com as 10 primeiras linhas de cada tabela visíveis e
+    # com borda "normal" (linhas 22-31 e seu espelho 56-65 em "Dados a Serem
+    # Configurados"); as próximas 10 (32-41 / 66-75) ficam ocultas por
+    # padrão — reexibe/oculta conforme o nº de pontos deste certificado e
+    # uniformiza a borda (senão as linhas reexibidas saem com um contorno
+    # mais grosso, herdado do estilo delas quando ocultas).
+    _ajustar_linhas_tabela(ws, C["tabela_linha_ini"], C["tabela_linha_fim"], len(pontos))
 
     # ── Salvar XLSX de saída ──────────────────────────────────────────────
     pasta_saida   = os.path.dirname(os.path.abspath(caminho_xml))
@@ -193,7 +216,14 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
 
     try:
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_xlsx))
-        wb_excel.ExportAsFixedFormat(0, caminho_pdf)
+        # Frequência/KFc/Status/2ª tabela/KF médio/alarmes são fórmulas —
+        # força o recálculo antes de exportar pra não sair em branco no PDF.
+        excel.Calculate()
+        # Exporta só a aba "Linearização" — ExportAsFixedFormat no Workbook
+        # (em vez da Worksheet) incluiria também "Falha Presumida" (ainda
+        # não implementada) com os dados de exemplo do template.
+        ws_excel = wb_excel.Worksheets("Linearização")
+        ws_excel.ExportAsFixedFormat(0, caminho_pdf)
         wb_excel.Close(SaveChanges=False)
     finally:
         excel.Quit()

@@ -27,11 +27,14 @@ def is_certificado_ft(caminho_xml):
 
 def extrair_dados_ft(caminho_xml):
     """
-    Parseia CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO e retorna dict com:
-      - campos de cabeçalho (certificado, tag, fabricante, etc.)
-      - lista de pontos de calibração com campos computados (frequência, kfc, etc.)
-      - kf_medio: média dos K-factors corrigidos
-    """
+    Parseia CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO e retorna dict com
+    os campos de cabeçalho e a lista de pontos de calibração.
+
+    Frequência, K-factor corrigido, Status, KF médio e os limites de alarme
+    NÃO são calculados aqui — são fórmulas já presentes no
+    Template_Linearizacao.xlsx, derivadas dos valores que este dict fornece
+    (vazão, volumes, meter factor, erro, incerteza). Ver
+    form/utils_print_linearizacao.py."""
     tree = ET.parse(caminho_xml)
     root = tree.getroot()
 
@@ -56,7 +59,6 @@ def extrair_dados_ft(caminho_xml):
         "faixa_calibrada":    f"{faixa_min} m³/h a {faixa_max} m³/h",
         "data_calibracao":    _texto(root, "MEDIDOR_VAZAO/DATA_CALIBRACAO"),
         "fator_k":            fator_k,
-        "fator_medio":        _float(root, "MEDIDOR_VAZAO/CALIBRACAO_AS_FOUND/FATOR_MEDIO_DO_MEDIDOR"),
         "pontos":             [],
     }
 
@@ -66,7 +68,6 @@ def extrair_dados_ft(caminho_xml):
 
     for p in pontos_xml:
         vazao = _float(p, "VAZAO_CALIBRADA")
-        frequencia = round(fator_k * vazao / 3600)
 
         vol_padrao_m3   = _float(p, "VOLUME_PADRAO")
         vol_medidor_m3  = _float(p, "VOLUME_MEDIDOR")
@@ -80,25 +81,13 @@ def extrair_dados_ft(caminho_xml):
             else 0.0
         )
 
-        kfc = round(fator_k / meter_factor, 5) if meter_factor else 0.0
-
         dados["pontos"].append({
             "vazao":            vazao,
-            "frequencia":       frequencia,
             "vol_referencia_l": round(vol_padrao_m3 * 1000, 2),
             "vol_medidor_l":    round(vol_medidor_m3 * 1000, 2),
             "meter_factor":     meter_factor,
             "erro_pct":         desvio,
-            "kfc":              kfc,
             "incerteza":        incerteza,
-            "status":           "APROVADO",
         })
-
-    if dados["pontos"]:
-        dados["kf_medio"] = round(
-            sum(p["kfc"] for p in dados["pontos"]) / len(dados["pontos"]), 5
-        )
-    else:
-        dados["kf_medio"] = 0.0
 
     return dados
