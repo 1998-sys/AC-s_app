@@ -4,6 +4,46 @@ Plano de implementação para adicionar duas novas saídas ao fluxo de calibraç
 
 ---
 
+## Levantamento: a Linearização aceita "qualquer" XML de medidor no schema Petrobrás?
+
+Não totalmente. Conferido contra `documentation_xml_petro/certificado_calibracao_externa_medidor_vazao.html`
+(documentação do schema já presente no repo):
+
+**Já funciona bem:**
+- Qualquer `TIPO` de medidor (`CORIOLIS, DESLOCAMENTO POSITIVO, MAGNÉTICO,
+  TURBINA, ULTRASSÔNICO, V-CONE, PROVADOR`) — o código não filtra por
+  tipo, só extrai o texto.
+- Qualquer quantidade de pontos até 20 (limite físico do template) —
+  acima disso já dá `ValueError` claro em vez de estourar ou truncar
+  silenciosamente.
+
+**Fica de fora hoje (não implementado, achado ao investigar):**
+- [ ] **`CALIBRACAO_AS_LEFT`** — o schema permite (opcional) um segundo
+      bloco de resultados "as left" (pós-ajuste), com a mesma estrutura
+      de pontos do `CALIBRACAO_AS_FOUND`. Hoje só lemos o `AS_FOUND`; se
+      um certificado real tiver ajuste de constante (AS_LEFT presente),
+      essa parte é ignorada silenciosamente.
+- [ ] **`TABELA_LINEARIZACAO`** — o schema já prevê um bloco opcional com
+      a curva de linearização **pronta**, vinda do próprio laboratório
+      (`PONTOS_DA_CURVA/PONTO_DA_CURVA`, cada um com Vazão, Frequência,
+      Fator do Medidor e um `FATOR_K_DO_MEDIDOR` — "K-FACTOR a ser
+      adotado"). Se um certificado vier com isso preenchido, é
+      provavelmente mais confiável usar os valores do laboratório do que
+      recalcular pela fórmula do nosso template — hoje ignoramos esse
+      bloco inteiro.
+- [ ] **`CERTIFICADO_CALIBRACAO_INLOCO_MEDIDOR_VAZAO`** — existe uma
+      variante "in loco" do schema (calibração feita em campo, não em
+      laboratório externo), com **tag raiz diferente**
+      (`documentation_xml_petro/certificado_calibracao_inloco_medidor_vazao.html`).
+      `is_certificado_ft()` só reconhece a variante "EXTERNA" — um XML
+      in loco cai no alerta "XML não suportado" (não trava o app, mas
+      também não gera nada).
+
+Nenhum desses foi pedido ainda pelo usuário — registrado aqui só pra não
+perder o levantamento.
+
+---
+
 ## Atualização — Linearização implementada e corrigida
 
 A Linearização já tem código funcionando (`xml_model/xml_extractor_FT.py` +
