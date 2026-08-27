@@ -43,12 +43,27 @@ const Dialogs = (() => {
     });
   }
 
+  function fieldInputHtml(f) {
+    if (f.type === "select") {
+      const optionsHtml = (f.options || []).map(o => `
+        <option value="${escapeHtml(o)}" ${o === f.value ? "selected" : ""}>${escapeHtml(o)}</option>
+      `).join("");
+      return `
+        <select id="dlg-f-${f.name}">
+          <option value="">—</option>
+          ${optionsHtml}
+        </select>
+      `;
+    }
+    return `<input type="text" id="dlg-f-${f.name}" value="${escapeHtml(f.value || "")}" placeholder="${escapeHtml(f.placeholder || "")}">`;
+  }
+
   function prompt(title, message, fields) {
     return new Promise((resolve) => {
       const fieldsHtml = fields.map(f => `
         <div class="field">
           <label>${escapeHtml(f.label)}${f.required ? " *" : ""}</label>
-          <input type="text" id="dlg-f-${f.name}" value="${escapeHtml(f.value || "")}" placeholder="${escapeHtml(f.placeholder || "")}">
+          ${fieldInputHtml(f)}
         </div>
       `).join("");
 

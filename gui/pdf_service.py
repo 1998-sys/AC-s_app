@@ -365,7 +365,7 @@ class PdfProcessingService:
     def _processar_xml_ft(self, caminho):
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
-            from form.utils_print_linearizacao import gerar_linearizacao
+            from form.utils_print_linearizacao import gerar_linearizacao, contexto_db
 
             self.api._progress(30, "extract", [])
             if not is_certificado_ft(caminho):
@@ -379,6 +379,42 @@ class PdfProcessingService:
                 return
 
             dados = extrair_dados_ft(caminho)
+            if self._cancelado:
+                self.api._voltar_para_selecao()
+                return
+
+            # Aplicação/Sistema não existem no cadastro de instrumentos pra
+            # medidor de vazão (isso é só pra instrumentos secundários) — e
+            # Aplicação alimenta a fórmula de Status do template (tolerância
+            # ±0,2% pra Fiscal/Transferência de Custódia, ±0,6% pros demais),
+            # então precisa ser pedida ao usuário em vez de deixar em branco.
+            aplicacao_padrao, sistema_padrao = contexto_db(dados.get("tag", ""))
+            valores = self.api.prompt(
+                "Aplicação e sistema",
+                "Preencha os dados abaixo para gerar a Linearização.",
+                [
+                    {
+                        "name": "aplicacao",
+                        "label": "Aplicação",
+                        "required": True,
+                        "type": "select",
+                        "options": ["Fiscal", "Apropriação", "Transferência de Custódia"],
+                        "value": aplicacao_padrao,
+                    },
+                    {
+                        "name": "sistema",
+                        "label": "Sistema",
+                        "required": False,
+                        "value": sistema_padrao,
+                    },
+                ],
+            )
+            if not valores:
+                self.api._voltar_para_selecao()
+                return
+            dados["aplicacao"] = valores.get("aplicacao", "")
+            dados["sistema"] = valores.get("sistema", "")
+
             if self._cancelado:
                 self.api._voltar_para_selecao()
                 return

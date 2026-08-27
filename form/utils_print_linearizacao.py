@@ -68,8 +68,11 @@ def _cliente_do_caminho(caminho: str) -> str:
     return ""
 
 
-def _contexto_db(tag: str):
-    """Busca aplicacao e sistema no banco de dados pelo TAG."""
+def contexto_db(tag: str):
+    """Busca aplicacao e sistema no cadastro de instrumentos pelo TAG — usado
+    só como valor pré-preenchido do prompt que pede esses dois campos ao
+    usuário (ver PdfProcessingService._processar_xml_ft); medidores de vazão
+    não são desse cadastro, então normalmente volta vazio."""
     try:
         from data.utils_db import buscar_instrumento_por_tag
         inst = buscar_instrumento_por_tag(tag)
@@ -135,14 +138,16 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     C = CELLS  # atalho
 
     # ── Cabeçalho esquerda ────────────────────────────────────────────────
+    # aplicacao/sistema vêm do prompt pedido ao usuário ao soltar o XML
+    # (PdfProcessingService._processar_xml_ft) — não existem no cadastro de
+    # instrumentos pra medidor de vazão.
     cliente = _cliente_do_caminho(caminho_xml)
-    aplicacao, sistema = _contexto_db(dados.get("tag", ""))
 
     ws[C["cliente"]]         = cliente
     ws[C["instalacao"]]      = dados.get("unidade_operacional", "")
     ws[C["tag_sistema"]]     = dados.get("tag", "")
-    ws[C["aplicacao"]]       = aplicacao
-    ws[C["sistema"]]         = sistema
+    ws[C["aplicacao"]]       = dados.get("aplicacao", "")
+    ws[C["sistema"]]         = dados.get("sistema", "")
     ws[C["data_calibracao"]] = _data_br(dados.get("data_calibracao", ""))
     ws[C["tipo_medidor"]]    = dados.get("tipo", "")
 
