@@ -173,3 +173,77 @@ Seção específica "Cálculo Falha Presumida" (linha 81+) precisa de **dois** X
 ### Fase 5 — Entrega
 - [ ] Atualizar a descrição da skill principal (`gerar-xml-calibracao`) ou o `README` do plugin mencionando as novas saídas disponíveis.
 - [ ] Testar o fluxo completo: PDF do certificado → XML → (opcional: XML anterior) → Linearização + Falha Presumida em PDF/xlsx.
+
+---
+
+## Tarefa (ainda não executada): perguntar Aplicação e Sistema ao soltar o XML
+
+Hoje `gerar_linearizacao` preenche Aplicação (D12) e Sistema (D13) via
+`_contexto_db(tag)` — uma busca no cadastro de instrumentos **secundários**
+(`instrumentos.db`, `buscar_instrumento_por_tag`). Medidores de vazão
+(TAG tipo `FT-1198B-01`) não são desse cadastro, então na prática essa
+busca sempre volta vazio e os dois campos saem em branco no relatório.
+
+Isso não é só cosmético: **Aplicação alimenta a fórmula de Status do
+template** (`FISCAL`/`TRANSFERÊNCIA DE CUSTÓDIA` → tolerância ±0,2%;
+qualquer outro valor → ±0,6%, ver "Atualização" acima) — deixar em
+branco hoje aplica silenciosamente a tolerância mais frouxa, o que pode
+estar errado pra um medidor fiscal/custódia.
+
+**Pedido do usuário:**
+- Depois que o usuário solta/seleciona o XML do medidor de vazão (antes
+  de gerar o relatório), pedir:
+  - **Aplicação**: campo **selecionável** (não texto livre) — opções
+    Fiscal / Apropriação / Transferência de Custódia.
+  - **Sistema**: campo de texto livre (usuário digita).
+
+**Levantamento já feito:**
+- O mecanismo de prompt já existe e já é usado num caso parecido:
+  `PdfProcessingService.solicitar_dados_origem` (`gui/pdf_service.py`)
+  chama `api.prompt(titulo, mensagem, fields)` — que vira
+  `Dialogs.prompt(...)` em `webui/js/dialogs.js` — e bloqueia até o
+  usuário responder (inclusive em lote, já que ORIGEM já faz isso hoje
+  no meio da fila sem quebrar nada). O mesmo padrão serve aqui: chamar o
+  prompt em `_processar_xml_ft`, entre `is_certificado_ft` e
+  `extrair_dados_ft`/`gerar_linearizacao`; se o usuário cancelar
+  (`prompt` retorna `None`), voltar pra seleção como `solicitar_dados_origem`
+  já faz.
+- **Mas o `Dialogs.prompt` atual só sabe renderizar `<input type="text">`**
+  (`webui/js/dialogs.js`, função `prompt`) — não existe campo
+  selecionável/dropdown ainda. Precisa estender o formato de `fields`
+  (ex.: `{name, label, type: "select", options: [...], required}`) e o
+  HTML gerado, mantendo compatibilidade com os prompts de texto já
+  existentes (ORIGEM) que não passam `type`.
+- `form/utils_print_linearizacao.py::gerar_linearizacao` hoje chama
+  `_contexto_db(tag)` internamente pra obter aplicacao/sistema — passar
+  a receber esses dois valores já prontos em `dados` (preenchidos pelo
+  prompt em `pdf_service.py`) em vez de buscar sozinho. Vale considerar
+  usar `_contexto_db(tag)` só como **valor pré-preenchido** do prompt
+  (não descartar totalmente — se um dia esses medidores entrarem nesse
+  cadastro, o usuário só confirma em vez de redigitar toda vez).
+- [x] Confirmado com o usuário: **Sistema é opcional** (pode ficar em
+      branco); só Aplicação é obrigatório.
+
+**Implementação:**
+- [x] `webui/js/dialogs.js`: `Dialogs.prompt` ganha suporte a campo
+      `type: "select"` (função `fieldInputHtml`) — mantém `<input
+      type="text">` como padrão pros prompts existentes (ORIGEM) que não
+      passam `type`. `collect()` já funciona sem mudança (`<select>`
+      também tem `.value`).
+- [x] `form/utils_print_linearizacao.py`: `_contexto_db` renomeada pra
+      `contexto_db` (sem underscore — agora é usada por outro módulo) e
+      vira só o valor **pré-preenchido** do prompt; `gerar_linearizacao`
+      passa a ler `dados["aplicacao"]`/`dados["sistema"]` direto (que já
+      chegam prontos, preenchidos pelo prompt).
+- [x] `gui/pdf_service.py::_processar_xml_ft`: depois de extrair os dados
+      do XML, chama `api.prompt(...)` com os 2 campos (Aplicação
+      select/obrigatório, Sistema texto/opcional), pré-preenchidos via
+      `contexto_db(tag)`. Se o usuário cancelar, volta pra seleção
+      (mesmo padrão do `solicitar_dados_origem`).
+- [x] Testado: (1) HTML do modal via `evaluate_js` confirma o `<select>`
+      com as 3 opções + a vazia, e o `<input>` de Sistema sem asterisco;
+      (2) gerado o relatório com Aplicação="Fiscal" e um ponto de 0,30%
+      de erro → Status saiu **REPROVADO** (tolerância ±0,2%); com
+      Aplicação vazia, o mesmo ponto saiu **APROVADO** (tolerância
+      ±0,6%) — confirma que o valor escolhido no prompt realmente
+      alimenta a fórmula de Status do template.
