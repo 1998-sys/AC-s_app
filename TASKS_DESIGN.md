@@ -879,3 +879,98 @@ pra fechar.
       Não deu pra capturar a tela de Saída final por timing do
       screenshot externo (não é um problema de código, só da captura).
       Testado pelo usuário no app real (arquivo único e em lote) — aprovado.
+
+## Automatizar Localização e Nº AC do fluxo ORIGEM (remover SAP)
+
+Hoje, ao ler um certificado de cliente ORIGEM, `fluxo_origem`
+(`processors/utils.py`) sempre chama `Api.solicitar_dados_origem`, que
+abre um prompt pedindo **Localização**, **SAP** e **Nº AC** — nenhum dos
+3 vem do certificado.
+
+**Correção de rumo:** a 1ª versão desta tarefa presumiu que a tabela
+"Itens Relacionados" (formato visto em `LDN-030.pdf`) vinha embutida no
+próprio certificado — **errado**, confirmado com o usuário. É um
+**documento separado** (tipo LDN, um por local/sistema, cobrindo várias
+TAGs) que o usuário escolhe incluir manualmente quando quiser.
+
+**Fluxo confirmado pelo usuário:** selecionar os certificados
+normalmente → ao processar o 1º certificado ORIGEM da leitura, uma
+mensagem pergunta se o usuário quer incluir os dados complementares
+automaticamente → se sim, abre a seleção de arquivo pro documento de
+Itens Relacionados → o app lê esse documento, monta a tabela TAG→(Nº AC,
+Localização) e aplica a todos os certificados ORIGEM **dessa mesma
+sessão de leitura** (não pergunta de novo a cada certificado). Se a TAG
+de algum certificado não estiver no documento (ou o usuário recusar/
+cancelar a seleção), cai no preenchimento manual só pra esse certificado.
+
+**Formato identificado** (linha da tabela "Itens Relacionados", texto
+extraído do PDF gruda a coluna Nome com a Descrição sem espaço):
+```
+AC-1600.0000-6252-812-O2C-574AC - Análise Crítica - PDT-124402
+```
+- O trecho **antes do 2º "AC"** é o próprio Nº AC:
+  `AC-1600.0000-6252-812-O2C-574`.
+- Os 4 dígitos logo após "AC-" (`1600`) identificam a **localização**:
+
+| Código | Localização |
+|---|---|
+| 1100 | Anambé |
+| 1200 | Arapaçu |
+| 1300 | Cidade de São Miguel dos Campos |
+| 1400 | Furado |
+| 1500 | Paru |
+| 1600 | Pilar |
+| 1700 | São Miguel dos Campos |
+| 1900 | ESGN |
+| 2100 | Conceição |
+| 2400 | Quererá |
+
+- A parte final da descrição (`PDT-124402`) é a TAG do instrumento
+  daquele item — usada pra achar, no documento, qual linha corresponde
+  ao certificado sendo processado (comparando com a TAG já extraída por
+  `extrair_tag`).
+
+**Implementação:**
+- [x] `pdf/parser_certificados.py`: `extrair_itens_relacionados(texto)`
+      parseia o documento inteiro (ex.: LDN) e devolve
+      `{tag_normalizada: (numero_ac, localizacao)}`; `buscar_item_relacionado`
+      consulta esse dict por TAG. Removida a versão anterior que buscava
+      dentro do texto do próprio certificado.
+- [x] `gui/pdf_service.py`: `_itens_relacionados_cache`/
+      `_itens_relacionados_perguntado` (resetados em `iniciar_leitura` —
+      escopo de uma sessão de leitura). Novo `dados_origem_automaticos(tag)`:
+      pergunta (`api.confirm`) só na 1ª vez da sessão; se sim, abre
+      `api.escolher_arquivo` (PDF), extrai o texto e monta o cache; devolve
+      `(n_ac, localizacao)` da TAG pedida (ou `(None, None)`).
+- [x] `gui/api.py`: exposto `dados_origem_automaticos(tag)` delegando pro
+      `PdfProcessingService`.
+- [x] `processors/utils.py::fluxo_origem`: chama
+      `app.dados_origem_automaticos(tag)`; se achar os dois valores, pula
+      `solicitar_dados_origem` e segue direto; senão, prompt manual (como
+      já era, agora sem SAP).
+- [x] `gui/pdf_service.py::solicitar_dados_origem`: campo `sap` removido
+      do prompt e da atribuição em `dados_pdf`.
+- [x] Testado isoladamente `extrair_itens_relacionados`/
+      `buscar_item_relacionado` com o texto do `LDN-030.pdf` — as 7 linhas
+      "AC -..." indexadas corretamente (as "CI -..." ficam de fora, não é
+      o que "Nº AC" precisa), TAG inexistente devolve `(None, None)`
+      corretamente.
+
+**Ainda em aberto (pendente de teste do usuário com o fluxo real):**
+- [ ] O valor final de "Nº AC" é o código completo
+      (`AC-1600.0000-6252-812-O2C-574`) — não confirmado se é isso ou só
+      um trecho (ex.: só `574`).
+- [ ] `form/utils_print_ORIGEM.py` escreve hoje `F6: "SAP: {sap}"` — como
+      `sap` deixa de existir, a linha deixou de escrever nessa célula
+      (mantém o que já estiver no template). Conferir se o PDF final não
+      fica com uma célula estranha/vazia por causa disso.
+- [ ] Casamento de TAG: comparação normaliza caixa e os vários tipos de
+      hífen (mesmo tratamento de `extrair_tag`), mas é exata — se a TAG do
+      certificado e a TAG no documento de Itens Relacionados divergirem em
+      formatação, cai no preenchimento manual (seguro, mas vale confirmar
+      que não vira o caso comum).
+- [ ] Testar o fluxo completo real: selecionar certificados ORIGEM →
+      confirmar inclusão automática → escolher o documento (ex.: LDN) →
+      conferir que Localização/Nº AC saem certos no PDF final, e que num
+      lote com várias TAGs o documento é reaproveitado sem perguntar de
+      novo.

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.utils_print_PRIO_PO
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Fills the AC PRIO orifice plate (PO) Excel template, adjusting borders and print area, and exports it to PDF via Excel COM automation.
+#                 Preenche o template Excel de AC PRIO de placa de orifício (PO), ajustando bordas e área de impressão, e o exporta para PDF via automação COM do Excel.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import openpyxl
 import win32com.client as win32
 import os

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_certificados
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses secondary instrument calibration certificates (pressure/temperature transmitters, thermometers, manometers), extracting tags, ranges, signatories and metrological data.
+#                 Analisa certificados de calibração de instrumentos secundários (transmissores de pressão/temperatura, termômetros, manômetros), extraindo TAGs, ranges, signatários e dados metrológicos.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 import unicodedata
 from xml_model.xml_generator import normalizar_certificado
@@ -547,6 +559,68 @@ def extrair_tipo_sensor(texto):
 
     return None
 
+LOCALIZACOES_ORIGEM = {
+    "1100": "Anambé",
+    "1200": "Arapaçu",
+    "1300": "Cidade de São Miguel dos Campos",
+    "1400": "Furado",
+    "1500": "Paru",
+    "1600": "Pilar",
+    "1700": "São Miguel dos Campos",
+    "1900": "ESGN",
+    "2100": "Conceição",
+    "2400": "Quererá",
+}
+
+
+def _normalizar_tag_relacionado(tag):
+    if not tag:
+        return ""
+    tag = tag.strip().upper()
+    for ch in "‐‒–—―":
+        tag = tag.replace(ch, "-")
+    return re.sub(r"\s+", "", tag)
+
+
+def extrair_itens_relacionados(texto):
+    """Parseia um documento "Itens Relacionados" da Origem (ex.: LDN-030.pdf
+    — um arquivo separado dos certificados, escolhido pelo usuário) e
+    devolve um dict {tag_normalizada: (numero_ac, localizacao)} com uma
+    entrada por linha "AC - Análise Crítica - <TAG>" cuja localização (4
+    dígitos logo após "AC-") seja reconhecida.
+
+    O texto extraído gruda a coluna "Nome" com a "Descrição" sem espaço,
+    ex.: "AC-1600.0000-6252-812-O2C-574AC - Análise Crítica - PDT-124402"
+    — o trecho antes do 2º "AC" é o número da AC."""
+    resultado = {}
+    if not texto:
+        return resultado
+
+    padrao = re.compile(
+        r"(AC-(\d{4})\.\d+-\d+-\d+-O2C-\d+)\s*AC\s*-\s*An[áa]lise\s*Cr[íi]tica\s*-\s*([^\n\r]+)",
+        re.IGNORECASE,
+    )
+
+    for m in padrao.finditer(texto):
+        codigo, cod_local, tag_desc = m.group(1), m.group(2), m.group(3)
+        localizacao = LOCALIZACOES_ORIGEM.get(cod_local)
+        if not localizacao:
+            continue
+        tag_norm = _normalizar_tag_relacionado(tag_desc)
+        if tag_norm:
+            resultado[tag_norm] = (codigo, localizacao)
+
+    return resultado
+
+
+def buscar_item_relacionado(mapa_itens_relacionados, tag):
+    """Consulta o dict montado por extrair_itens_relacionados pela TAG deste
+    certificado. Devolve (numero_ac, localizacao) ou (None, None)."""
+    if not mapa_itens_relacionados or not tag:
+        return None, None
+    return mapa_itens_relacionados.get(_normalizar_tag_relacionado(tag), (None, None))
+
+
 def extrair_codigo_ods(certificado: str) -> str | None:
     if not certificado:
         return None
@@ -617,8 +691,7 @@ def extrair_campos(texto: str) -> dict:
         "padroes_utilizados": padroes,
         "procedimento": proced,
         "fabricante": fab,
-        "modelo": model
-        
+        "modelo": model,
     }
 
 

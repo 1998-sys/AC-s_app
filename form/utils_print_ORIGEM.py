@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.utils_print_ORIGEM
+# Created       : 02-01-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Fills the AC ORIGEM Excel template and exports it to PDF via Excel COM automation.
+#                 Preenche o template Excel de AC ORIGEM e o exporta para PDF via automação COM do Excel.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import openpyxl
 from openpyxl.styles import Alignment
 from openpyxl.cell.rich_text import CellRichText, TextBlock
@@ -70,7 +82,10 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
 
     escrever(ws, "A6",  dados.get("tag"))
     escrever(ws, "C6",  dados.get("localizacao"))
-    escrever(ws, "F6", f"SAP: {dados.get('sap', '')}")
+    # F6 (SAP) não é mais preenchido — o campo foi removido do fluxo (ver
+    # processors/utils.py::fluxo_origem). Mantém o que já estiver no
+    # template pronto; TODO conferir se a célula fica com aparência
+    # estranha em branco e, se sim, limpar o rótulo direto no template.
     escrever(ws, "G6", f"CE: {dados.get('n_ac', '')}")
     escrever(ws, "A13", dados.get("certificado"))
     escrever(ws, "D13", dados.get("data"))

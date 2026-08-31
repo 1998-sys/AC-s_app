@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : processors.base_processor
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Defines the base processor class and the shared "certificate then Evaluation Report" flow reused by the concrete instrument processors.
+#                 Define a classe base dos processors e o fluxo compartilhado "certificado depois Evaluation Report" reutilizado pelos processors concretos de instrumento.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from threading import Thread
 
 from pdf.extrator import extrair_texto

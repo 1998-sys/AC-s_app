@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_er_common
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Shared helpers for the Evaluation Report (ER) parsers, extracting the report number and normalizing whitespace.
+#                 Funções auxiliares compartilhadas pelos parsers de Relatório de Avaliação (ER), extraindo o número do relatório e normalizando espaços.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 
 from xml_model.xml_generator import normalizar_certificado

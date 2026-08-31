@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_tr_ER
+# Created       : 24-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses Gas Meter Run Evaluation Report (ER) PDFs, extracting the accept/reject results for cylindricity, roughness and length checks along the meter run.
+#                 Analisa PDFs de Relatório de Avaliação (ER) de Trecho Reto, extraindo os resultados de aprovação/reprovação das verificações de cilindricidade, rugosidade e comprimento ao longo do trecho.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 from pdf.parser_er_common import extrair_numero_evaluation, normalizar_espacos
 

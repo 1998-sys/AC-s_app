@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : validation.issue
+# Created       : 22-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Defines the ValidationIssue class that represents a divergence detected during validation, along with its optional correction action.
+#                 Define a classe ValidationIssue, que representa uma divergência detectada durante a validação, junto com sua ação de correção opcional.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 class ValidationIssue:
     def __init__(
         self,

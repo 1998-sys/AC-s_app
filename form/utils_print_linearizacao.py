@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.utils_print_linearizacao
+# Created       : 31-07-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Fills the flow meter linearization Excel template with the calibration points and exports both XLSX and PDF.
+#                 Preenche o template Excel de linearização de medidor de vazão com os pontos de calibração e exporta o XLSX e o PDF.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from copy import copy
 import openpyxl
 from openpyxl.styles import Border, Side

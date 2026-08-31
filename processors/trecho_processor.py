@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : processors.trecho_processor
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Handles the Gas Meter Run (straight length/Trecho Reto) instrument flow, requesting the Evaluation Report and extracting its dimensional data.
+#                 Trata o fluxo do instrumento Gas Meter Run (trecho reto), solicitando o Evaluation Report e extraindo seus dados dimensionais.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from processors.base_processor import BaseProcessor
 from pdf.parser_tr_ER import extrair_campos_er_tr
 from xml_model.xml_extractor_TR import extrair_dados_dim_tr

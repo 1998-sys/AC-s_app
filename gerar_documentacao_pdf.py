@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gerar_documentacao_pdf
+# Created       : 04-05-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Builds a PDF technical documentation booklet for the AC's Generator, rendering flowcharts and reference tables of validation rules and supported client templates.
+#                 Monta um PDF de documentação técnica do AC's Generator, renderizando fluxogramas e tabelas de referência das regras de validação e templates de clientes suportados.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 """
 Gera PDF de documentação do AC's Generator com:
   - Fluxo principal (imagem via mermaid.ink)

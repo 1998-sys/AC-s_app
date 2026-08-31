@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_extractor
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Extracts calibration points (reference, mean, deviation, uncertainty, k) from standard PDF certificate tables (TE, TT, PT, DPT).
+#                 Extrai os pontos de calibração (referência, média, tendência, incerteza, k) das tabelas dos certificados padrão em PDF (TE, TT, PT, DPT).
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import pdfplumber
 from pdf.parser_certificados import extrair_curva_calibracao, aplicar_curva_kpa
 

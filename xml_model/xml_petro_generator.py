@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_petro_generator
+# Created       : 20-01-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Generates the Petrobras-schema calibration certificate XML (temperature/pressure) from the extracted PDF data and calibration points.
+#                 Gera o XML de certificado de calibração no padrão Petrobras (temperatura/pressão) a partir dos dados e pontos de calibração extraídos do PDF.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import xml.etree.ElementTree as ET
 import calendar
 import os

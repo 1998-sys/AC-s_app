@@ -1,3 +1,14 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.utils_parser
+# Created       : 23-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Identifies the certificate/report type from its extracted text and routes it to the matching parser.
+#                 Identifica o tipo de certificado/relatório a partir do texto extraído e o roteia para o parser correspondente.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
 
 from pdf.extrator import extrair_texto
 from pdf.parser_certificados import extrair_campos

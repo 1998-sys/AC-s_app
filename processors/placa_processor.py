@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : processors.placa_processor
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Handles the orifice plate (Placa de Orifício) instrument flow, requesting the Report Valuation and extracting its measured points.
+#                 Trata o fluxo do instrumento placa de orifício, solicitando o Report Valuation e extraindo seus pontos medidos.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from processors.base_processor import BaseProcessor
 from pdf.parser_po_ER import extrair_campos_er
 from xml_model.xml_extractor_PO import extrair_valores_medidos

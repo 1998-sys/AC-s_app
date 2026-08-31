@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : Ac_app
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Application entry point: prepares safe console/output encoding, initializes the database and launches the pywebview desktop window.
+#                 Ponto de entrada da aplicação: prepara a codificação segura do console/saída, inicializa o banco de dados e inicia a janela desktop do pywebview.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import os
 import sys
 from pathlib import Path

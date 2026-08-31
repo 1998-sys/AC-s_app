@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.full_ac_templates
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Fills the full AC Excel templates for PRIO, YINSON and YINSON ATLANTA and exports them to PDF via Excel COM automation.
+#                 Preenche os templates Excel de AC completa para PRIO, YINSON e YINSON ATLANTA e os exporta para PDF via automação COM do Excel.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import openpyxl
 from openpyxl.styles import Alignment
 from openpyxl.cell.rich_text import CellRichText, TextBlock

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.revision_service
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Orchestrates the divergence review screen and generates the Critical Analysis, both for single certificates and batches.
+#                 Orquestra a tela de revisão de divergências e gera a Análise Crítica, tanto para certificados avulsos quanto em lote.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import os
 import json
 import time

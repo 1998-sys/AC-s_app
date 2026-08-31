@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_uc_generator
+# Created       : 21-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Generates the uncertainty calculation report XML (UncertaintyReport) with the measurement chain components and their metrological limits.
+#                 Gera o XML do relatório de cálculo de incerteza (UncertaintyReport) com os componentes da cadeia de medição e seus limites metrológicos.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 import xml.etree.ElementTree as ET
 

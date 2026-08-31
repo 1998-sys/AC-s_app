@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : core.dispatcher
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Resolves the instrument type to its processor and dispatches the extracted data for processing.
+#                 Resolve o tipo de instrumento para seu processor e despacha os dados extraídos para processamento.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from core.processor_factory import ProcessorFactory
 
 

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.instrument_service
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Implements the lookup and save logic for the instrument registration/edit screen.
+#                 Implementa a busca e o salvamento da tela de cadastro/edição de instrumento.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import getpass
 from datetime import datetime
 

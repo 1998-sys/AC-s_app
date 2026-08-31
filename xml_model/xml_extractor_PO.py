@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_extractor_PO
+# Created       : 23-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Extracts the measured dimensional values (bore diameter, thickness, flatness, roughness, angles) of an orifice plate inspection PDF.
+#                 Extrai os valores dimensionais medidos (diâmetro do furo, espessura, planeza, rugosidade, ângulos) do PDF de inspeção da placa de orifício.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import pdfplumber
 import unicodedata
 import re

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.pdf_service
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Orchestrates the certificate reading queue, classifying each PDF/XML and routing it to direct XML generation or to the Dispatcher.
+#                 Orquestra a fila de leitura de certificados, classificando cada PDF/XML e encaminhando para geração direta de XML ou para o Dispatcher.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import base64
 import json
 import os
@@ -28,6 +40,12 @@ class PdfProcessingService:
         self.api = api
         self._cancelado = False
         self._inicio_item_ts = None
+
+        # Cache de "Itens Relacionados" da Origem (ex.: LDN-030.pdf) pra essa
+        # sessão de leitura — ver dados_origem_automaticos. Resetado a cada
+        # iniciar_leitura pra não vazar de uma sessão de leitura pra outra.
+        self._itens_relacionados_cache = {}
+        self._itens_relacionados_perguntado = False
 
         # Tipos que geram XML diretamente a partir do PDF, sem passar pela tela
         # de revisão — diferente dos tipos despachados via Dispatcher/ProcessorFactory.
@@ -90,6 +108,8 @@ class PdfProcessingService:
         self.api.resultados_lote = []
         self.api.eventos_lote = []
         self.api.instrumentos_lote = []
+        self._itens_relacionados_cache = {}
+        self._itens_relacionados_perguntado = False
         self._processar_item_da_fila()
 
     def _processar_item_da_fila(self):
@@ -229,13 +249,43 @@ class PdfProcessingService:
         self.api.eventos_lote = []
         return payload
 
+    def dados_origem_automaticos(self, tag):
+        """Retorna (n_ac, localizacao) pra essa TAG a partir de um documento
+        "Itens Relacionados" da Origem (ex.: LDN-030.pdf) — pergunta ao
+        usuário, só na primeira vez nesta sessão de leitura (reset em
+        iniciar_leitura), se ele quer incluir esse documento; se sim, abre
+        a seleção de arquivo e monta o cache pra essa sessão inteira (um
+        documento cobre várias TAGs). Devolve (None, None) se o usuário
+        recusar, cancelar a seleção, ou a TAG não estiver no documento —
+        processors.utils.fluxo_origem cai pro prompt manual nesse caso."""
+        if not self._itens_relacionados_perguntado:
+            self._itens_relacionados_perguntado = True
+            if self.api.confirm(
+                "Dados complementares automáticos",
+                "Deseja incluir automaticamente Localização e Nº AC a partir "
+                "de um documento de Itens Relacionados (ex.: LDN)?",
+            ):
+                caminho = self.api.escolher_arquivo(
+                    "Selecione o documento de Itens Relacionados",
+                    ("PDF (*.pdf)",),
+                )
+                if caminho:
+                    from pdf.extrator import extrair_texto
+                    from pdf.parser_certificados import extrair_itens_relacionados
+                    texto = extrair_texto(caminho)
+                    self._itens_relacionados_cache = extrair_itens_relacionados(texto)
+
+        from pdf.parser_certificados import buscar_item_relacionado
+        return buscar_item_relacionado(self._itens_relacionados_cache, tag)
+
     def solicitar_dados_origem(self, dados_pdf, callback):
+        # Chamado quando dados_origem_automaticos não achou Localização/Nº AC
+        # (usuário não incluiu o documento, ou a TAG não estava nele).
         valores = self.api.prompt(
             "Dados complementares",
             "Preencha as informações adicionais exigidas para certificados ORIGEM.",
             [
                 {"name": "localizacao", "label": "Localização", "required": True},
-                {"name": "sap", "label": "SAP", "required": False},
                 {"name": "n_ac", "label": "Nº AC", "required": False},
             ],
         )
@@ -243,7 +293,6 @@ class PdfProcessingService:
             self.api._voltar_para_selecao()
             return
         dados_pdf["localizacao"] = valores.get("localizacao", "")
-        dados_pdf["sap"] = valores.get("sap", "")
         dados_pdf["n_ac"] = valores.get("n_ac", "")
         callback(dados_pdf)
 

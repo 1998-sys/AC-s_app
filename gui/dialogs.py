@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.dialogs
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Bridges Python and the CertiFlow web UI's JS dialogs/navigation via window.evaluate_js.
+#                 Faz a ponte entre o Python e os diálogos/navegação em JS da UI web do CertiFlow via window.evaluate_js.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import json
 from threading import Event
 

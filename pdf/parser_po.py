@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_po
+# Created       : 23-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses orifice plate calibration certificates, extracting item, material, thermal coefficient, pipe diameter and TAG.
+#                 Analisa certificados de calibração de placa de orifício, extraindo item, material, coeficiente de dilatação, diâmetro do tubo e TAG.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 from pdf.parser_certificados import (extrair_certificado, extrair_datas, extrair_nome_cliente, endereco_cliente, extrair_local,
 SIGNATARIOS_VALIDOS, extrair_assinaturas, separar_signatario, extrair_condicoes_ambientais, extrair_padroes, extrair_sn,

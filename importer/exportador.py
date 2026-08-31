@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : importer.exportador
+# Created       : 15-05-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Exports the full instrument registry to an xlsx file formatted like the import template.
+#                 Exporta o cadastro completo de instrumentos para um arquivo xlsx no mesmo formato do template de importação.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import os
 from datetime import datetime
 

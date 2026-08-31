@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_origem_cromato
+# Created       : 25-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses chromatography reports from Origem Energia Alagoas's internal lab (LIMS Report Builder), extracting gas properties and their uncertainties.
+#                 Analisa relatórios de cromatografia do laboratório interno da Origem Energia Alagoas (LIMS Report Builder), extraindo propriedades do gás e suas incertezas.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 
 

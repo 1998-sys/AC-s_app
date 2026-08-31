@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.utils_print
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Routes AC generation by client and instrument type, driving XML generation, XSD validation and the matching PDF template.
+#                 Roteia a geração da AC por cliente e tipo de instrumento, orquestrando a geração de XML, a validação XSD e o template de PDF correspondente.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from form.utils_print_PRIO_PO import gerar_ac_prio_po
 from form.utils_print_ORIGEM import gerar_ac_origem
 from form.full_ac_templates import gerar_ac_prio, gerar_ac_yinson, gerar_ac_yinson_atlanta

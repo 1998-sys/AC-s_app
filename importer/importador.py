@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : importer.importador
+# Created       : 04-05-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Reads an xlsx spreadsheet, categorizes each row against the instrument registry, and persists the accepted rows to the database.
+#                 Lê uma planilha xlsx, categoriza cada linha em relação ao cadastro de instrumentos e grava no banco as linhas aceitas.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import openpyxl
 from collections import defaultdict
 from importer.validador import validar_linha

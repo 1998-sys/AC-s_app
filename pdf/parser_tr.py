@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_tr
+# Created       : 24-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses Gas Meter Run (trecho reto) calibration certificates, extracting standard, components, dimensions and environmental conditions.
+#                 Analisa certificados de calibração de Trecho Reto (Gas Meter Run), extraindo norma, componentes, dimensões e condições ambientais.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 from pdf.parser_certificados import (
     extrair_certificado, extrair_datas, endereco_cliente,

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.api
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Exposes the facade class injected into pywebview as js_api, delegating each UI action to its dedicated gui service.
+#                 Expõe a classe facade injetada no pywebview como js_api, delegando cada ação da UI para o serviço gui correspondente.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import os
 import sys
 
@@ -113,6 +125,9 @@ class Api:
 
     def solicitar_dados_origem(self, dados_pdf, callback):
         return self._pdf_service.solicitar_dados_origem(dados_pdf, callback)
+
+    def dados_origem_automaticos(self, tag):
+        return self._pdf_service.dados_origem_automaticos(tag)
 
     # ---------- Tela 1 → 2: seleção, leitura e classificação do PDF/XML ----------
 

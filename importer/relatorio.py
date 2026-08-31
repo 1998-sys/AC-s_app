@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : importer.relatorio
+# Created       : 04-05-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Generates a text report listing the rows from a bulk import that were blocked, warned or skipped.
+#                 Gera um relatório em texto listando as linhas de uma importação em massa que foram bloqueadas, geraram aviso ou foram puladas.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import os
 from datetime import datetime
 

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : data.utils_db
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Database access layer with helper functions to insert, search and update instrument records.
+#                 Camada de acesso ao banco de dados com funções auxiliares para inserir, buscar e atualizar registros de instrumentos.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from contextlib import closing
 from data.conexao import conectar
 

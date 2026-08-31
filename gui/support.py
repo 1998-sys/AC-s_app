@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.support
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Provides small shared constants and helpers used across the gui/ services.
+#                 Fornece constantes e helpers pequenos compartilhados entre os serviços de gui/.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 """Constantes e helpers pequenos compartilhados pelos serviços de gui/."""
 
 from pathlib import Path

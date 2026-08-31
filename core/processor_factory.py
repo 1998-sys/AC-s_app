@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : core.processor_factory
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Factory that instantiates the processor class matching a given instrument type.
+#                 Fábrica que instancia a classe de processor correspondente a um dado tipo de instrumento.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from processors.secundario_processor import SecundarioProcessor
 from processors.placa_processor import PlacaProcessor
 from processors.trecho_processor import TrechoProcessor

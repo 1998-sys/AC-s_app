@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : validation.rules_po
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Implements the validation rules for orifice plates, checking plate registration and comparing certificate data against the Evaluation Report.
+#                 Implementa as regras de validação para placas de orifício, verificando o cadastro da placa e comparando os dados do certificado com o Evaluation Report.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 from validation.issue import ValidationIssue
 from data.utils_db import inserir_placa, buscar_placa_por_tag, buscar_placa_por_sn

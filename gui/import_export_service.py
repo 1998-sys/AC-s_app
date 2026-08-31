@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : gui.import_export_service
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Handles bulk import/export of the instrument database through XLSX spreadsheets.
+#                 Cuida da importação/exportação em massa da base de instrumentos via planilhas XLSX.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from collections import defaultdict
 
 from importer.importador import ler_xlsx, executar

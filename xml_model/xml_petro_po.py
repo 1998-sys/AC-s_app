@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_petro_po
+# Created       : 23-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Generates the Petrobras-schema orifice plate inspection certificate XML from the measured dimensional values and approval criteria.
+#                 Gera o XML de certificado de inspeção da placa de orifício no padrão Petrobras a partir dos valores dimensionais medidos e critérios de aprovação.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import xml.etree.ElementTree as ET
 import calendar
 import os

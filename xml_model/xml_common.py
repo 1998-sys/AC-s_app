@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_common
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Shared helper that pretty-prints an XML Element and writes it to disk, used by all certificate XML generators.
+#                 Helper compartilhado que formata um Element XML e grava em disco, usado por todos os geradores de XML de certificado.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from pathlib import Path

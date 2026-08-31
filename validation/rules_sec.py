@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : validation.rules_sec
+# Created       : 22-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Implements the validation rules for secondary instruments, checking TAG/SN registration, range, CMC and calibration deadlines against the database.
+#                 Implementa as regras de validação para instrumentos secundários, verificando cadastro de TAG/NS, range, CMC e prazos de calibração em relação ao banco de dados.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from validation.issue import ValidationIssue
 from datetime import datetime, timedelta
 import unicodedata

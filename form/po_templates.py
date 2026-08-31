@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : form.po_templates
+# Created       : 24-08-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Fills the orifice plate (PO) AC Excel templates for ORIGEM, YINSON and YINSON ATLANTA and exports them to PDF via Excel COM automation.
+#                 Preenche os templates Excel de AC de placa de orifício (PO) para ORIGEM, YINSON e YINSON ATLANTA e os exporta para PDF via automação COM do Excel.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import openpyxl
 import os
 import re

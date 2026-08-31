@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_UC
+# Created       : 21-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses Uncertainty Calculation Report (CI) PDFs, extracting instrument, certificate, and DP flow/pressure data.
+#                 Analisa PDFs de Relatório de Cálculo de Incerteza (CI), extraindo dados de instrumentos, certificados e vazão/pressão de DP.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 import logging
 import traceback

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_extractor_TR
+# Created       : 24-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Extracts the dimensional results tables (diameters) of a straight run/meter run inspection PDF, organized by section.
+#                 Extrai as tabelas de resultados dimensionais (diâmetros) do PDF de inspeção do trecho reto/meter run, organizadas por seção.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import pdfplumber
 import unicodedata
 import re

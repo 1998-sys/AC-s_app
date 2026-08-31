@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_cromato
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Builds the reduced chromatography certificate XML with only the properties used in the flow calculation.
+#                 Monta o XML reduzido do certificado de cromatografia com apenas as propriedades usadas no cálculo de vazão.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import unicodedata
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement

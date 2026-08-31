@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_extractor_FT
+# Created       : 31-07-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses a flow meter external calibration XML and returns the header fields and calibration points for the linearization report.
+#                 Interpreta o XML de calibração externa de medidor de vazão e retorna os campos de cabeçalho e os pontos de calibração para o relatório de linearização.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import defusedxml.ElementTree as ET
 
 

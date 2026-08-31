@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.parser_sgs
+# Created       : 25-02-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Parses SGS chromatography reports, extracting client, certificate number, gas composition and standard/sampling condition properties.
+#                 Analisa relatórios de cromatografia da SGS, extraindo cliente, número do certificado, composição do gás e propriedades nas condições padrão/amostragem.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import re
 
 

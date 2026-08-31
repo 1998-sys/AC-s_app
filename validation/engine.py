@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : validation.engine
+# Created       : 22-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Runs the applicable set of validation rules against a context and collects the resulting divergence issues, choosing the rule set based on instrument type.
+#                 Executa o conjunto de regras de validação aplicável a um contexto e reúne as divergências encontradas, escolhendo o conjunto de regras conforme o tipo de instrumento.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import traceback
 
 from validation.issue import ValidationIssue

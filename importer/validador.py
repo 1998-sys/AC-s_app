@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : importer.validador
+# Created       : 04-05-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Validates a single spreadsheet row against the instrument registry, classifying it for insertion, conflict or skip.
+#                 Valida uma única linha da planilha em relação ao cadastro de instrumentos, classificando-a para inserção, conflito ou descarte.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 from data.utils_db import buscar_instrumento_por_tag, buscar_por_sn_instrumento
 
 TIPOS_VALIDOS = {"SEC", "PO"}

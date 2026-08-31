@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : pdf.extrator
+# Created       : 10-12-2025
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Extracts raw text from calibration certificate PDFs using pdfplumber.
+#                 Extrai o texto bruto de PDFs de certificados de calibração usando pdfplumber.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import traceback
 import pdfplumber
 

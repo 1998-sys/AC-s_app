@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xsd_validator
+# Created       : 25-04-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Validates a generated XML against the Petrobras XSD schema and writes an error log when validation fails.
+#                 Valida um XML gerado contra o schema XSD da Petrobras e grava um log de erros quando a validação falha.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import sys
 from lxml import etree
 from pathlib import Path

@@ -1,3 +1,15 @@
+# ----------------------------------------------------------------
+# Project name  : AC's Generator (CertiFlow)
+# Module        : xml_model.xml_table_extractor
+# Created       : 20-01-2026
+# Programmer(s) : Matheus Bandeira
+# ----------------------------------------------------------------
+# Remarks       : Extracts and classifies the calibration tables (AS FOUND/AS LEFT/RESULTS) from the PDF per instrument category into structured records.
+#                 Extrai e classifica as tabelas de calibração (AS FOUND/AS LEFT/RESULTADOS) do PDF por categoria de instrumento em registros estruturados.
+# ----------------------------------------------------------------
+# Copyright (c) ODS Metering Systems
+# ----------------------------------------------------------------
+
 import pdfplumber
 import os
 import sys
