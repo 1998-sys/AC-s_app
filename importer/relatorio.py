@@ -17,12 +17,18 @@ from data.utils_fs import pasta_documentos
 
 
 def gerar(resultado, pulados, caminho_xlsx):
-    """
-    Gera o arquivo .txt de relatório em Documentos/AC's Generator/Relatórios/.
-    Inclui apenas os itens que precisam de atenção: bloqueados, avisos e pulados.
+    """Generates the import report .txt file under Documents/AC's Generator/Relatórios/.
+
+    Includes only the items that need attention: blocked, warnings and skipped. If there
+    is nothing to report, no file is created.
+
+    Args:
+        resultado: dict returned by `ler_xlsx`, with the keys "bloqueado" and "aviso".
+        pulados: list of items with divergent SN that were kept in the database (not overwritten).
+        caminho_xlsx: path of the original xlsx, used to name the report file.
 
     Returns:
-        str: caminho absoluto do .txt gerado, ou None se não houver nada a reportar
+        str: absolute path of the generated .txt, or None if there is nothing to report.
     """
     bloqueados = resultado["bloqueado"]
     avisos     = resultado["aviso"]
@@ -43,6 +49,7 @@ def gerar(resultado, pulados, caminho_xlsx):
     ]
 
     def secao(titulo, itens, fmt):
+        """Appends to `linhas` a "[titulo]" block with one line formatted by `fmt` per item; does nothing if `itens` is empty."""
         if not itens:
             return
         linhas.append(f"[{titulo}]")

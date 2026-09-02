@@ -15,6 +15,15 @@ from pdf.parser_er_common import extrair_numero_evaluation
 
 
 def _resultado_aceite(resultado):
+    """Translates the raw accept/reject result (EN/PT) to "Sim"/"Não".
+
+    Args:
+        resultado: String such as "Accepted", "Aceito", "Rejected" or "Reprovado".
+
+    Returns:
+        str: "Sim" if accepted, "Não" if rejected, or "NÃO ENCONTRADO" if
+        `resultado` is empty or unrecognized.
+    """
     if not resultado:
         return "NÃO ENCONTRADO"
     resultado = resultado.strip().lower()
@@ -26,6 +35,11 @@ def _resultado_aceite(resultado):
 
 
 def resultado_diametro(texto):
+    """Extracts the accept/reject result of the "Orifice Bore Diameter" measurement.
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
     padrao = re.compile(
         r'Orifice\s+Bore\s+Diameter.*?Resultado\s*(Accepted|Aceito|Rejected|Reprovado)',
@@ -39,7 +53,15 @@ def resultado_diametro(texto):
     return "NÃO ENCONTRADO"
 
 def extrair_valores_d(texto_pdf: str):
+    """Extracts the measured diameter values (e.g., "d1-1 = 50.12 mm") from the report.
 
+    Args:
+        texto_pdf: Text extracted from the ER report.
+
+    Returns:
+        dict: {identifier: value} with the value converted to decimal point
+        (e.g., "50.12"); empty dict if no occurrence is found.
+    """
     padrao = re.compile(
         r'\b(d\d+-\d+)\s*=\s*([\d,]+)\s*mm'
     )
@@ -53,6 +75,15 @@ def extrair_valores_d(texto_pdf: str):
 
 
 def extrair_beta(texto_pdf: str) -> str:
+    """Extracts the calculated Beta (β) factor value of the orifice plate.
+
+    Args:
+        texto_pdf: Text extracted from the ER report.
+
+    Returns:
+        str: Beta factor value with decimal point, or empty string if the
+        "β Factor ... Calculated Value:" pattern is not found.
+    """
     padrao = re.compile(
         r'β\s*Factor.*?Calculated\s+Value:\s*([\d,]+)',
         re.DOTALL
@@ -66,6 +97,11 @@ def extrair_beta(texto_pdf: str) -> str:
     return ""
 
 def resultado_beta(texto):
+    """Extracts the accept/reject result of the Beta factor (β Factor/Fator Beta da Placa).
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -81,6 +117,11 @@ def resultado_beta(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_circularidade(texto):
+    """Extracts the accept/reject result of the circularity deviation of the orifice bore diameter.
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -97,7 +138,14 @@ def resultado_circularidade(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_espessura(texto):
+    """Extracts the accept/reject result of the thickness ("Flatness Deviation Thickness E").
 
+    The section carries two "Resultado" results in sequence (flatness and
+    thickness); this function captures the second one, referring to thickness.
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -114,6 +162,15 @@ def resultado_espessura(texto):
     return "NÃO ENCONTRADO"
 
 def extrair_valores_E(texto_pdf: str):
+    """Extracts the measured thickness values at points E1, E3, E5, E7 (e.g., "E1 = 3.21 mm").
+
+    Args:
+        texto_pdf: Text extracted from the ER report.
+
+    Returns:
+        dict: {identifier: value} with the value converted to decimal point;
+        empty dict if no occurrence is found.
+    """
     padrao = re.compile(
         r'\b(E[1357])\s*=\s*([\d,]+)\s*mm'
     )
@@ -126,6 +183,11 @@ def extrair_valores_E(texto_pdf: str):
     return resultados
 
 def resultado_rugosidade(texto):
+    """Extracts the accept/reject result of the upstream face roughness ("Upstream Face Roughness").
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -141,7 +203,14 @@ def resultado_rugosidade(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_planeza(texto):
+    """Extracts the accept/reject result of the flatness ("Flatness Deviation Thickness E").
 
+    Unlike resultado_espessura, this captures the first "Resultado" of the
+    section, referring to flatness.
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -157,7 +226,11 @@ def resultado_planeza(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_angulo_chanfro(texto):
+    """Extracts the accept/reject result of the bevel angle ("Orifice Plate Angled Bevel").
 
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
 
     texto = re.sub(r'\s+', ' ', texto)
 
@@ -174,6 +247,15 @@ def resultado_angulo_chanfro(texto):
     return "NÃO ENCONTRADO"
 
 def extrair_angulo_gh(texto):
+    """Extracts the G-H angle value (e.g., "G-H = 45.0") from the report.
+
+    Args:
+        texto: Text extracted from the ER report.
+
+    Returns:
+        str: Angle value with decimal point, or None if `texto` is empty
+        or the pattern is not found.
+    """
     if not texto:
         return None
 
@@ -191,6 +273,11 @@ def extrair_angulo_gh(texto):
     return None
 
 def resultado_espessura_furo(texto):
+    """Extracts the accept/reject result of the bore thickness ("Thickness 'e'").
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -205,6 +292,15 @@ def resultado_espessura_furo(texto):
     return "NÃO ENCONTRADO"
 
 def extrair_valores_e(texto_pdf: str):
+    """Extracts the measured bore thickness values at points e1, e3, e5, e7 (e.g., "e1 = 3.21 mm").
+
+    Args:
+        texto_pdf: Text extracted from the ER report.
+
+    Returns:
+        dict: {identifier (lowercase): value (float)}; empty dict if no
+        occurrence is found.
+    """
     padrao = re.compile(
         r'\b(e[1357])\s*=\s*([\d.,]+)\s*mm',
         re.IGNORECASE
@@ -218,6 +314,12 @@ def extrair_valores_e(texto_pdf: str):
     return resultados
 
 def resultado_comp_cilin(texto):
+    """Extracts the accept/reject result of the orifice cylinder length
+    (label "Thickness 'e'" or "Comprimento do Cilindro do Orifício").
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -233,6 +335,12 @@ def resultado_comp_cilin(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_montante(texto):
+    """Extracts the accept/reject result of the upstream face roughness
+    (label "Upstream Face Roughness" or "Rugosidade da Face a Montante da Placa").
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -247,6 +355,16 @@ def resultado_montante(texto):
     return "NÃO ENCONTRADO"
 
 def resultado_angulo_face_montante(texto):
+    """Extracts the accept/reject result of the upstream face angle.
+
+    Notes:
+        Uses the same regex as resultado_montante (label "Upstream Face
+        Roughness"/"Rugosidade da Face a Montante da Placa"); kept as a
+        separate function because it feeds a distinct key in extrair_campos_er.
+
+    Returns:
+        str: "Sim"/"Não"/"NÃO ENCONTRADO", see _resultado_aceite.
+    """
     texto = re.sub(r'\s+', ' ', texto)
 
     padrao = re.compile(
@@ -263,6 +381,19 @@ def resultado_angulo_face_montante(texto):
     return "NÃO ENCONTRADO"
 
 def extrair_campos_er(texto):
+    """Builds the complete field dictionary of the orifice plate Evaluation Report (ER).
+
+    Orchestrates every extractor in this module (ER number, diameter, Beta
+    factor, circularity, thickness, roughness, flatness, bevel angle, G-H
+    angle, bore thickness, cylinder length and upstream face angle).
+
+    Args:
+        texto: Text extracted from the ER report.
+
+    Returns:
+        dict: Report fields ready for use by the rest of the system
+        (see the keys in the returned dict for the complete list).
+    """
     num_er = extrair_numero_evaluation(texto)
     result_diam = resultado_diametro(texto)
     valores_diam = extrair_valores_d(texto)

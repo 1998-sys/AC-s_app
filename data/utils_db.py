@@ -15,7 +15,15 @@ from data.conexao import conectar
 
 
 def _query_one(sql, params=()):
-    """Executa um SELECT e retorna a primeira linha (ou None), fechando a conexão sempre."""
+    """Run a SELECT and return the first matching row (or None), always closing the connection afterwards.
+
+    Args:
+        sql: SQL statement to execute.
+        params: Positional parameters for the SQL statement.
+
+    Returns:
+        tuple | None: First row of the result, or None if no row is found.
+    """
     with closing(conectar()) as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
@@ -23,7 +31,15 @@ def _query_one(sql, params=()):
 
 
 def _query_all(sql, params=()):
-    """Executa um SELECT e retorna todas as linhas, fechando a conexão sempre."""
+    """Run a SELECT and return all matching rows, always closing the connection afterwards.
+
+    Args:
+        sql: SQL statement to execute.
+        params: Positional parameters for the SQL statement.
+
+    Returns:
+        list[tuple]: All rows of the result (empty list if none are found).
+    """
     with closing(conectar()) as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
@@ -31,7 +47,12 @@ def _query_all(sql, params=()):
 
 
 def _execute(sql, params=()):
-    """Executa um INSERT/UPDATE, faz commit e fecha a conexão sempre (mesmo em erro)."""
+    """Run an INSERT/UPDATE, commit, and always close the connection, even on error.
+
+    Args:
+        sql: SQL statement to execute.
+        params: Positional parameters for the SQL statement.
+    """
     with closing(conectar()) as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
@@ -40,9 +61,18 @@ def _execute(sql, params=()):
 
 def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max_range=None,
                         sistema=None, aplicacao=None, ativo=None, tipo='SEC'):
-    """
-    Insere um instrumento na tabela 'instrumentos'.
-    Inserts an instrument into the 'instrumentos' table.
+    """Insert an instrument into the 'instrumentos' table.
+
+    Args:
+        tag: Instrument identifier.
+        sn_instrumento: Instrument serial number.
+        sn_sensor: Sensor serial number, when applicable.
+        min_range: Minimum value of the measurement range.
+        max_range: Maximum value of the measurement range.
+        sistema: System the instrument belongs to.
+        aplicacao: Instrument's application.
+        ativo: Plant asset/tag associated with the instrument.
+        tipo: Instrument type ('SEC' for secondary, by default).
     """
     _execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, sn_sensor, min_range, max_range, tipo,
@@ -52,9 +82,14 @@ def inserir_instrumento(tag, sn_instrumento, sn_sensor=None, min_range=None, max
 
 
 def inserir_placa(tag, sn_instrumento, sistema=None, aplicacao=None, ativo=None):
-    """
-    Insere uma placa de orifício na tabela 'instrumentos'.
-    Inserts an orifice plate into the 'instrumentos' table.
+    """Insert an orifice plate into the 'instrumentos' table (fixed type 'PO').
+
+    Args:
+        tag: Plate identifier.
+        sn_instrumento: Plate serial number.
+        sistema: System the plate belongs to.
+        aplicacao: Plate's application.
+        ativo: Plant asset/tag associated with the plate.
     """
     _execute('''
         INSERT INTO instrumentos (tag, sn_instrumento, tipo, sistema, aplicacao, ativo)
@@ -66,7 +101,18 @@ _CAMPOS_PLACA_PERMITIDOS = {"tag", "sn_instrumento"}
 
 
 def buscar_placa_por_campo(coluna, valor):
-    """Busca uma placa de orifício por 'tag' ou 'sn_instrumento'."""
+    """Look up an orifice plate (type 'PO') by 'tag' or 'sn_instrumento'.
+
+    Args:
+        coluna: Name of the column to search; must be in _CAMPOS_PLACA_PERMITIDOS.
+        valor: Value to look for in the given column.
+
+    Returns:
+        dict | None: {'tag', 'sn_instrumento'} of the plate found, or None if not found.
+
+    Raises:
+        ValueError: If `coluna` is not among the allowed fields.
+    """
     if coluna not in _CAMPOS_PLACA_PERMITIDOS:
         raise ValueError(f"Campo não permitido: {coluna}")
 
@@ -82,32 +128,32 @@ def buscar_placa_por_campo(coluna, valor):
 
 
 def buscar_placa_por_sn(sn):
-    """Busca uma placa de orifício pelo número de série (para placas sem TAG)."""
+    """Look up an orifice plate by its serial number (typical use: plates without a registered TAG).
+
+    Returns:
+        dict | None: {'tag', 'sn_instrumento'} of the plate found, or None if not found.
+    """
     return buscar_placa_por_campo("sn_instrumento", sn)
 
 
 def buscar_placa_por_tag(tag):
-    """
-    Busca uma placa de orifício pelo tag.
-    Searches for an orifice plate by tag.
+    """Look up an orifice plate by its tag.
 
     Args:
-        tag (str): Identificador da placa / Orifice plate tag identifier.
+        tag: Plate identifier.
 
     Returns:
-        dict | None: {'tag', 'sn_instrumento'} ou None se não encontrada.
+        dict | None: {'tag', 'sn_instrumento'} of the plate found, or None if not found.
     """
     return buscar_placa_por_campo("tag", tag)
 
 
 def atualizar_sn_placa(tag, novo_sn):
-    """
-    Atualiza o número de série de uma placa de orifício identificada pelo tag.
-    Updates the serial number of an orifice plate identified by tag.
+    """Update the serial number of an orifice plate (type 'PO') identified by its tag.
 
     Args:
-        tag    (str): Identificador da placa / Orifice plate tag identifier.
-        novo_sn(str): Novo número de série / New serial number.
+        tag: Plate identifier.
+        novo_sn: New serial number.
     """
     _execute("""
         UPDATE instrumentos
@@ -117,16 +163,13 @@ def atualizar_sn_placa(tag, novo_sn):
 
 
 def buscar_instrumento_por_tag(tag):
-    """
-    Busca um instrumento pelo seu tag identificador.
-    Searches for an instrument by its tag identifier.
+    """Look up an instrument by its identifying tag, returning all registered fields (including calibration data and extended registration data).
 
     Args:
-        tag (str): Identificador do instrumento / Instrument tag identifier.
+        tag: Instrument identifier.
 
     Returns:
-        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
-                     Dictionary with instrument data or None if not found.
+        dict | None: Dictionary with all fields of the instrument, or None if not found.
     """
     row = _query_one("""
         SELECT tag, sn_instrumento, sn_sensor, min_range, max_range, tipo, sistema, aplicacao, ativo,
@@ -160,13 +203,11 @@ def buscar_instrumento_por_tag(tag):
 
 
 def atualizar_sn(tag, novo_sn):
-    """
-    Atualiza o número de série do instrumento identificado pelo tag.
-    Updates the instrument serial number identified by tag.
+    """Update the serial number of the instrument identified by its tag.
 
     Args:
-        tag    (str): Identificador do instrumento / Instrument tag identifier.
-        novo_sn(str): Novo número de série / New serial number.
+        tag: Instrument identifier.
+        novo_sn: New serial number.
     """
     _execute("""
         UPDATE instrumentos
@@ -176,13 +217,11 @@ def atualizar_sn(tag, novo_sn):
 
 
 def atualizar_sn_sensor(tag, novo_sn_sensor):
-    """
-    Atualiza o número de série do sensor identificado pelo tag.
-    Updates the sensor serial number identified by tag.
+    """Update the sensor serial number of an instrument identified by its tag.
 
     Args:
-        tag          (str): Identificador do instrumento / Instrument tag identifier.
-        novo_sn_sensor(str): Novo número de série do sensor / New sensor serial number.
+        tag: Instrument identifier.
+        novo_sn_sensor: New sensor serial number.
     """
     _execute("""
         UPDATE instrumentos
@@ -195,7 +234,18 @@ _CAMPOS_INSTRUMENTO_PERMITIDOS = {"sn_instrumento", "sn_sensor"}
 
 
 def buscar_por_campo(coluna, valor):
-    """Busca um instrumento por 'sn_instrumento' ou 'sn_sensor'."""
+    """Look up an instrument by 'sn_instrumento' or 'sn_sensor'.
+
+    Args:
+        coluna: Name of the column to search; must be in _CAMPOS_INSTRUMENTO_PERMITIDOS.
+        valor: Value to look for in the given column.
+
+    Returns:
+        dict | None: {'tag', 'sn_instrumento', 'sn_sensor'} of the instrument found, or None.
+
+    Raises:
+        ValueError: If `coluna` is not among the allowed fields.
+    """
     if coluna not in _CAMPOS_INSTRUMENTO_PERMITIDOS:
         raise ValueError(f"Campo não permitido: {coluna}")
 
@@ -216,38 +266,35 @@ def buscar_por_campo(coluna, valor):
 
 
 def buscar_por_sn_instrumento(sn):
-    """
-    Busca um instrumento pelo número de série do instrumento.
-    Searches for an instrument by its serial number.
+    """Look up an instrument by its instrument serial number.
 
     Args:
-        sn (str): Número de série do instrumento / Instrument serial number.
+        sn: Instrument serial number.
 
     Returns:
-        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
-                     Dictionary with instrument data or None if not found.
+        dict | None: {'tag', 'sn_instrumento', 'sn_sensor'} of the instrument found, or None.
     """
     return buscar_por_campo("sn_instrumento", sn)
 
 
 def buscar_por_sn_sensor(sn_sensor):
-    """
-    Busca um instrumento pelo número de série do sensor.
-    Searches for an instrument by its sensor serial number.
+    """Look up an instrument by its sensor serial number.
 
     Args:
-        sn_sensor (str): Número de série do sensor / Sensor serial number.
+        sn_sensor: Sensor serial number.
 
     Returns:
-        dict | None: Dicionário com os dados do instrumento ou None se não encontrado.
-                     Dictionary with instrument data or None if not found.
+        dict | None: {'tag', 'sn_instrumento', 'sn_sensor'} of the instrument found, or None.
     """
     return buscar_por_campo("sn_sensor", sn_sensor)
 
 
 def listar_todos():
-    """
-    Retorna todos os instrumentos do banco ordenados por TAG.
+    """Return all instruments in the database (basic fields), ordered by tag.
+
+    Returns:
+        list[dict]: One dictionary per instrument, with tag, sn_instrumento, tipo, sn_sensor,
+        min_range, max_range, sistema, aplicacao and ativo.
     """
     rows = _query_all("""
         SELECT tag, sn_instrumento, tipo, sn_sensor, min_range, max_range,
@@ -266,13 +313,11 @@ def listar_todos():
 
 
 def atualizar_tag(sn_instrumento, nova_tag):
-    """
-    Atualiza o tag de um instrumento identificado pelo número de série.
-    Updates the tag of an instrument identified by its serial number.
+    """Update the tag of an instrument identified by its serial number.
 
     Args:
-        sn_instrumento(str): Número de série do instrumento / Instrument serial number.
-        nova_tag      (str): Novo tag identificador / New tag identifier.
+        sn_instrumento: Instrument serial number.
+        nova_tag: New identifying tag.
     """
     _execute("""
         UPDATE instrumentos
@@ -282,14 +327,12 @@ def atualizar_tag(sn_instrumento, nova_tag):
 
 
 def atualizar_range(tag, min_range, max_range):
-    """
-    Atualiza a faixa de medição de um instrumento identificado pelo tag.
-    Updates the measurement range of an instrument identified by tag.
+    """Update the measurement range of an instrument identified by its tag.
 
     Args:
-        tag      (str):   Identificador do instrumento / Instrument tag identifier.
-        min_range(float): Novo valor mínimo da faixa / New minimum range value.
-        max_range(float): Novo valor máximo da faixa / New maximum range value.
+        tag: Instrument identifier.
+        min_range: New minimum value of the range.
+        max_range: New maximum value of the range.
     """
     _execute("""
         UPDATE instrumentos
@@ -302,9 +345,17 @@ _CAMPOS_EXTRAS_PERMITIDOS = {"sistema", "aplicacao", "ativo"}
 
 
 def atualizar_campos_extras(tag, sistema=None, aplicacao=None, ativo=None):
-    """
-    Atualiza sistema, aplicacao e ativo de um instrumento identificado pelo tag.
-    Apenas sobrescreve campos não-None recebidos.
+    """Update sistema, aplicacao and/or ativo of an instrument identified by its tag.
+
+    Args:
+        tag: Instrument identifier.
+        sistema: New value for sistema, or None to leave it unchanged.
+        aplicacao: New value for aplicacao, or None to leave it unchanged.
+        ativo: New value for ativo, or None to leave it unchanged.
+
+    Notes:
+        Only the non-None fields received are overwritten; if none are given,
+        the function does not execute any SQL statement.
     """
     campos = {}
     if sistema is not None:
@@ -333,11 +384,15 @@ _CAMPOS_CADASTRO_PERMITIDOS = {
 
 
 def atualizar_dados_cadastro(tag, **campos):
-    """
-    Atualiza os campos de cadastro estendido (calibração, certificado,
-    laboratório, observações, metadados de última alteração) de um
-    instrumento identificado pelo tag. Apenas sobrescreve os campos
-    não-None recebidos.
+    """Update the extended registration fields (calibration, certificate, laboratory, remarks, last-change metadata) of an instrument identified by its tag.
+
+    Args:
+        tag: Instrument identifier.
+        **campos: field=value pairs to update; must be in _CAMPOS_CADASTRO_PERMITIDOS.
+            Fields with a None value are ignored (they do not overwrite the current value).
+
+    Raises:
+        ValueError: If any given field is not among the allowed fields.
     """
     campos = {k: v for k, v in campos.items() if v is not None}
     if not campos:

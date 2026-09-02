@@ -45,13 +45,31 @@ _MATERIAL_MAP = {
 }
 
 def _traduzir_material(valor):
+    """Translates the material name (English) from the PDF to the Portuguese term used in the XML.
+
+    Args:
+        valor: material name as extracted from the PDF.
+
+    Returns:
+        str: corresponding Portuguese name, or `valor` itself (untranslated)
+        if there is no match in _MATERIAL_MAP.
+    """
     return _MATERIAL_MAP.get(valor.strip().lower(), valor)
 
 
 
 def criar_trecho_reto(dados, dados_dim, root):
-    """Cria o bloco TRECHO_RETO com os dados do DIM report.
-    Creates the TRECHO_RETO block from DIM report data."""
+    """Creates the TRECHO_RETO block with the DIM report data.
+
+    Args:
+        dados: certificate data extracted from the PDF (calibration date,
+            serial number, TAG, material, expansion coefficient, standard,
+            pipe diameter, flow conditioner etc.).
+        dados_dim: dimensional data extracted from the DIM report (see
+            xml_extractor_TR.extrair_dados_dim_tr); uses the first section
+            and the first parameter found for the reference diameter.
+        root: root XML element where the TRECHO_RETO block will be attached.
+    """
 
     dim = dados_dim or {}
 
@@ -77,6 +95,13 @@ def criar_trecho_reto(dados, dados_dim, root):
     ET.SubElement(bloco, "TIPO_CONDICIONADOR_FLUXO").text = dados.get("condicionador_fluxo", "")
 
 def demais_componentes(informacoes, root):
+    """Creates the DEMAIS_COMPONENTES block from the given component list.
+
+    Args:
+        informacoes: general certificate data; uses the "componentes" key
+            (list of dicts with "sn" and "tipo").
+        root: root XML element where the DEMAIS_COMPONENTES block will be attached.
+    """
     demais = ET.SubElement(root, "DEMAIS_COMPONENTES")
     for c in informacoes.get("componentes", []):
         comp = ET.SubElement(demais, "COMPONENTE")
@@ -84,8 +109,19 @@ def demais_componentes(informacoes, root):
         ET.SubElement(comp, "TIPO").text      = c.get("tipo", "")
 
 def gerar_xml_certificado_tr(informacoes, dados_dim, caminho_saida):
-    """Gera o XML de inspeção do Trecho Reto (Gas Meter Run) e salva em caminho_saida.
-    Generates the Gas Meter Run inspection XML and saves it to caminho_saida."""
+    """Generates the Petrobras-standard Straight Run (Gas Meter Run) inspection certificate XML and writes it to disk.
+
+    Args:
+        informacoes: general certificate data (identification, client,
+            laboratory, environmental conditions, standards, procedure,
+            other components).
+        dados_dim: dimensional data extracted from the DIM report (see
+            xml_extractor_TR.extrair_dados_dim_tr).
+        caminho_saida: path of the output XML file.
+
+    Returns:
+        str: absolute path of the generated XML file.
+    """
 
     NAMESPACE = "http://Petrobras/Medicao/Calibracao"
     ET.register_namespace("cal", NAMESPACE)

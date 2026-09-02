@@ -20,6 +20,21 @@ from pdf.parser_po import coeficiente_dilatacao
 
 
 def extrair_norma_tr(texto):
+    """Identifies the gas meter run's sizing standard (AGA 3, ISO 17089 or ISO 5167)
+    and builds the normalized string with edition and year.
+
+    Tries each standard in order (AGA 3 -> ISO 17089 -> ISO 5167); when the
+    year isn't found in the text, assumes a default per standard (AGA3-2:2000,
+    ISO 17089-2:2010, ISO 5167-2:2022).
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        str: Normalized standard (e.g.: "AGA3-2:2000", "ISO 17089-2:2010",
+        "ABNT NBR ISO 5167-2:2022"), or "ISO 5167-2:2022" as the final
+        default if no standard is recognized in the text.
+    """
     texto_norm = re.sub(r"[‐–—‐‑‒–—]", "-", texto)
 
     # AGA 3 → "AGA3-2:YEAR"
@@ -50,6 +65,21 @@ def extrair_norma_tr(texto):
 
 
 def extrair_procedimento_tr(texto):
+    """Extracts the gas meter run's dimensional measurement procedure and its description.
+
+    The description is captured from the phrase "As medições foram re[a/i]lizadas
+    ..." up to the mention of the standard (AGA 3 or ISO); the procedure
+    identifier is the code "7.2 TM-003 Dimensional", with a fixed fallback if
+    it isn't found in the text.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: {"procedimento": str, "descricao": str}. "descricao" is empty
+        if the phrase isn't found; "procedimento" is never empty (uses the
+        fixed value "7.2 TM-003 Dimensional" as fallback).
+    """
     texto_norm = re.sub(r"[‐–—‐‑‒–—]", "-", texto)
     m = re.search(
         r"(As\s+medi[çc][õo]es\s+foram\s+re[la][il]zadas.*?(?:AGA\s*3[^.\n\r]*|ISO\s+\d+[^.\n\r]*))",
@@ -63,18 +93,37 @@ def extrair_procedimento_tr(texto):
 
 
 def identificar_tr(texto):
-    # "Trecho Reto(?!\s+cil)" evita falso positivo em "trecho reto cilíndrico do orifício" (placa de orifício)
+    """Identifies whether the certificate is for a Gas Meter Run (Trecho Reto).
+
+    Used by pdf/utils_parser.py to route the PDF. "Trecho Reto(?!\\s+cil)"
+    avoids a false positive on "trecho reto cilíndrico do orifício", which
+    appears in orifice plate certificates.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        bool: True if "Meter Run" or "Trecho Reto" (not followed by "cil")
+        is found in the text.
+    """
     return bool(re.search(r"Meter Run|Trecho Reto(?!\s+cil)", texto, re.IGNORECASE))
 
 
 def extrair_nome_cliente_tr(texto):
-    # "Name / Nome: PRIO Contact/Contato: metering@..."
+    """Extracts the client name from the format "Name / Nome: PRIO Contact/Contato: metering@...".
+    """
     m = re.search(r"Nome:\s*(.+?)\s+Contact\s*/\s*Contato:", texto, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
 
 def extrair_local_tr(texto):
-    # "CALIBRATION LOCATION / Local de Calibração:\nName / Nome: FPSO Bravo"
+    """Extracts the calibration location name from within the "CALIBRATION LOCATION / Local de Calibração:" block.
+
+    E.g.: block "CALIBRATION LOCATION / Local de Calibração:\\nName / Nome: FPSO Bravo".
+
+    Returns:
+        str: Location name, or None if the block or the "Nome:" field aren't found.
+    """
     bloco = re.search(
         r"CALIBRATION LOCATION.*?:(.*?)(?=ITEM DESCRIPTION|$)",
         texto,
@@ -87,13 +136,18 @@ def extrair_local_tr(texto):
 
 
 def extrair_data_medicao(texto):
-    # "Measurement Date / Data da Medição: 12/11/2025"
+    """Extracts the measurement/calibration date from the format "Measurement Date / Data da Medição: 12/11/2025".
+    """
     m = re.search(r"(?:Measurement|Calibration) Date.*?:\s*(\d{2}/\d{2}/\d{4})", texto, re.IGNORECASE)
     return m.group(1) if m else None
 
 
 def extrair_condicoes_ambientais_tr(texto):
-    # "Ambient Temperature / Temperatura Ambiente: 21,9°C REF ..."
+    """Extracts the gas meter run's ambient temperature and humidity (e.g.: "Ambient Temperature / Temperatura Ambiente: 21,9°C").
+
+    Returns:
+        dict: {"temperatura_ambiente": float|None, "umidade_ambiente": float|None}.
+    """
     resultado = {"temperatura_ambiente": None, "umidade_ambiente": None}
 
     m_temp = re.search(
@@ -116,8 +170,14 @@ def extrair_condicoes_ambientais_tr(texto):
 
 
 def material_tr(texto):
-    # Formato antigo: "Material of Pipe / Orifice Carrier: Carbon Steel - Coefficient: ..."
-    # Formato novo:   "Material of Pipe Carbon Steel - Coefficient: ..."
+    """Extracts the pipe/orifice-carrier material, covering two observed formats.
+
+    Old format: "Material of Pipe / Orifice Carrier: Carbon Steel - Coefficient: ...".
+    New format: "Material of Pipe Carbon Steel - Coefficient: ...".
+
+    Returns:
+        str: Material found, or None if neither format matches.
+    """
     m = re.search(
         r"Material(?:\s+of\s+Pipe)?(?:[^:\n]*:\s*|\s+)([A-Za-z][A-Za-z\s]+?)\s*-\s*Coefficient",
         texto,
@@ -127,6 +187,18 @@ def material_tr(texto):
 
 
 def extrair_diametro_nominal_tr(texto):
+    """Extracts the pipe's nominal diameter, covering two unit formats.
+
+    Format 1: 'Nominal Diameter / Diâmetro Nominal: 2"' (inches).
+    Format 2: 'Diameter / Diâmetro:  742,2 mm' (millimeters).
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: {"valor": str, "unidade": str} with the raw value (not converted
+        to float) and the unit found, or None if no format matches.
+    """
     # Formato 1: 'Nominal Diameter / Diâmetro Nominal: 2"'
     m = re.search(r'Nominal Diameter.*?:\s*([\d,\.]+)\s*"', texto, re.IGNORECASE)
     if m:
@@ -139,8 +211,18 @@ def extrair_diametro_nominal_tr(texto):
 
 
 def extrair_tag_sistema_tr(texto):
-    # Formato 1: "Identification / identificação: FX-1025-03"
-    # Formato 2: "Identification TAG/SN / Identificação TAG/NS:  776-FX-0010 / 2021-ODS-0038-076"
+    """Extracts the gas meter run measurement system's TAG (and, if present, SN).
+
+    Covers two observed formats: "Identification / identificação: FX-1025-03"
+    (no SN) and "Identification TAG/SN / Identificação TAG/NS: 776-FX-0010 /
+    2021-ODS-0038-076" (TAG and SN separated by "/").
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: {"tag": str|None, "sn": str|None}; both None if the pattern doesn't match.
+    """
     m = re.search(
         r"Identification(?:\s+TAG/SN)?\s*/\s*Identifica[çc][aã]o(?:\s+TAG/NS)?\s*:\s*([A-Z0-9][A-Z0-9\-]+)(?:\s*/\s*([A-Z0-9][A-Z0-9\-]+))?",
         texto,
@@ -156,16 +238,24 @@ def extrair_tag_sistema_tr(texto):
 
 def extrair_componentes_tr(texto):
     """
-    Extrai TAG e SN dos três componentes do trecho reto:
-    - Orifice Carrier  → PORTA PLACA
-    - Upstream Pipe    → TRECHO MONTANTE
-    - Downstream Pipe  → TRECHO JUSANTE
+    Extracts TAG and SN for the gas meter run's three components:
+    - Orifice Carrier  -> PORTA PLACA
+    - Upstream Pipe    -> TRECHO MONTANTE
+    - Downstream Pipe  -> TRECHO JUSANTE
 
-    Regra de separação: o separador TAG/SN é a primeira barra precedida de espaço
-    (" /"), que distingue o "/" do separador dos "/" internos (N/A, TR00916-21/2.1).
-    Se não houver separador → TAG = "NI", SN = valor completo.
-    SN termina antes de \n ou texto com letras minúsculas; admite sufixo posicional
-    de exatamente 1 letra maiúscula + 1 dígito (ex: M1, J1).
+    Separation rule: the TAG/SN separator is the first slash preceded by a space
+    (" /"), which distinguishes the separator "/" from the internal "/" ones
+    (N/A, TR00916-21/2.1). If there's no separator -> TAG = "NI", SN = full value.
+    SN ends before \n or lowercase-letter text; allows an exact positional suffix
+    of 1 uppercase letter + 1 digit (e.g.: M1, J1).
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        list[dict]: One {"tipo", "tag", "sn"} dict per component found in the
+        text; components not mentioned in the certificate simply don't
+        appear in the list.
     """
     padroes = [
         (r"Orifice Carrier\s*/\s*Porta Placa", "PORTA PLACA"),
@@ -215,7 +305,15 @@ def extrair_componentes_tr(texto):
 _ZANKER_AUSENTE = {"N/A", "NÃO CONSTA", "NAO CONSTA", "NOT PRESENT", "N/C"}
 
 def extrair_condicionador_fluxo(texto):
-    # "Zanker TAG / SN: N/A" ou "Zanker TAG / SN: Não consta" → "Nenhum"
+    """Identifies the gas meter run's flow conditioner: "Zanker", "19 tubos" or "Nenhum".
+
+    If the "Zanker TAG / SN:" field exists but indicates absence (e.g.: "N/A",
+    "Não consta"), returns "Nenhum"; if the field doesn't exist but the text
+    mentions "19 tubes"/"19 tubos", returns "19 tubos".
+
+    Returns:
+        str: "Zanker", "19 tubos" or "Nenhum" (default when nothing is found).
+    """
     m = re.search(r"Zanker\s+TAG\s*/\s*SN\s*:\s*([^\n\r]+)", texto, re.IGNORECASE)
     if m:
         val = m.group(1).strip().upper()
@@ -226,6 +324,22 @@ def extrair_condicionador_fluxo(texto):
 
 
 def extrair_campos_tr(texto):
+    """Builds the complete fields dictionary for a Gas Meter Run (Trecho Reto) certificate.
+
+    Combines this module's local extractors (standard, procedure, client,
+    location, measurement date, ambient conditions, material, diameter,
+    system and component TAG/SN, flow conditioner) with generic extractors
+    from pdf.parser_certificados and the expansion coefficient from
+    pdf.parser_po. The certificate's reference TAG/SN is the PORTA PLACA
+    component's, with a fallback to the CONDICIONADOR DE FLUXO if the
+    orifice carrier isn't found.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: Certificate fields ready to fill in the AC model.
+    """
     texto = re.sub(r"[‐–—]", "-", texto)
     certificado = extrair_certificado(texto)
     _, report_date = extrair_datas(texto)

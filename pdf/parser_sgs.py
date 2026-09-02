@@ -15,24 +15,38 @@ import re
 
 
 def extrair_empresa(texto):
+    """Identifies whether the report is from SGS (used only to detect the report
+    TYPE in pdf/utils_parser.py, not the certificate's client).
+
+    Returns:
+        str: "SGS" if the text contains that word (case-insensitive), otherwise None.
+    """
     if not texto:
         return None
-    
+
     if "sgs" in texto.lower():
         return "SGS"
-    
+
     return None
 
 
 def extrair_cliente(texto):
-    """Extrai o nome do cliente do relatório (rótulo "Cliente:") — esse é o
-    valor que vai pra tag <EMPRESA> do XML, não o laboratório (extrair_empresa
-    só serve pra identificar o TIPO de relatório em select_extract).
+    """Extracts the report's client name (label "Cliente:") — this is the value
+    that goes into the XML's <EMPRESA> tag, not the lab (extrair_empresa only
+    identifies the report TYPE in select_extract).
 
-    No layout mais comum, o valor está na mesma linha do rótulo. Em alguns
-    PDFs da SGS observados, o rótulo é extraído isolado (sem valor na
-    mesma linha) e o valor reaparece bem mais adiante no texto, logo depois
-    do título "RELATÓRIO DE ANÁLISES DE GÁS NATURAL" — usado como fallback."""
+    In the most common layout, the value is on the same line as the label. In
+    some observed SGS PDFs, the label is extracted in isolation (no value on
+    the same line) and the value reappears much further down in the text,
+    right after the title "RELATÓRIO DE ANÁLISES DE GÁS NATURAL" — used as a
+    fallback.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        str: Client name, or None if neither pattern matches.
+    """
     if not texto:
         return None
     t = texto.replace("\r\n", "\n").replace("\r", "\n")
@@ -52,6 +66,16 @@ def extrair_cliente(texto):
 
 
 def numero_cert(texto):
+    """Extracts the certificate number from the first non-empty line of the report text.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        str: Certificate number, or None if not found either in the first line
+        or in the title-based fallback (the same "out-of-order" layout handled
+        in extrair_cliente).
+    """
     if not texto:
         return None
     primeira = next((l.strip() for l in texto.splitlines() if l.strip()), "")
@@ -71,15 +95,34 @@ def numero_cert(texto):
 
 
 def composicao(texto: str):
+    """Extracts the natural gas molar composition table from the SGS report.
+
+    Isolates the text block between the "Composição do gás (...)" header and
+    the following section (Gas Properties/Air Contamination/Observations),
+    then matches each component line (e.g., iC4+, CO2, H2S, N2, C6+) with its
+    name, molar percentage and uncertainty. Labels like "N2"/"C6" are
+    converted to the Unicode subscript form (e.g., "N₂", "C₆"), and a
+    molar/uncertainty value that is not a recognizable number is replaced
+    with zero.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        dict: {"composicao": list[dict]}, each item with "rotulo", "nome",
+        "mol_pct" and "incerteza"; empty list if the section is not found.
+    """
     if not texto:
         return {"composicao": []}
 
     
     DEFAULT_DECIMALS = 3
     def _zero(decimals=DEFAULT_DECIMALS) -> str:
+        """Returns "0" with the given number of decimal places (PT-BR format, comma)."""
         return "0," + "0" * decimals
 
     def _as_num_or_zero(s: str, default_decimals=DEFAULT_DECIMALS) -> str:
+        """Returns `s` if it is a number in "N,NN..." format, otherwise zero with `default_decimals` places."""
         s = s.strip()
         if re.fullmatch(r"\d+,\d+", s):
             return s
@@ -119,7 +162,8 @@ def composicao(texto: str):
 
     subs = str.maketrans({"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉"})
     def rotulo_identico(rotulo_raw: str) -> str:
-        r = re.sub(r"\s+", "", rotulo_raw)  
+        """Normalizes the component's raw label to the final format with Unicode subscript."""
+        r = re.sub(r"\s+", "", rotulo_raw)
         if re.match(r"^[in]c\d+\+?$", r, re.IGNORECASE):
             return r[0].lower() + "C" + r[2:]
        
@@ -148,6 +192,22 @@ def composicao(texto: str):
 
 
 def propriedades_padrao(texto: str):
+    """Extracts the "Propriedades do Gás - Condição Padrão (1) Referência" table from the SGS report.
+
+    Tries to locate the section's full header; if not found, falls back to
+    searching only for the isolated "Referência" line, covering the same
+    "out-of-order" layout handled in extrair_cliente. Each line of the block
+    is then matched against a property, an optional normative reference
+    (ISO ####), and the numeric and uncertainty values.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        dict: {"propriedades_padrao": list[dict]}, each item with
+        "propriedade", "referencia", "valor" and "incerteza"; empty list if
+        the section is not found.
+    """
     if not texto:
         return {"propriedades_padrao": []}
     t = texto.replace("\r\n", "\n").replace("\r", "\n").replace("\xa0", " ")
@@ -193,12 +253,29 @@ def propriedades_padrao(texto: str):
 
 
 def propriedades_amostragem(texto: str):
+    """Extracts the "Propriedades do Gás - Condições de Amostragem" table from the SGS report.
+
+    Each line of the block may carry a note in parentheses (e.g., "(1)")
+    and/or a normative reference (ISO ####); when there is no ISO reference,
+    the note is used as the reference. Non-numeric values are replaced with
+    zero.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        dict: {"propriedades_amostragem": list[dict]}, each item with
+        "propriedade", "referencia", "valor" and "incerteza"; empty list if
+        the section is not found.
+    """
     if not texto:
         return {"propriedades_amostragem": []}
     DEFAULT_DECIMALS = 3
     def _zero(decimals=DEFAULT_DECIMALS) -> str:
+        """Returns "0" with the given number of decimal places (PT-BR format, comma)."""
         return "0," + "0" * decimals
     def _as_num_or_zero(s: str, default_decimals=DEFAULT_DECIMALS) -> str:
+        """Returns `s` if it is a number in "N" or "N,NN..." format, otherwise zero with `default_decimals` places."""
         s = (s or "").strip()
         return s if re.fullmatch(r"\d+(?:,\d+)?", s) else _zero(default_decimals)
     t = texto.replace("\r\n", "\n").replace("\r", "\n").replace("\xa0", " ")
@@ -250,6 +327,15 @@ def propriedades_amostragem(texto: str):
 
 
 def extrair_campos_cromato(texto):
+    """Builds the complete dictionary of fields for an SGS chromatography report.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        dict: Keys "empresa", "certificado", "composicao", "propriedades_pad"
+        and "propriedades_amost", ready to fill the AC template.
+    """
     empre = extrair_cliente(texto)
     cert = numero_cert(texto)
     comp = composicao(texto)

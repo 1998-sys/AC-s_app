@@ -20,6 +20,20 @@ class ValidationIssue:
         blocking=False,
         opcoes=None,
     ):
+        """Represents a divergence found during validation, with its correction action and optional resolution options.
+
+        Args:
+            key: short identifier of the divergence.
+            title: title shown to the user.
+            message: detailed message shown to the user.
+            action: callable to run in order to fix the divergence (applies the correction
+                to the database), if any.
+            blocking: if True, the divergence prevents AC generation until it is resolved.
+            opcoes: optional list of dicts {"label", "valor", "recomendado"?} for the UI to
+                show the resolution options side by side — the 1st option corresponds to
+                applying `action`, the 2nd usually represents skipping the certificate
+                without changing the registry.
+        """
         self.key = key
         self.title = title
         self.message = message

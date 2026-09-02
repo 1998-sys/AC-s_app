@@ -18,17 +18,39 @@ from xml_model.xml_common import salvar_xml_bonito
 
 
 def _normalizar(texto):
+    """Normalizes text for comparison: uppercase and without accents/diacritics.
+
+    Args:
+        texto: text to normalize (accepts None, treated as an empty string).
+
+    Returns:
+        str: uppercase text, without accentuation marks.
+    """
     texto = (texto or "").upper()
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 
 def _buscar_propriedade(lista, incluir_todos=(), incluir_algum=(), excluir=()):
-    """Procura, numa lista de propriedades extraídas (propriedades_padrao ou
-    propriedades_amostragem), a primeira cuja `propriedade` contenha todos
-    os termos de `incluir_todos`, ao menos um de `incluir_algum` (se
-    informado) e nenhum de `excluir` — tudo comparado sem acento/maiúsculas.
-    Retorna (valor, incerteza) ou (None, None) se não encontrar."""
+    """Finds the first property in the list whose name matches the given filters.
+
+    Searches a list of extracted properties (propriedades_padrao or
+    propriedades_amostragem) for the first item whose `propriedade` field
+    contains all the terms in `incluir_todos`, at least one of
+    `incluir_algum` (if provided) and none of `excluir` — all compared
+    without accents/case.
+
+    Args:
+        lista: list of property dicts extracted from the PDF, each with
+            keys "propriedade", "valor" and "incerteza".
+        incluir_todos: terms that must ALL appear in the property name.
+        incluir_algum: terms of which AT LEAST ONE must appear, if provided.
+        excluir: terms that must NOT appear in the property name.
+
+    Returns:
+        tuple: (valor, incerteza) of the first matching item, or (None, None)
+        if no item satisfies the filters.
+    """
     for item in lista:
         nome = _normalizar(item.get("propriedade"))
         if not all(t in nome for t in incluir_todos):
@@ -42,11 +64,25 @@ def _buscar_propriedade(lista, incluir_todos=(), incluir_algum=(), excluir=()):
 
 
 def xml_cromatografia(pdf_path: str, dados: dict, caminho_saida_xml: str | None = None) -> str:
-    """Gera o XML reduzido de cromatografia: identificação do certificado e
-    só os 5 parâmetros usados no cálculo de vazão (massa molar, densidade
-    absoluta — em condição padrão/base — e fator de compressibilidade,
-    viscosidade e coeficiente isentrópico em condições de linha/amostragem,
-    sufixo "_CL")."""
+    """Generates the reduced chromatography XML used in the flow calculation.
+
+    Includes the certificate identification and only the 5 parameters used
+    in the flow calculation (molar mass, absolute density — at
+    standard/base condition — and compressibility factor, viscosity and
+    isentropic coefficient at line/sampling conditions, "_CL" suffix).
+
+    Args:
+        pdf_path: path of the source PDF (used only to validate its
+            existence and, if `caminho_saida_xml` is not provided, to derive
+            the output XML name).
+        dados: dictionary with the data extracted from the PDF (empresa,
+            certificado, propriedades_pad, propriedades_amost).
+        caminho_saida_xml: path of the output XML; if None, uses the same
+            name as the PDF replacing the extension with .xml.
+
+    Returns:
+        str: absolute path of the generated XML file.
+    """
     pdf_path = Path(pdf_path)
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF não encontrado: {pdf_path}")

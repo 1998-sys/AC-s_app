@@ -21,9 +21,22 @@ class ImportExportService:
     """Importação/exportação da base de instrumentos via planilha XLSX."""
 
     def __init__(self, api):
+        """Stores the Api reference for dialogs and access to other services."""
         self.api = api
 
     def importar_xlsx(self):
+        """Imports an instrument XLSX spreadsheet into the database, asking the user how to resolve conflicts before writing.
+
+        Notes:
+            Two kinds of conflict require manual confirmation before
+            `executar`: an NS that diverges from the one already registered
+            for the same TAG (asks whether to overwrite it), and an NS
+            repeated across multiple rows that are candidates for the same
+            MVS (asks whether the rows belong to the same MVS and legitimately
+            share the NS, or whether they should be blocked). At the end, it
+            generates a .txt report and shows a summary with the counts of
+            inserted/overwritten/kept/problems.
+        """
         api = self.api
         caminho = api.escolher_arquivo("Selecionar planilha de instrumentos", ("Excel (*.xlsx)",))
         if not caminho:
@@ -93,6 +106,7 @@ class ImportExportService:
         api.alert("Importação", msg, "success")
 
     def exportar_xlsx(self):
+        """Exports the entire instrument database to an XLSX spreadsheet and reports the generated path."""
         api = self.api
         try:
             caminho = exportar_xlsx_db()

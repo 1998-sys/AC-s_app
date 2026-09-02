@@ -16,26 +16,38 @@ from xml_model.xml_generator import normalizar_certificado
 
 
 def calibration_location(texto):
+    """Extracts the phrase in parentheses describing where the calibration was performed
+    (customer's facility, permanent facility or mobile/container installation)."""
     padrão = r"\((Calibration performed at the (?:customer's facility|permanent facility|mobile installation \(container\)))\)"
     m = re.search(padrão, texto)
     return m.group(1).strip() if m else None
 
 def extrair_categoria_intrumento(texto):
+    """Extracts the instrument category from "Objeto da Calibração:".
+
+    Returns:
+        str: Category found, or "NA" if the field does not exist or is empty.
+    """
     padrao = r"Objeto da Calibração\s*:\s*([^\n\r]+)"
     m = re.search(padrao, texto, re.IGNORECASE)
     valor = m.group(1).strip() if m else ""
     return valor if valor else "NA"
 
 def extrair_metering_class(texto):
+    """Extracts the certificate's "Metering Class", stopping at "System Description:" or end of line."""
     padrao = r"Metering\s*Class:\s*(.*?)\s*(?=System\s*Description:|[\r\n]|$)"
     m = re.search(padrao, texto, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
 def extrair_curva_calibracao(texto):
-    """
-    Extrai curva do tipo:
-    y = a + b.x
-    onde x e y estão em kPa
+    """Extracts the calibration curve coefficients in the form "y = a + b.x" (x and y in kPa).
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: {"a": float, "b": float} with the coefficients found, or None
+        if the "Y = a + b.X" pattern is not located in the text.
     """
 
     texto = texto.upper().replace(",", ".")
@@ -52,11 +64,19 @@ def extrair_curva_calibracao(texto):
     }
 
 def aplicar_curva_kpa(valor_ma, curva):
-    """
-    Converte mA → kPa usando a curva do certificado.
-    Equação REAL do certificado:
-        mA = a + b * kPa
-        => kPa = (mA - a) / b
+    """Converts a value in mA to kPa using the certificate's calibration curve.
+
+    The certificate's actual equation is mA = a + b * kPa, so the inverse
+    conversion applied here is kPa = (mA - a) / b.
+
+    Args:
+        valor_ma: mA reading to be converted.
+        curva: dict with keys "a" and "b", in the format returned by
+            extrair_curva_calibracao.
+
+    Returns:
+        float: Value converted to kPa, or None if `valor_ma`/`curva` are
+        invalid or if `b` is None/zero (division by zero).
     """
     if valor_ma is None or not curva:
         return None
@@ -70,6 +90,11 @@ def aplicar_curva_kpa(valor_ma, curva):
     return (valor_ma - a) / b
 
 def normalizar_num(valor):
+    """Converts `valor` to float, handling decimal commas.
+
+    Returns:
+        float: Converted value, or None if `valor` is None or non-numeric.
+    """
     if valor is None:
         return None
     try:
@@ -78,6 +103,11 @@ def normalizar_num(valor):
         return None
 
 def normalizar_texto(texto):
+    """Uppercases `texto` and strips accents (via NFKD decomposition).
+
+    Returns:
+        str: Normalized text, or None if `texto` is empty/None.
+    """
     if not texto:
         return None
     texto = texto.upper()
@@ -85,6 +115,8 @@ def normalizar_texto(texto):
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 def extrair_tag(texto):
+    """Extracts the instrument TAG (text between "TAG:" and "SN:"), normalizing the
+    different hyphen/dash types to "-" and collapsing spaces."""
     padrao = r"TAG:\s*([0-9A-Za-zÀ-ÿ\-‐‒–—―\s]+?)\s+SN:"
     m = re.search(padrao, texto)
     if not m:
@@ -103,6 +135,19 @@ def extrair_tag(texto):
     return re.sub(r"\s*-\s*|\s+", "-", tag).strip("-")
 
 def extrair_sn(texto):
+    """Extracts the instrument's serial number and, if present, the sensor's.
+
+    Searches all occurrences of "SN:" or "Num. de Série:" and keeps only
+    the ones containing at least one digit (to discard false positives). The
+    first valid occurrence is considered the instrument's SN and the second,
+    if it exists, the sensor's SN.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        tuple: (sn_inst, sn_sensor), each a str or None if not found.
+    """
     encontrados = re.findall(
         r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+\s*:|Nominal\b)[\w./-]+)*)",
         texto,
@@ -114,10 +159,17 @@ def extrair_sn(texto):
     return sn_inst, sn_sensor
 
 def extrair_certificado(texto):
+    """Extracts the certificate number (first occurrence of "Nº ...") and normalizes it."""
     m = re.search(r"Nº\s*([^\n]+)", texto)
     return normalizar_certificado(m.group(1).strip()) if m else None
 
 def extrair_datas(texto):
+    """Extracts the certificate's calibration date and report date.
+
+    Returns:
+        tuple: (data_calibracao, data_relatorio), each in "DD/MM/AAAA"
+        format (str) or None if the respective field is not found.
+    """
     m_cal = re.search(
         r"(Calibration Date|Data da Calibração):\s*([0-9]{2}/[0-9]{2}/[0-9]{4})",
         texto,
@@ -134,6 +186,7 @@ def extrair_datas(texto):
     )
 
 def data_proxima_calibracao(texto):
+    """Extracts the next calibration date ("Next Calibration"/"Próxima Calibração")."""
     padrao = (
         r"(Next\s*Calibration|Próxima\s*Calibração)\s*:\s*"
         r"(\d{2}/\d{2}/\d{4})"
@@ -144,6 +197,7 @@ def data_proxima_calibracao(texto):
     return m.group(2) if m else None
 
 def extrair_nome_cliente(texto):
+    """Extracts the client name from the "Name:"/"Nome:" field, stopping before "Contact:"/"Contato:"."""
     m = re.search(
         r"(Name|Nome):\s*([^\n\r]+?)(?:\s+(Contact|Contato):|$)",
         texto,
@@ -153,6 +207,15 @@ def extrair_nome_cliente(texto):
     return m.group(2).strip() if m else None
 
 def extrair_local(texto):
+    """Extracts the calibration location name from inside the "CALIBRATION LOCATION:" block.
+
+    First isolates the block of text between "CALIBRATION LOCATION:" and the
+    next section ("CALIBRATED ITEM DESCRIPTION"/"CLIENT INFORMATION"), then
+    searches for the "Name:"/"Nome:" field inside that block.
+
+    Returns:
+        str: Location name, or None if the block or field are not found.
+    """
     bloco = re.search(
         r"CALIBRATION LOCATION:(.*?)(?:CALIBRATED ITEM DESCRIPTION|CLIENT INFORMATION|$)",
         texto,
@@ -171,6 +234,17 @@ def extrair_local(texto):
     return m.group(2).strip() if m else None
 
 def extrair_sistema(texto):
+    """Extracts the system description ("System Description:"/"Descrição do Sistema:").
+
+    The capture runs until the next known section label (Name, Address,
+    Calibrated, Classification/Classificação, Periodicity/Periodicidade, Next
+    Calibration/Próxima Calibração, LOCAL ENVIRONMENTAL, REFERENCE STANDARDS,
+    ITEM, TAG or SN); multiple spaces are collapsed and any periodicity
+    fragment that "leaked" into the capture is stripped out.
+
+    Returns:
+        str: System description, or None if the field is not found.
+    """
     m = re.search(
         r"(?:System Description|Descrição do Sistema):\s*([\s\S]+?)"
         r"(?=\n(?:Name:|Address:|Calibrated|Classification|Classificação|"
@@ -195,6 +269,16 @@ def extrair_sistema(texto):
     return sistema
 
 def extrair_range_calibrado(texto):
+    """Extracts the Min/Max limits of the certificate's "Calibration Range".
+
+    First tries the main pattern ("Calibration Range ... Min: X ... Max: Y");
+    if it fails, falls back to matching just "Range: Min: X ... Max: Y",
+    because pdfplumber sometimes fragments the word "Calibration" in
+    multi-column layouts, merging it with the instrument's model number.
+
+    Returns:
+        tuple: (min, max) as float, or (None, None) if no pattern matches.
+    """
     # Padrão principal: "Calibration Range ... Min: X ... Max: Y"
     padrao = r"""
     Calibration\s*Range.*?
@@ -218,6 +302,11 @@ def extrair_range_calibrado(texto):
     return None, None
 
 def extrair_range_indicado(texto):
+    """Extracts the Min/Max limits of the certificate's "Indication Range".
+
+    Returns:
+        tuple: (min, max) as float, or (None, None) if the pattern does not match.
+    """
     padrao = r"""
     Indication\s*Range.*?
     Min\s*[:\-]?\s*([-+]?[0-9.,]+)
@@ -231,11 +320,17 @@ def extrair_range_indicado(texto):
     )
 
 def extrair_resolucao(texto):
+    """Extracts the numeric value of the "Resolution:" field (in kPa, Pa, bar or mbar)."""
     padrao = r"Resolution\s*:\s*([\d.,]+)\s*(kPa|Pa|bar|mbar)"
     m = re.search(padrao, texto, flags=re.I)
     return normalizar_num(m.group(1)) if m else None
 
 def extrair_haste(texto):
+    """Extracts the rod length ("Rod length:") and the probe diameter ("Probe diameter:").
+
+    Returns:
+        tuple: (rod_length, probe_diameter) as float, each None if absent.
+    """
     rod = re.search(r"Rod length:\s*([\d,.]+)", texto, flags=re.IGNORECASE)
     probe = re.search(r"Probe diameter:\s*([\d,.]+)", texto, flags=re.IGNORECASE)
 
@@ -245,9 +340,20 @@ def extrair_haste(texto):
     )
 
 def extrair_indicadores_metrologicos(texto):
-    """
-    Extrai Repetibilidade, Histerese, Erro Fiducial e Incerteza
-    de forma robusta, mesmo com variações no PDF.
+    """Extracts Repeatability, Hysteresis, Fiducial Error and Uncertainty from the
+    certificate's metrological characteristics table.
+
+    The regex first locates the section header and the labels of the four
+    columns (in English or Portuguese), and only then captures the four
+    corresponding numeric values, which makes it resilient to small layout
+    variations between certificates.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: Keys "repetibilidade", "histerese", "erro_fiducial" and
+        "incerteza", each a float or None; all None if the pattern does not match.
     """
 
     padrao = r"""
@@ -292,6 +398,7 @@ def extrair_indicadores_metrologicos(texto):
     }
 
 def endereco_cliente(texto):
+    """Extracts the client address from inside the "CLIENT INFORMATION"/"INFORMAÇÕES DO CLIENTE" block."""
     if not texto:
         return None
 
@@ -318,6 +425,16 @@ SIGNATARIOS_VALIDOS = [
 ]
 
 def extrair_assinaturas(texto):
+    """Extracts the name that appears right above the signature label on the certificate.
+
+    Looks for a line in uppercase/title case followed, on the next line, by
+    "Signatory", "Signatário", "Calibration Executor" or "Executor da
+    Calibração".
+
+    Returns:
+        str: Raw name found (not yet split into signatory/executor by
+        separar_signatario), or None if the pattern does not match.
+    """
     if not texto:
         return None
 
@@ -333,6 +450,19 @@ def extrair_assinaturas(texto):
     return padrao.group(1).strip() if padrao else None
 
 def separar_signatario(assinaturas_raw, signatarios_validos):
+    """Splits the raw signature text into which name is the official signatory
+    (from the SIGNATARIOS_VALIDOS list) and which is the calibration executor.
+
+    Args:
+        assinaturas_raw: Text returned by extrair_assinaturas, usually
+            containing both names concatenated.
+        signatarios_validos: List of names recognized as official signatories.
+
+    Returns:
+        dict: {"signatario": str|None, "executante": str|None}. If no name
+        from the list is found, the whole text is assigned to "executante" and
+        "signatario" is None; if `assinaturas_raw` is empty, both are None.
+    """
     if not assinaturas_raw:
         return {
             "signatario": None,
@@ -357,6 +487,11 @@ def separar_signatario(assinaturas_raw, signatarios_validos):
     }
 
 def extrair_condicoes_ambientais(texto):
+    """Extracts ambient temperature and humidity ("Ambient Temperature:"/"Ambient Humidity:").
+
+    Returns:
+        dict: {"temperatura_ambiente": float|None, "umidade_ambiente": float|None}.
+    """
     resultado = {
         "temperatura_ambiente": None,
         "umidade_ambiente": None
@@ -389,6 +524,20 @@ def extrair_condicoes_ambientais(texto):
     return resultado
 
 def extrair_padroes(texto):
+    """Extracts the list of reference standards used in the calibration.
+
+    Locates the "PADRÕES DE REFERÊNCIA:" block and, for each line inside it,
+    tries to match the pattern "<type>, AF<no>, Cert. no <certificate>, Val. <mm/yyyy>,
+    CAL<no>/RBC"; lines that do not follow this format are ignored.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        list[dict]: One dict per recognized standard, with keys "tipo",
+        "identificacao", "certificado", "validade" and "procedimento_calib".
+        Empty list if the block does not exist or no line matches.
+    """
     padroes = []
 
     
@@ -471,6 +620,18 @@ MAPA_PROCEDIMENTOS = [{
 'Termorresistência PT-100 - 3 Fios'
 
 def obter_procedimento_por_categoria(categoria_instrumento):
+    """Looks up in MAPA_PROCEDIMENTOS the calibration procedure and description
+    associated with the instrument category (substring match, case-insensitive).
+
+    Args:
+        categoria_instrumento: Instrument category name, as returned by
+            extrair_categoria_intrumento.
+
+    Returns:
+        dict: {"procedimento": str, "descricao": str} from the first entry of
+        MAPA_PROCEDIMENTOS whose category matches, or None if none matches or
+        `categoria_instrumento` is empty.
+    """
     if not categoria_instrumento:
         return None
 
@@ -487,12 +648,8 @@ def obter_procedimento_por_categoria(categoria_instrumento):
     return None
 
 def extrair_fabricante(texto):
-    """
-    Extrai somente o fabricante, ignorando:
-    - Model
-    - Output
-    - TAG
-    """
+    """Extracts the manufacturer ("Manufacturer:"/"Maker:"), stopping before the
+    Model/Modelo, Output or TAG fields that usually follow it on the same line."""
     padrao = re.search(
         r"(?:Manufacturer|Maker)\s*:\s*(.+?)(?=\s+(?:Model|Modelo|Output|TAG)\s*:|$)",
         texto,
@@ -505,9 +662,7 @@ def extrair_fabricante(texto):
     return None
 
 def extrair_modelo(texto):
-    """
-    Extrai o modelo (Model) do certificado.
-    """
+    """Extracts the certificate's model ("Model:")."""
     if not texto:
         return None
 
@@ -521,9 +676,7 @@ def extrair_modelo(texto):
 
 
 def extrair_tag_sensor(texto):
-    """
-    Extrai a TAG do sensor localizada no bloco 'Sensor Information'
-    """
+    """Extracts the sensor TAG from inside the "Sensor Information" block (field "Tag"/"TAG"/"Sensor Tag")."""
 
     if not texto:
         return None
@@ -540,10 +693,8 @@ def extrair_tag_sensor(texto):
     return None
 
 def extrair_tipo_sensor(texto):
-    """
-    Extrai o tipo do sensor (PT-BR) a partir do campo 'Sensor Type',
-    retornando o texto após a barra (/).
-    """
+    """Extracts the sensor type in Portuguese from the certificate's "Sensor Type"
+    field, returning only the text after the slash ("EN/PT")."""
 
     if not texto:
         return None
@@ -574,6 +725,8 @@ LOCALIZACOES_ORIGEM = {
 
 
 def _normalizar_tag_relacionado(tag):
+    """Normalizes a TAG for comparison: uppercase, assorted dashes
+    converted to "-" and all spaces removed."""
     if not tag:
         return ""
     tag = tag.strip().upper()
@@ -583,15 +736,24 @@ def _normalizar_tag_relacionado(tag):
 
 
 def extrair_itens_relacionados(texto):
-    """Parseia um documento "Itens Relacionados" da Origem (ex.: LDN-030.pdf
-    — um arquivo separado dos certificados, escolhido pelo usuário) e
-    devolve um dict {tag_normalizada: (numero_ac, localizacao)} com uma
-    entrada por linha "AC - Análise Crítica - <TAG>" cuja localização (4
-    dígitos logo após "AC-") seja reconhecida.
+    """Parses an Origem "Itens Relacionados" (Related Items) document (e.g.: LDN-030.pdf
+    — a file separate from the certificates, chosen by the user) and
+    returns a dict {tag_normalizada: (numero_ac, localizacao)} with one
+    entry per "AC - Análise Crítica - <TAG>" line whose location (4
+    digits right after "AC-") is recognized.
 
-    O texto extraído gruda a coluna "Nome" com a "Descrição" sem espaço,
-    ex.: "AC-1600.0000-6252-812-O2C-574AC - Análise Crítica - PDT-124402"
-    — o trecho antes do 2º "AC" é o número da AC."""
+    The extracted text glues the "Nome" column to the "Descrição" column
+    with no space, e.g.: "AC-1600.0000-6252-812-O2C-574AC - Análise Crítica - PDT-124402"
+    — the part before the 2nd "AC" is the AC number.
+
+    Args:
+        texto: Text extracted from the related items document.
+
+    Returns:
+        dict: Maps each normalized TAG (via _normalizar_tag_relacionado)
+        to the tuple (numero_ac, localizacao); empty dict if `texto` is empty
+        or no recognizable line is found.
+    """
     resultado = {}
     if not texto:
         return resultado
@@ -614,14 +776,23 @@ def extrair_itens_relacionados(texto):
 
 
 def buscar_item_relacionado(mapa_itens_relacionados, tag):
-    """Consulta o dict montado por extrair_itens_relacionados pela TAG deste
-    certificado. Devolve (numero_ac, localizacao) ou (None, None)."""
+    """Looks up the dict built by extrair_itens_relacionados for this certificate's TAG.
+
+    Args:
+        mapa_itens_relacionados: Dict returned by extrair_itens_relacionados.
+        tag: TAG of the current certificate's instrument (will be normalized before the lookup).
+
+    Returns:
+        tuple: (numero_ac, localizacao) if the TAG is found, or (None, None)
+        otherwise (including when `mapa_itens_relacionados` or `tag` are empty).
+    """
     if not mapa_itens_relacionados or not tag:
         return None, None
     return mapa_itens_relacionados.get(_normalizar_tag_relacionado(tag), (None, None))
 
 
 def extrair_codigo_ods(certificado: str) -> str | None:
+    """Extracts the sequential number of the ODS code from a certificate number (pattern "ODS-<number>")."""
     if not certificado:
         return None
 
@@ -631,6 +802,22 @@ def extrair_codigo_ods(certificado: str) -> str | None:
 
 
 def extrair_campos(texto: str) -> dict:
+    """Builds the complete field dictionary for a secondary instrument certificate.
+
+    Orchestrates every extractor in this module (TAG, serial numbers,
+    certificate, category, calibration location, dates, system, class,
+    calibrated/indicated ranges, rod/probe, metrological indicators, calibration
+    curve, client, signatures, ambient conditions, standards, procedure,
+    manufacturer, model and sensor type) to produce the dataset used to
+    populate the AC template.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        dict: All the certificate's fields, ready for use by the rest of
+        the system (see the keys in the returned dict for the full list).
+    """
     tag = extrair_tag(texto)
     tag_sen = extrair_tag_sensor(texto)
     sn_inst, sn_sensor = extrair_sn(texto)

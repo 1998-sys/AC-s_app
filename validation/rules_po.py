@@ -16,6 +16,7 @@ from data.utils_db import inserir_placa, buscar_placa_por_tag, buscar_placa_por_
 
 
 def normalizar_numero_certificado(valor):
+    """Normalizes a certificate number for comparison: standardizes dashes, removes spaces and converts to uppercase."""
     if not valor:
         return valor
     valor = re.sub(r"[‐-–—]", "-", valor)
@@ -28,6 +29,13 @@ def normalizar_numero_certificado(valor):
 _TAG_AUSENTE_PO = {"N/A", "N/C", "NI", "NA"}
 
 def regra_nova_placa(ctx):
+    """Checks whether the certificate's orifice plate is already registered, identifying it by TAG or, in its absence, by serial number.
+
+    Returns:
+        ValidationIssue: non-blocking, proposing registration, if the plate does not exist;
+        blocking if the TAG exists but with an SN different from the certificate; None if
+        everything is already consistent.
+    """
     tag_raw = (ctx.pdf.get("tag") or "").strip().upper()
     sn      = ctx.pdf.get("sn_inst")
 
@@ -83,6 +91,12 @@ def regra_nova_placa(ctx):
 
 
 def comparar_evaluation_certificado(ctx):
+    """Compares the Evaluation Report number with the certificate number, after normalization.
+
+    Returns:
+        ValidationIssue: blocking if either number is missing or if they diverge; None if
+        they match.
+    """
     num_eval = None
     certificado = None
 
@@ -118,6 +132,12 @@ def comparar_evaluation_certificado(ctx):
     return None
 
 def validar_parametros_report(ctx):
+    """Checks whether all mandatory Evaluation Report parameters are approved ("Sim"/"Yes").
+
+    Returns:
+        ValidationIssue: blocking, listing the parameters not approved, or reporting the
+        absence of the report itself; None if all parameters are approved.
+    """
     if not ctx.report:
         return ValidationIssue(
             key="report_inexistente",

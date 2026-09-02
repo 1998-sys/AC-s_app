@@ -21,9 +21,14 @@ import win32com.client as win32
 
 
 def limpar_nome_arquivo(texto):
-    """
-    Remove caracteres inválidos para nomes de arquivo e substitui espaços por underscores.
-    Removes invalid filename characters and replaces spaces with underscores.
+    """Removes characters invalid for file names and replaces spaces with underscores.
+
+    Args:
+        texto: Input text; if empty/None, returns an empty string.
+
+    Returns:
+        str: Sanitized text, with the characters \\/*?:"<>| removed and spaces
+        converted to underscores.
     """
     if not texto:
         return ""
@@ -34,27 +39,26 @@ def limpar_nome_arquivo(texto):
 
 
 def gerar_ac_po(config, dados, caminho_pdf_original, excel=None):
-    """Preenche um template Excel de AC de placa de orifício (variante PO) e
-    exporta como PDF via Excel COM.
+    """Fills an orifice plate AC Excel template (PO variant) and exports it as PDF via Excel COM.
 
-    ORIGEM_PO, YINSON_PO e YINSON_ATLANTA_PO usam exatamente este mesmo fluxo —
-    copiar o template para um arquivo temporário, escrever um punhado de campos,
-    abrir via Excel COM pra recalcular fórmulas e exportar o PDF — diferindo
-    apenas no template usado e em quais campos vão em quais células (`config`).
+    ORIGEM_PO, YINSON_PO and YINSON_ATLANTA_PO all use this exact same flow —
+    copy the template to a temporary file, write a handful of fields,
+    open it via Excel COM to recalculate formulas and export the PDF — differing
+    only in the template used and which fields go into which cells (`config`).
 
     Args:
-        config (dict): 'template', 'prefixo_temp', 'campos' (cel -> chave em
-            `dados`), 'data_cell' (célula do "Data: {report_date}"),
-            'nome_arquivo_campo' (chave em `dados` usada no nome do PDF final).
-        dados (dict): Campos do certificado.
-        caminho_pdf_original (str): Caminho do PDF de origem, usado para
-            definir a pasta de saída.
+        config (dict): 'template', 'prefixo_temp', 'campos' (cell -> key in
+            `dados`), 'data_cell' (cell for "Data: {report_date}"),
+            'nome_arquivo_campo' (key in `dados` used in the final PDF's file name).
+        dados (dict): Certificate fields.
+        caminho_pdf_original (str): Path of the source PDF, used to
+            determine the output folder.
 
     Returns:
-        str: Caminho absoluto do PDF gerado.
+        str: Absolute path of the generated PDF.
 
     Raises:
-        PermissionError: Se o PDF de saída já estiver aberto.
+        PermissionError: If the output PDF is already open.
     """
     caminho_template = config["template"]
 
@@ -163,15 +167,15 @@ CONFIG_YINSON_ATLANTA_PO = {
 
 
 def gerar_ac_origem_PO(dados, caminho_pdf_original, excel=None):
-    """Preenche o template Excel de AC Origem PO e exporta como PDF via Excel COM."""
+    """Fills the ORIGEM PO AC Excel template and exports it as PDF via Excel COM."""
     return gerar_ac_po(CONFIG_ORIGEM_PO, dados, caminho_pdf_original, excel=excel)
 
 
 def gerar_ac_yinson_PO(dados, caminho_pdf_original, excel=None):
-    """Preenche o template Excel de AC YINSON PO e exporta como PDF via Excel COM."""
+    """Fills the YINSON PO AC Excel template and exports it as PDF via Excel COM."""
     return gerar_ac_po(CONFIG_YINSON_PO, dados, caminho_pdf_original, excel=excel)
 
 
 def gerar_ac_yinson_atlanta_PO(dados, caminho_pdf_original, excel=None):
-    """Preenche o template Excel de AC YINSON ATLANTA PO e exporta como PDF via Excel COM."""
+    """Fills the YINSON ATLANTA PO AC Excel template and exports it as PDF via Excel COM."""
     return gerar_ac_po(CONFIG_YINSON_ATLANTA_PO, dados, caminho_pdf_original, excel=excel)

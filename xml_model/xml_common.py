@@ -16,20 +16,19 @@ from pathlib import Path
 
 
 def salvar_xml_bonito(root, caminho_saida, standalone=False):
-    """Serializa um Element em XML formatado (indentado) e grava em disco,
-    criando as pastas do caminho de saída se necessário.
+    """Serializes an Element into formatted (indented) XML and writes it to disk,
+    creating the output path's folders if needed.
 
-    Usado por todos os geradores de certificado XML (cromatografia, UC, PO,
-    TR, petro) para evitar reimplementar tostring → minidom → toprettyxml →
-    write em cada um deles.
+    Used by all certificate XML generators (chromatography, UC, PO, TR, petro)
+    to avoid reimplementing tostring → minidom → toprettyxml → write in each one.
 
     Args:
-        root: elemento raiz (xml.etree.ElementTree.Element) a ser serializado.
-        caminho_saida (str | Path): caminho do arquivo .xml de saída.
-        standalone (bool): se True, adiciona `standalone="yes"` à declaração XML.
+        root: root element (xml.etree.ElementTree.Element) to be serialized.
+        caminho_saida (str | Path): path of the output .xml file.
+        standalone (bool): if True, adds `standalone="yes"` to the XML declaration.
 
     Returns:
-        str: caminho absoluto do arquivo gerado (mesmo valor recebido em caminho_saida).
+        str: absolute path of the generated file (same value received in caminho_saida).
     """
     xml_str = ET.tostring(root, encoding="utf-8")
     parsed = minidom.parseString(xml_str)

@@ -37,6 +37,7 @@ class PdfProcessingService:
     TEMPO_MINIMO_POR_ITEM = 2.0
 
     def __init__(self, api):
+        """Initializes cancellation state, the session's "Related Items" cache, and the map of types with direct XML generation."""
         self.api = api
         self._cancelado = False
         self._inicio_item_ts = None
@@ -57,10 +58,16 @@ class PdfProcessingService:
         }
 
     def escolher_arquivos_pdf(self):
-        """Abre o diálogo de arquivo (permitindo selecionar um ou vários
-        certificados) e retorna a lista de {caminho, nome} escolhidos, sem
-        iniciar o processamento (fluxo de 2 passos: escolher arquivo(s) ->
-        clicar em "Ler certificado")."""
+        """Opens the file dialog to choose one or more certificates, without starting processing.
+
+        Returns:
+            List of `{"caminho": str, "nome": str}` dicts in the chosen order
+            (empty if the user cancelled).
+
+        Notes:
+            2-step flow: choose file(s) -> click "Ler certificado" (which
+            calls `iniciar_leitura`).
+        """
         caminhos = self.api.escolher_arquivos(
             "Selecionar certificado(s)",
             ("PDF e XML (*.pdf;*.xml)", "PDF (*.pdf)", "XML (*.xml)"),
@@ -68,21 +75,27 @@ class PdfProcessingService:
         return [{"caminho": c, "nome": os.path.basename(c)} for c in caminhos]
 
     def receber_arquivos_soltos(self, arquivos):
-        """Recebe arquivos soltos (drag-and-drop) na tela de seleção.
+        """Saves loose (drag-and-drop) files from the selection screen to disk and returns their paths.
 
-        O navegador não dá acesso ao caminho real do arquivo no disco por
-        segurança (a API padrão de drag-and-drop só expõe o conteúdo) — o JS
-        lê cada arquivo como base64 e manda aqui pra ser salvo em disco,
-        devolvendo a mesma estrutura {caminho, nome} de
-        `escolher_arquivos_pdf`, pra reusar o fluxo existente sem duplicação.
+        Args:
+            arquivos: list of `{"nome": str, "conteudo_base64": str}` coming from the JS side.
 
-        Salva em Documentos (não numa pasta temporária): o relatório/XML
-        gerado sempre vai pra mesma pasta do certificado de origem
-        (`obter_caminho_ac`), então usar uma pasta temporária aqui faria os
-        arquivos gerados também caírem lá — um lugar que o Windows pode
-        limpar sozinho e que ninguém pensaria em procurar.
+        Returns:
+            List of `{"caminho": str, "nome": str}` dicts, in the same
+            structure as `escolher_arquivos_pdf`, to reuse the existing
+            flow without duplication.
 
-        `arquivos` é uma lista de {"nome": str, "conteudo_base64": str}.
+        Notes:
+            The browser doesn't give access to the file's real path on disk
+            for security reasons (the standard drag-and-drop API only
+            exposes the content) — so the JS reads each file as base64 and
+            sends it here to be saved to disk. It saves to the Documents
+            folder (`PASTA_CERTIFICADOS_SOLTOS`), not a temp folder: the
+            generated report/XML always goes to the same folder as the
+            source certificate (`obter_caminho_ac`), so using a temp folder
+            here would make the generated files land there too — a place
+            Windows can clean up on its own and that nobody would think to
+            look for them in.
         """
         pasta = pasta_documentos(PASTA_CERTIFICADOS_SOLTOS)
 
@@ -95,13 +108,19 @@ class PdfProcessingService:
         return resultado
 
     def iniciar_leitura(self, itens):
-        """Inicia em background o processamento da fila de arquivos já
-        escolhidos (`itens` é sempre uma lista de {caminho, nome}, mesmo pra
-        um único arquivo). O modo lote ativa automaticamente quando há mais
-        de um item: a fila avança sozinha após cada arquivo (sucesso ou
-        erro) até processar todos — ver `em_lote_ativo`/`avancar_fila`/
-        `avancar_apos_sucesso_revisao`, acionados via
-        `DialogBridge.voltar_para_selecao`/`RevisionService.confirmar_geracao`."""
+        """Resets the queue state and dispatches the first file's processing in the background.
+
+        Args:
+            itens: list of `{"caminho": str, "nome": str}` already chosen,
+                even for a single file.
+
+        Notes:
+            Batch mode activates automatically when there's more than one
+            item: the queue advances on its own after each file (success or
+            error) until all are processed — see `em_lote_ativo`/
+            `avancar_fila`, triggered via `DialogBridge.voltar_para_selecao`/
+            `RevisionService.confirmar_geracao`.
+        """
         self._cancelado = False
         self.api.fila_processamento = list(itens)
         self.api.indice_fila = 0
@@ -113,6 +132,7 @@ class PdfProcessingService:
         self._processar_item_da_fila()
 
     def _processar_item_da_fila(self):
+        """Marks the start of processing for the current queue item, updates the UI progress, and dispatches the reading thread."""
         self._inicio_item_ts = time.time()
         item = self.api.fila_processamento[self.api.indice_fila]
         caminho = item["caminho"]
@@ -124,6 +144,7 @@ class PdfProcessingService:
         Thread(target=self._processar_pdf_thread, args=(caminho,), daemon=True).start()
 
     def _aguardar_tempo_minimo_item(self):
+        """Sleeps for the remaining time until `TEMPO_MINIMO_POR_ITEM` has elapsed, so the item doesn't switch screens too fast for the user to notice."""
         inicio = self._inicio_item_ts
         if inicio is None:
             return
@@ -132,12 +153,16 @@ class PdfProcessingService:
             time.sleep(faltam)
 
     def cancelar_leitura(self):
-        """Cancelamento cooperativo: não interrompe a extração do PDF já em
-        andamento (bibliotecas de parsing não são interrompíveis com segurança),
-        mas impede a thread de avançar pra tela de revisão/saída assim que o
-        próximo ponto de checagem for alcançado. Também encerra a fila (um
-        cancelamento explícito do usuário aborta o lote inteiro, não só o
-        arquivo atual)."""
+        """Signals cooperative cancellation of the reading and ends the whole queue.
+
+        Notes:
+            Doesn't interrupt the PDF extraction already in progress
+            (parsing libraries can't be safely interrupted), but prevents
+            the thread from advancing to the review/output screen once the
+            next checkpoint is reached. It also ends the queue (an explicit
+            user cancellation aborts the whole batch, not just the current
+            file).
+        """
         self._cancelado = True
         self.api.fila_processamento = []
         self.api.indice_fila = 0
@@ -152,6 +177,11 @@ class PdfProcessingService:
     # mostrar a revisão agregada, gerar tudo, ou ir direto pra saída.
 
     def em_lote_ativo(self):
+        """Indicates whether there's a queue of more than one item in progress (not cancelled and still with a pending item).
+
+        Returns:
+            True if batch mode is active.
+        """
         return (
             len(self.api.fila_processamento) > 1
             and self.api.indice_fila < len(self.api.fila_processamento)
@@ -159,14 +189,25 @@ class PdfProcessingService:
         )
 
     def registrar_evento_lote(self, titulo, mensagem, variant, nome=None):
-        """Chamado por DialogBridge.alert no lugar de exibir o alerta, quando
-        em modo lote — evita que cada sucesso/erro pare a fila esperando o
-        usuário clicar OK. `nome` é opcional: por padrão usa
-        `caminho_pdf_atual` (correto durante a leitura, quando esse é
-        realmente o item em processamento); `gerar_lote` passa o nome
-        explícito, já que ali `caminho_pdf_atual` não reflete mais o item
-        do laço (a leitura de todos já terminou antes de gerar qualquer
-        um)."""
+        """Appends an event (success/error) to the list shown on the batch output screen, instead of showing a blocking alert.
+
+        Args:
+            titulo: event title.
+            mensagem: detailed event message.
+            variant: "success"/"info" count as success; any other value
+                counts as a failure (see `ok` in the resulting dict).
+            nome: name of the file associated with the event. If omitted,
+                uses `caminho_pdf_atual` (correct during reading, when that
+                really is the item being processed); `gerar_lote` passes
+                the explicit name, since at that point `caminho_pdf_atual`
+                no longer reflects the loop's current item (all reading has
+                already finished before generating any of them).
+
+        Notes:
+            Called by `DialogBridge.alert` instead of showing the alert,
+            when in batch mode — prevents each success/error from stopping
+            the queue waiting for the user to click OK.
+        """
         self.api.eventos_lote.append({
             "nome": nome or os.path.basename(self.api.caminho_pdf_atual or ""),
             "titulo": titulo,
@@ -175,10 +216,15 @@ class PdfProcessingService:
         })
 
     def avancar_fila(self):
-        """Chamado por DialogBridge.voltar_para_selecao no lugar da navegação
-        padrão. Retorna True se assumiu a navegação (avançou pro próximo item
-        ou encerrou a fila); False se não havia lote ativo (fluxo de um
-        único arquivo, comportamento inalterado)."""
+        """Advances to the next item in the batch queue, or ends the queue if all items have already been processed.
+
+        Returns:
+            True if it took over navigation (advanced to the next item or
+            ended the queue); False if there was no active batch
+            (single-file flow, unchanged behavior — called by
+            `DialogBridge.voltar_para_selecao` in place of the default
+            navigation).
+        """
         if not self.em_lote_ativo():
             return False
 
@@ -193,12 +239,16 @@ class PdfProcessingService:
         return True
 
     def _ao_fila_esgotada(self):
-        """A fila terminou de ler todos os itens. Decide o que mostrar:
-        - Algum instrumento coletado (Fase 6) com divergência pendente →
-          tela de divergências agregada.
-        - Instrumentos coletados mas todos sem pendência → gera tudo direto.
-        - Nada coletado (só eventos de geração direta / erro) → tela de
-          saída com o que tiver."""
+        """Decides what to show after the queue has finished reading all items.
+
+        Notes:
+            - Some instrument collected (Phase 6) with a pending divergence
+              -> aggregated divergences screen.
+            - Instruments collected but none pending -> generates everything
+              directly.
+            - Nothing collected (only direct-generation/error events) ->
+              output screen with whatever there is.
+        """
         api = self.api
         if api.instrumentos_lote:
             tem_pendencia = any(
@@ -219,13 +269,23 @@ class PdfProcessingService:
             api.fila_processamento = []
 
     def finalizar_lote_manualmente(self):
-        """Wrapper público de _finalizar_lote — chamado por
-        RevisionService.gerar_lote depois de gerar tudo, fora do fluxo normal
-        de avancar_fila (que já chamaria isso sozinho se a fila ainda
-        estivesse "ativa", mas nesse ponto ela já foi esgotada)."""
+        """Public wrapper around `_finalizar_lote`.
+
+        Notes:
+            Called by `RevisionService.gerar_lote` after generating
+            everything, outside the normal `avancar_fila` flow (which would
+            call this on its own if the queue were still "active", but at
+            this point it has already been exhausted).
+        """
         return self._finalizar_lote()
 
     def _finalizar_lote(self):
+        """Builds the batch output screen's payload (generated items, events, and summary) and clears the queue state.
+
+        Returns:
+            Dict with `lote`, `itens`, `eventos`, `sub` (text summary), and
+            `total_arquivos`.
+        """
         itens = self.api.resultados_lote
         eventos = self.api.eventos_lote
         total_arquivos = sum(len(it.get("files", [])) for it in itens)
@@ -250,14 +310,23 @@ class PdfProcessingService:
         return payload
 
     def dados_origem_automaticos(self, tag):
-        """Retorna (n_ac, localizacao) pra essa TAG a partir de um documento
-        "Itens Relacionados" da Origem (ex.: LDN-030.pdf) — pergunta ao
-        usuário, só na primeira vez nesta sessão de leitura (reset em
-        iniciar_leitura), se ele quer incluir esse documento; se sim, abre
-        a seleção de arquivo e monta o cache pra essa sessão inteira (um
-        documento cobre várias TAGs). Devolve (None, None) se o usuário
-        recusar, cancelar a seleção, ou a TAG não estiver no documento —
-        processors.utils.fluxo_origem cai pro prompt manual nesse caso."""
+        """Looks up Location/AC No. for the TAG in an Origem "Related Items" document (e.g. LDN-030.pdf), asking the user for the file the first time.
+
+        Args:
+            tag: TAG of the instrument to look up in the document.
+
+        Returns:
+            Tuple `(n_ac, localizacao)`, or `(None, None)` if the user
+            declines to use the document, cancels the selection, or the
+            TAG isn't in it — `processors.utils.fluxo_origem` falls back to
+            the manual prompt in that case.
+
+        Notes:
+            Asks the user, only the first time in this reading session
+            (reset in `iniciar_leitura`), whether they want to include this
+            document; if so, opens the file selection and builds the cache
+            for the whole session (one document covers several TAGs).
+        """
         if not self._itens_relacionados_perguntado:
             self._itens_relacionados_perguntado = True
             if self.api.confirm(
@@ -279,8 +348,19 @@ class PdfProcessingService:
         return buscar_item_relacionado(self._itens_relacionados_cache, tag)
 
     def solicitar_dados_origem(self, dados_pdf, callback):
-        # Chamado quando dados_origem_automaticos não achou Localização/Nº AC
-        # (usuário não incluiu o documento, ou a TAG não estava nele).
+        """Asks the user for Location/AC No. via a prompt and continues the flow in `callback` with `dados_pdf` filled in.
+
+        Args:
+            dados_pdf: dict of data extracted from the certificate, updated
+                in-place with `localizacao`/`n_ac`.
+            callback: function called with `dados_pdf` after it's filled
+                in; not called if the user cancels the prompt.
+
+        Notes:
+            Called when `dados_origem_automaticos` didn't find
+            Location/AC No. (user didn't include the document, or the TAG
+            wasn't in it).
+        """
         valores = self.api.prompt(
             "Dados complementares",
             "Preencha as informações adicionais exigidas para certificados ORIGEM.",
@@ -297,6 +377,11 @@ class PdfProcessingService:
         callback(dados_pdf)
 
     def _processar_pdf_thread(self, caminho):
+        """Extracts and classifies the certificate (running in the background) and routes it to direct XML generation, chromatography, or the Dispatcher.
+
+        Args:
+            caminho: path of the file (PDF or XML) to process.
+        """
         if caminho.lower().endswith(".xml"):
             self._processar_xml_ft(caminho)
             return
@@ -334,10 +419,12 @@ class PdfProcessingService:
             self.api._voltar_para_selecao()
 
     def _resumo_instrumento(self, dados_pdf):
-        """Monta o payload de resumo (foto/badge/campos) mostrado assim que o
-        instrumento é identificado, ainda na tela de leitura — antes da
-        revisão. Retorna None para tipos sem TAG de instrumento (ex.:
-        cromatografia)."""
+        """Builds the summary payload (photo/badge/fields) shown as soon as the instrument is identified, still on the reading screen — before review.
+
+        Returns:
+            Dict with `tag`, `badge`, `photo`, and `fields`, or None for
+            types without an instrument TAG (e.g. chromatography).
+        """
         tag = dados_pdf.get("tag")
         if not tag:
             return None
@@ -358,6 +445,7 @@ class PdfProcessingService:
         }
 
     def _gerar_cromatografia(self, caminho, dados_pdf):
+        """Generates the chromatography XML from the PDF, showing step-by-step progress, and forwards the result to output (batch or single)."""
         api = self.api
         api._js("App.setChecklistTipo('cromatografia')")
         api._progress(50, "extract", [])
@@ -387,6 +475,11 @@ class PdfProcessingService:
             api._js(f"App.showOutput({json.dumps(payload)})")
 
     def _montar_resultado_cromatografia(self, xml_path, dados_pdf):
+        """Builds the result dict (output card) for a generated chromatography XML.
+
+        Returns:
+            Dict with `tag`, `badge`, `sub`, `avisos`, and `files`.
+        """
         tamanho = os.path.getsize(xml_path) // 1024
         titulo = dados_pdf.get("certificado") or dados_pdf.get("empresa") or "Cromatografia"
         return {
@@ -403,6 +496,7 @@ class PdfProcessingService:
         }
 
     def _gerar_incerteza(self, caminho, dados_pdf):
+        """Generates the Uncertainty (CI) XML directly from the certificate, in the same folder as the PDF, and returns to the selection screen."""
         numero_ci = dados_pdf.get("numero_ci", "NI")
         xml_path = os.path.splitext(caminho)[0] + ".xml"
         gerar_xml_uc(numero_ci, dados_pdf, xml_path)
@@ -412,6 +506,18 @@ class PdfProcessingService:
         self.api._voltar_para_selecao()
 
     def _processar_xml_ft(self, caminho):
+        """Validates a flow meter external calibration certificate XML, asks the user for Application/System, and generates the Linearization spreadsheet.
+
+        Args:
+            caminho: path of the XML file (CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO).
+
+        Notes:
+            Application/System don't exist in the instrument registry for
+            flow meters (that's only for secondary instruments) — and
+            Application feeds the template's Status formula (±0.2%
+            tolerance for Fiscal/Custody Transfer, ±0.6% for the rest), so
+            they need to be asked from the user instead of left blank.
+        """
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
             from form.utils_print_linearizacao import gerar_linearizacao, contexto_db

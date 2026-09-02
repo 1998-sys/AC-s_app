@@ -25,8 +25,11 @@ import os
 
 
 def validar_e_logar(caminho_xml):
-    """Valida o XML contra o XSD e, se inválido, remove o arquivo e grava um log de erros.
-    Validates the XML against the XSD and, if invalid, deletes the file and writes an error log."""
+    """Validates the XML against the XSD; if invalid, removes the file and writes an error log.
+
+    Args:
+        caminho_xml: Path of the XML to validate.
+    """
     erros = validar_xml(caminho_xml)
     if erros:
         log = registrar_log(caminho_xml, erros)
@@ -37,8 +40,17 @@ def validar_e_logar(caminho_xml):
 
 
 def obter_caminho_ac(dados, caminho_pdf_original):
-    """Calcula o caminho de saída do PDF da AC sem gerá-lo.
-    Computes the AC PDF output path without generating it."""
+    """Computes the AC PDF output path without generating it.
+
+    Args:
+        dados: Certificate fields (uses "certificado" and "tag").
+        caminho_pdf_original: Path of the source PDF, used to determine the
+            output folder.
+
+    Returns:
+        str: Absolute path the AC PDF would have, following the pattern
+        "{certificado}_{tag}_AC.pdf".
+    """
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
     certificado = dados.get("certificado", "").replace(" ", "")
     tag_limpa = dados.get("tag", "").replace(" ", "")
@@ -47,14 +59,30 @@ def obter_caminho_ac(dados, caminho_pdf_original):
 
 
 def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report, dados_dim_tr=None, excel=None):
-    """Roteador principal: seleciona o gerador de AC e os XMLs conforme cliente e instrumento.
-    Main router: selects the AC generator and XMLs based on client and instrument type.
+    """Main router: selects the AC generator and the XMLs based on client and instrument.
 
-    Dispatches to the correct template generator (ORIGEM, YINSON, YINSON ATLANTA, PRIO, PO variants)
-    and handles XML generation and XSD validation before exporting the PDF.
-    `excel`, se passado, é uma instância COM do Excel já aberta (reaproveitada
-    em lote) e é encaminhada ao gerador escolhido.
-    Returns the absolute path of the generated PDF."""
+    Dispatches to the correct template generator (ORIGEM, YINSON, YINSON
+    ATLANTA, PRIO and the PO variants) and handles XML generation and XSD
+    validation before exporting the PDF.
+
+    Args:
+        dados: Certificate fields (client, location, instrument, etc.).
+        caminho_pdf_atual: Path of the source PDF (calibration report).
+        dados_xml_prio: Data used in generating the standard PRIO XML.
+        certificado_te: Associated thermoresistance certificate (PRIO flow).
+        dados_xml_petro: Data used in generating the Petrobras XML.
+        dados_report: Values extracted from the report, used in the orifice
+            plate XMLs.
+        dados_dim_tr: Straight-run pipe dimensions, required only in the
+            "GAS METER RUN" flow.
+        excel: Already-open Excel COM instance (reused across a batch),
+            passed through to the chosen generator.
+
+    Returns:
+        The absolute path of the generated PDF, or None when the flow does
+        not yet generate a PDF (the "GAS METER RUN" case, whose straight-run
+        XML is sufficient for now).
+    """
     cliente = dados.get("cliente", "").upper()
     local = dados.get("local", "").upper()
     instrumento = dados.get("instrumento", "").upper()

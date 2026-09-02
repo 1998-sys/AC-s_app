@@ -16,6 +16,16 @@ from pdf.parser_certificados import extrair_curva_calibracao, aplicar_curva_kpa
 
 
 def _to_float(v):
+    """Converts a table cell value to float, tolerating PDF formats.
+
+    Args:
+        v: raw value extracted from the table (str, number or None).
+
+    Returns:
+        float | None: converted value, or None if `v` is None, empty, "-",
+        "∞" or cannot be converted (comma is treated as the decimal
+        separator).
+    """
     if v is None:
         return None
 
@@ -31,6 +41,18 @@ def _to_float(v):
 
 
 def _valor_pos_barra(v):
+    """Extracts and converts to float the part after the "/" in "a/b"-format values.
+
+    Used in PT/DPT tables where the trend/uncertainty cell comes as
+    "valor_ma/valor_kpa"; when there is no "/", converts the whole value.
+
+    Args:
+        v: raw cell value (str, number or None).
+
+    Returns:
+        float | None: value after the slash (or the whole value, if there
+        is no slash) converted to float, or None if it cannot be converted.
+    """
     if v is None:
         return None
 
@@ -45,6 +67,24 @@ def _valor_pos_barra(v):
 
 
 def extrair_pontos_calibracao_pdf(caminho_pdf):
+    """Extracts the calibration points from a standard PDF certificate (TE, TT, PT or DPT).
+
+    Reads all tables and text from the PDF, classifies the instrument type
+    from the text content (thermoresistance, temperature transmitter,
+    pressure transmitter or differential pressure) and interprets the
+    points table according to the specific layout of each type (including
+    the PT/DPT case with mA reading converted via calibration curve, and
+    the case of values in "a/b" format).
+
+    Args:
+        caminho_pdf: path of the certificate's PDF file.
+
+    Returns:
+        list[dict]: list of calibration points, each with the keys "tipo"
+        (TE, TT, PT or DPT), "referencia", "media", "tendencia",
+        "incerteza" and "k". Empty list if there are no tables or the
+        instrument type is not recognized.
+    """
     tabelas = []
     texto = ""
 

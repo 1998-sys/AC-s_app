@@ -23,8 +23,19 @@ import uuid
 
 
 def primeira_celula_merge(ws, cell):
-    """Resolve a célula superior esquerda de um merge. / Resolves the top-left cell of a merged range.
-    Required because openpyxl only accepts writes to the first cell of a merge."""
+    """Resolves the top-left cell of a merged range.
+
+    Necessary because openpyxl only accepts writes to the first cell of a
+    merged range.
+
+    Args:
+        ws: openpyxl worksheet.
+        cell: Cell to resolve.
+
+    Returns:
+        The top-left cell of the merge that contains `cell`, or `cell`
+        itself if it does not belong to any merge.
+    """
     for merged_range in ws.merged_cells.ranges:
         if cell.coordinate in merged_range:
             return ws.cell(
@@ -35,21 +46,50 @@ def primeira_celula_merge(ws, cell):
 
 
 def escrever(ws, endereco, valor, wrap=True, vertical="top"):
-    """Escreve valor na célula (ou merge) com alinhamento padrão.
-    Writes a value to a cell (or merged cell) with default alignment."""
+    """Writes `valor` into the cell (or merge) at the given address, with default alignment.
+
+    Args:
+        ws: openpyxl worksheet.
+        endereco: Cell address (e.g. "A6").
+        valor: Value to write.
+        wrap: If True, enables automatic text wrapping in the cell.
+        vertical: Vertical alignment of the text.
+    """
     celula = primeira_celula_merge(ws, ws[endereco])
     celula.value = valor
     celula.alignment = Alignment(wrap_text=wrap, vertical=vertical)
 
 
 def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
-    """Preenche o template AC Origem e exporta como PDF via Excel COM.
-    Fills the AC Origem template and exports it as PDF via Excel COM.
+    """Fills the AC ORIGEM template and exports it as PDF via Excel COM.
 
-    Handles instrument type checkboxes, business-day-adjusted delivery date,
-    AS FOUND/AS LEFT indication, and rich text observations.
-    Returns the absolute path of the generated PDF."""
+    Marks the instrument-type checkboxes, adjusts the delivery date to the
+    next business day, indicates AS FOUND/AS LEFT and assembles the
+    observations as rich text (updated range/SN or no change).
+
+    Args:
+        dados: Certificate fields.
+        caminho_pdf_original: Path of the source PDF, used to determine the
+            output folder.
+        dados_xml_petro: Petrobras XML data; used to determine whether the
+            calibration is AS LEFT (otherwise assumes AS FOUND).
+        excel: Already-open Excel COM instance (reused across a batch). If
+            None, opens and closes its own instance.
+
+    Returns:
+        str: Absolute path of the generated PDF.
+    """
     def adicionar_dia_util(data):
+        """Adjusts `data` to the next business day, moving forward 2 days if it falls on a Saturday or 1 day if it falls on a Sunday.
+
+        Args:
+            data: Date to adjust.
+
+        Returns:
+            datetime: `data` unchanged if it is already a business day, or
+            pushed forward to the following Monday if it falls on a
+            Saturday/Sunday.
+        """
         if data.weekday() == 5:  # sábado
             data += timedelta(days=2)
         elif data.weekday() == 6:  # domingo

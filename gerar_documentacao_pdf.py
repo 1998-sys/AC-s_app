@@ -123,7 +123,15 @@ flowchart TD
 # ---------------------------------------------------------------------------
 
 def mermaid_to_png_bytes(mermaid_code: str) -> bytes | None:
-    """Converte código Mermaid para PNG via mermaid.ink."""
+    """Render a Mermaid diagram as a PNG by calling the external mermaid.ink service.
+
+    Args:
+        mermaid_code: Diagram source code in Mermaid format.
+
+    Returns:
+        bytes | None: Bytes of the rendered PNG, or None if the request to mermaid.ink fails
+        (e.g., no internet connection).
+    """
     encoded = base64.urlsafe_b64encode(mermaid_code.strip().encode("utf-8")).decode("utf-8")
     url = f"https://mermaid.ink/img/{encoded}?bgColor=ffffff&width=1400"
     try:
@@ -136,7 +144,16 @@ def mermaid_to_png_bytes(mermaid_code: str) -> bytes | None:
 
 
 def png_bytes_to_rl_image(png_bytes: bytes, max_width: float, max_height: float) -> Image | None:
-    """Converte bytes PNG para Image do reportlab respeitando proporção."""
+    """Convert PNG bytes into a reportlab Image, resized to fit the given limits without distorting the original aspect ratio.
+
+    Args:
+        png_bytes: Binary content of the PNG to convert.
+        max_width: Maximum width available in the document (same unit used by reportlab).
+        max_height: Maximum height available in the document (same unit used by reportlab).
+
+    Returns:
+        Image | None: Flowable ready to insert into the document, or None if the PNG cannot be processed.
+    """
     try:
         pil = PILImage.open(io.BytesIO(png_bytes))
         w_px, h_px = pil.size
@@ -152,6 +169,12 @@ def png_bytes_to_rl_image(png_bytes: bytes, max_width: float, max_height: float)
 # ---------------------------------------------------------------------------
 
 def build_styles():
+    """Build the paragraph styles (title, subtitle, section, note) used in the documentation PDF.
+
+    Returns:
+        tuple: (title, subtitle, section, note, normal) — ParagraphStyle instances ready to use,
+        in that order.
+    """
     base = getSampleStyleSheet()
 
     title = ParagraphStyle(
@@ -222,6 +245,11 @@ CLIENTS_TEMPLATES = [
 
 
 def make_validation_table():
+    """Build the reportlab table with the validation rules and what each one checks (from VALIDATION_RULES).
+
+    Returns:
+        Table: Already-styled reportlab table, ready to insert into the document's story.
+    """
     header = ["Regra", "O que verifica"]
     data = [header] + list(VALIDATION_RULES)
 
@@ -247,6 +275,11 @@ def make_validation_table():
 
 
 def make_clients_table():
+    """Build the reportlab table of supported clients, instruments and templates (from CLIENTS_TEMPLATES), highlighting rows marked "pendente" in orange.
+
+    Returns:
+        Table: Already-styled reportlab table, ready to insert into the document's story.
+    """
     header = ["Cliente", "Instrumento", "Template Excel", "Gerador XML", "AC PDF"]
     data = [header] + list(CLIENTS_TEMPLATES)
 
@@ -286,6 +319,17 @@ def make_clients_table():
 # ---------------------------------------------------------------------------
 
 def gerar_pdf(output_path: str = "Documentacao_ACs_Generator.pdf"):
+    """Generate the AC's Generator technical documentation PDF, with flowcharts (via mermaid.ink), validation rules and the supported clients/templates table, and save it to disk.
+
+    Args:
+        output_path: Path of the PDF file to generate (default: "Documentacao_ACs_Generator.pdf"
+            in the current directory).
+
+    Notes:
+        Requires an internet connection to render the Mermaid flowcharts via mermaid.ink;
+        if the request fails, the PDF is still generated, with a note reporting that the
+        image is unavailable.
+    """
     title_s, subtitle_s, section_s, note_s, normal_s = build_styles()
 
     doc = SimpleDocTemplate(

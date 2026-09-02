@@ -17,13 +17,28 @@ from xml_model.xml_table_extractor import processar_pdf
 
 
 class SecundarioProcessor(BaseProcessor):
+    """Processor for secondary instruments: extracts the calibration points
+    directly from the certificate, without requesting an additional
+    Evaluation Report."""
 
     def processar(self, caminho, dados_pdf):
+        """Processes a secondary instrument's certificate and starts the
+        review.
+
+        Extracts the calibration points (standard format and Petrobrás
+        format) directly from the certificate and triggers the origin flow
+        (e.g., ORIGEM client) before opening the review screen.
+
+        Args:
+            caminho: Path to the certificate PDF.
+            dados_pdf: Data extracted from the certificate.
+        """
 
         self.app.pontos_calibracao = extrair_pontos_calibracao_pdf(caminho)
         self.app.pontos_calibracao_petro = processar_pdf(caminho)
 
         def continuar(dados):
+            """Forwards the final data to start the review screen."""
             self.app.iniciar_revisao(dados)
 
         self.app.after(

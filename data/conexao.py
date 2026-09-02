@@ -19,28 +19,19 @@ _app_dir.mkdir(parents=True, exist_ok=True)
 db_path = str(_app_dir / 'instrumentos.db')
 
 def conectar():
-    """
-    Abre e retorna uma conexão com o banco de dados SQLite.
-    Opens and returns a connection to the SQLite database.
+    """Open and return a connection to the SQLite database located at db_path.
 
     Returns:
-        sqlite3.Connection: Conexão ativa com o banco / Active database connection.
+        sqlite3.Connection: Active connection to the database.
     """
     return sqlite3.connect(db_path)
 
 def criar_tabela():
-    """
-    Cria a tabela 'instrumentos' caso ainda não exista.
-    Creates the 'instrumentos' table if it does not already exist.
+    """Create the 'instrumentos' table if it does not exist yet, with the base columns (id, tag, sn_instrumento, sn_sensor, min_range, max_range, tipo).
 
-    Columns:
-        id            (INTEGER): Chave primária autoincremental / Auto-incremented primary key.
-        tag           (TEXT):    Identificador do instrumento / Instrument tag identifier.
-        sn_instrumento(TEXT):    Número de série do instrumento / Instrument serial number.
-        sn_sensor     (TEXT):    Número de série do sensor, opcional / Sensor serial number, optional.
-        min_range     (REAL):    Valor mínimo da faixa de medição / Minimum measurement range value.
-        max_range     (REAL):    Valor máximo da faixa de medição / Maximum measurement range value.
-        tipo          (TEXT):    Tipo do instrumento: 'SEC' (secundário) ou 'PO' (placa de orifício).
+    Notes:
+        Columns added in later versions of the schema (sistema, aplicacao, etc.)
+        are not part of this CREATE TABLE — they are added by migrar().
     """
     conn = conectar()
     cursor = conn.cursor()
@@ -60,9 +51,11 @@ def criar_tabela():
 
 
 def migrar():
-    """
-    Aplica migrações incrementais ao banco existente.
-    Cada bloco ADD COLUMN é idempotente: só executa se a coluna ainda não existir.
+    """Apply incremental migrations to the existing database, adding new columns and normalizing legacy 'tipo' values.
+
+    Notes:
+        Each ADD COLUMN block is idempotent: it only runs if the column does not
+        exist yet, allowing migrar() to be safely called on every application startup.
     """
     conn = conectar()
     cursor = conn.cursor()

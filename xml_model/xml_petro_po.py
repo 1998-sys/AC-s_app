@@ -27,9 +27,25 @@ criar_cliente, sig_ex, criar_condicoes_ambientais, criar_identificacao_padroes, 
 
 
 def _campo_medida(root_bloco, tag_bloco, valores_medidos, chave, unidade, aprovado_valor):
-    """Bloco padrão VALOR + INCERTEZA_EXP + APROVADO usado por circularidade,
-    rugosidade (montante/jusante), planeza e ângulo de chanfro — a única
-    diferença entre eles é o nome da tag XML, a unidade e a chave de origem."""
+    """Creates a standard VALOR + INCERTEZA_EXP + APROVADO block inside `root_bloco`.
+
+    Used for circularity, roughness (upstream/downstream), flatness and
+    bevel angle — the only difference between them is the XML tag name,
+    the unit and the source key in `valores_medidos`.
+
+    Args:
+        root_bloco: parent XML element where the block will be inserted.
+        tag_bloco: XML tag name of the block (e.g. "CIRCULARIDADE_ORIF").
+        valores_medidos: dict of measured values extracted from the PDF
+            (see xml_extractor_PO.extrair_valores_medidos); if falsy, the
+            block is generated empty.
+        chave: key inside `valores_medidos` holding this field's value.
+        unidade: engineering unit to assign to the VALOR tag.
+        aprovado_valor: text to place in the APROVADO tag.
+
+    Returns:
+        Element: the created block element.
+    """
     dados = valores_medidos.get(chave, {}) if valores_medidos else {}
     bloco = ET.SubElement(root_bloco, tag_bloco)
     ET.SubElement(bloco, 'VALOR', UNIDADE_ENG=unidade).text = str(dados.get("media", "")) if valores_medidos else ""
@@ -44,7 +60,19 @@ def _campo_medida(root_bloco, tag_bloco, valores_medidos, chave, unidade, aprova
 
 
 def criar_identificacao_po(dados, valores_medidos, valores_er, root):
+    """Builds the PLACA_ORIFICIO block with identification data, dimensional measurements and approval criteria.
 
+    Args:
+        dados: certificate data extracted from the PDF (calibration date,
+            serial number, TAG, material, expansion coefficient, pipe
+            diameter etc.).
+        valores_medidos: measured dimensional values extracted from the
+            inspection PDF (see xml_extractor_PO.extrair_valores_medidos).
+        valores_er: approval criteria and individual measurements
+            extracted from the ER report (internal diameter, thicknesses,
+            beta, circularity etc.).
+        root: root XML element where the PLACA_ORIFICIO block will be attached.
+    """
     valores_d_interno = valores_er.get("valores_d_interno", {})
     valores_expessura = valores_er.get("Valores_Espessura", {})
     valores_expessura_furo = valores_er.get("Valores_Espessura_Furo", {})
@@ -133,8 +161,21 @@ def criar_identificacao_po(dados, valores_medidos, valores_er, root):
 
 
 def gerar_xml_certificado_po(informacoes, valores_medidos, valores_er, caminho_saida):
+    """Generates the Petrobras-standard orifice plate inspection certificate XML and writes it to disk.
+
+    Args:
+        informacoes: general certificate data (identification, client,
+            laboratory, environmental conditions, standards, procedure).
+        valores_medidos: measured dimensional values extracted from the
+            inspection PDF (see xml_extractor_PO.extrair_valores_medidos).
+        valores_er: approval criteria extracted from the ER report.
+        caminho_saida: path of the output XML file.
+
+    Returns:
+        str: absolute path of the generated XML file.
+    """
     NAMESPACE = "http://Petrobras/Medicao/Calibracao"
-    
+
     ET.register_namespace("cal", NAMESPACE)
 
     root = ET.Element(f"{{{NAMESPACE}}}CERTIFICADO_INSPECAO_PLACA_ORIFICIO")

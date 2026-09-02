@@ -19,6 +19,20 @@ from pdf.parser_UC import extrair_campos_uc, identificar_uc
 from pdf.parser_tr import identificar_tr, extrair_campos_tr
 
 def select_extract(caminho):
+    """Identifies the PDF's certificate/report type and delegates to the matching parser.
+
+    Tries, in order, to recognize the extracted text as: Uncertainty Calculation
+    Report (CI), Gas Meter Run (Trecho Reto), Orifice Plate, Chromatography
+    (SGS or Origem Energia Alagoas); if none match, assumes a secondary instrument.
+
+    Args:
+        caminho: Path of the PDF file to be processed.
+
+    Returns:
+        tuple: (dados, tipo) pair, where `dados` is the dictionary of fields extracted
+        by the chosen parser and `tipo` is a string identifying the detected type
+        ("ci", "trecho", "placa_orificio", "cromatografia" or "secundario").
+    """
     texto = extrair_texto(caminho)
 
     if identificar_uc(texto):

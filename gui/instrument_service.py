@@ -29,9 +29,20 @@ class InstrumentService:
     """CRUD simples de instrumentos usado pela tela de editar/consultar instrumento."""
 
     def __init__(self, api):
+        """Stores the Api reference for dialogs."""
         self.api = api
 
     def buscar_instrumento(self, tag):
+        """Looks up an instrument's registration by TAG to populate the edit/lookup screen.
+
+        Args:
+            tag: instrument TAG (compared uppercased).
+
+        Returns:
+            Dict with the registration fields (using an empty string in place
+            of missing values), or None if the TAG is not found (already
+            showing the error alert).
+        """
         reg = buscar_instrumento_por_tag((tag or "").upper())
         if not reg:
             self.api.alert("Erro", "TAG não encontrada.", "error")
@@ -52,6 +63,19 @@ class InstrumentService:
         }
 
     def salvar_instrumento(self, payload):
+        """Validates and saves an instrument's registration/calibration data from the edit screen's payload.
+
+        Args:
+            payload: dict with the screen's fields (tag, tipo, sn, ranges,
+                calibration data, etc.). For `tipo == "PO"` (orifice plate)
+                only the plate's SN is updated; for the other types, SN,
+                sensor SN and range (min/max) are also validated and saved.
+
+        Returns:
+            False if the TAG is empty or the ranges are invalid (already
+            showing the error alert); otherwise, a dict with the save's
+            `modificado_por`/`modificado_em`.
+        """
         tag = (payload.get("tag") or "").upper()
         if not tag:
             self.api.alert("Erro", "Informe a TAG.", "error")

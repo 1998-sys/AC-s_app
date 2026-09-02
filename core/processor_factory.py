@@ -19,22 +19,21 @@ class ProcessorFactory:
 
     @staticmethod
     def get_processor(tipo, app):
-        """
-        Instancia e retorna o processor correspondente ao tipo de instrumento.
-        Instantiates and returns the processor corresponding to the instrument type.
+        """Instantiate and return the processor matching the instrument type.
 
         Args:
-            tipo (str): Tipo do instrumento / Instrument type.
-                        Valores suportados / Supported values: 'secundario', 'placa_orificio', 'trecho'.
-                        Obs.: 'ci' e 'cromatografia' são tratados diretamente em
-                        gui/pdf_service.py::PdfProcessingService e nunca chegam a este factory.
-            app: Referência à instância da aplicação / Reference to the application instance.
+            tipo: Instrument type. Supported values: 'secundario', 'placa_orificio', 'trecho'.
+            app: Reference to the application instance, passed on to the instantiated processor.
 
         Returns:
-            Processor: Instância do processor correspondente / Corresponding processor instance.
+            Processor: Instance of the processor matching the given type.
 
         Raises:
-            ValueError: Se o tipo não for suportado / If the type is not supported.
+            ValueError: If the type is not supported.
+
+        Notes:
+            'ci' and 'cromatografia' are handled directly in
+            gui/pdf_service.py::PdfProcessingService and never reach this factory.
         """
         classes = {
             "secundario": SecundarioProcessor,

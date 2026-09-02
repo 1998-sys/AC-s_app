@@ -26,10 +26,16 @@ PASTA_CERTIFICADOS_SOLTOS = "AC's Generator/Certificados Recebidos"
 
 
 def limpar_certificado_solto(caminho):
-    """Remove a cópia de um certificado recebido por arrastar-e-soltar depois
-    que o relatório/XML já foi gerado a partir dele. Não faz nada se
-    `caminho` não estiver dentro dessa pasta (ex.: veio do diálogo de
-    arquivo, onde o original é do próprio usuário e não deve ser tocado)."""
+    """Removes the copy of a certificate received via drag-and-drop after the report/XML has already been generated from it.
+
+    Args:
+        caminho: Path of the certificate to remove.
+
+    Notes:
+        Does nothing if `caminho` is not inside `PASTA_CERTIFICADOS_SOLTOS`
+        (e.g. it came from the file dialog, where the original belongs to
+        the user and must not be touched).
+    """
     try:
         pasta = pasta_documentos(PASTA_CERTIFICADOS_SOLTOS)
         if Path(caminho).resolve().parent == pasta.resolve():
@@ -45,15 +51,18 @@ FOTOS_INSTRUMENTO = {
 
 
 def foto_instrumento(tag):
+    """Returns the photo filename associated with the TAG's type prefix (e.g. "PIT-001" -> instr-pit.jpg), or None if no photo is registered."""
     prefixo = (tag or "").split("-")[0].upper()
     return FOTOS_INSTRUMENTO.get(prefixo)
 
 
 def extrair_tag_base(tag: str) -> str:
+    """Removes the last "-"-separated segment of the TAG, used to match instruments from the same set (e.g. "FT-001-A" -> "FT-001")."""
     return "-".join(tag.split("-")[:-1]) if "-" in tag else tag
 
 
 def to_float_safe(value):
+    """Converts `value` to float accepting a comma as the decimal separator, returning None instead of raising if the conversion fails."""
     try:
         return float(str(value).replace(",", "."))
     except Exception:

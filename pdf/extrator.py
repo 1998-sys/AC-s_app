@@ -14,6 +14,15 @@ import traceback
 import pdfplumber
 
 def extrair_texto(caminho_pdf: str) -> str:
+    """Extracts and concatenates the text from all pages of a PDF via pdfplumber.
+
+    Args:
+        caminho_pdf: Path to the PDF file to be read.
+
+    Returns:
+        str: Extracted text (with "\\xa0" normalized to a regular space), or
+        an empty string if the reading fails (the error is logged, not propagated).
+    """
     texto_final = ""
 
     try:

@@ -23,7 +23,21 @@ class ValidationContext:
         dados_report=None,
         valores_medidos=None
     ):
+        """Builds the validation context from the PDF-extracted data, the database record and the calibration points.
 
+        Args:
+            dados_pdf: data extracted from the PDF certificate.
+            registro: instrument record in the database (by TAG), or None if not registered.
+            reg_sn: instrument record in the database (by serial number), used when there
+                is no match by TAG.
+            tag_base_pdf: base TAG extracted from the PDF, used in comparisons that ignore suffixes.
+            tag_base_sn: base TAG of the record found by serial number.
+            pontos: list of calibration points (default: empty list).
+            tipo_instrumento: instrument type, when already known; if omitted, it is
+                inferred from the first calibration point.
+            dados_report: Evaluation Report data, when applicable (orifice plates).
+            valores_medidos: measured values associated with the certificate, when applicable.
+        """
         self.pdf = dados_pdf
         self.db = registro
         self.reg_sn = reg_sn
@@ -40,8 +54,9 @@ class ValidationContext:
         self.valores_medidos = valores_medidos
 
     def _obter_tipo(self):
+        """Resolves the instrument type: uses `tipo_instrumento` if provided, otherwise the type of the first calibration point."""
 
-        
+
         if self.tipo_instrumento:
             return self.tipo_instrumento
 

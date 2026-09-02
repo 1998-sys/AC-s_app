@@ -33,12 +33,37 @@ def gerar_ac_prio_po(
     cor_faixa_teal_hex = "0099A8",
     excel=None
 ):
-    """Preenche o template AC PRIO PO e exporta como PDF via Excel COM.
-    Fills the AC PRIO PO template and exports it as PDF via Excel COM.
+    """Fills the AC PRIO PO template and exports it as PDF via Excel COM.
 
-    Applies borders, auto-detects print area from cell content, and overrides
-    page setup directly via COM to ensure reliable fit-to-page rendering.
-    Returns the absolute path of the generated PDF."""
+    Applies borders, auto-detects the print area from cell content and
+    overrides the page setup directly via COM to guarantee that "fit to
+    page" is honored on export.
+
+    Args:
+        dados: Certificate fields.
+        caminho_pdf_original: Path of the source PDF, used to determine the
+            output folder.
+        caminho_template: Path of the Excel template to fill.
+        nome_aba: Name of the template sheet to use.
+        print_area_fixa: Fixed print area (e.g. "A1:H50"); if None, it is
+            computed automatically from the last filled cell.
+        linhas_extra_topo: Extra rows added to the auto-detected print area,
+            to give some slack below the content.
+        aplicar_borda_fallback: If True, draws a thick bottom border right
+            below the title "Análise crítica de calibração de placas
+            de orifício", if it is found within the first 30 rows.
+        cor_faixa_teal_hex: Color (hex, without "#") used for the fallback
+            border.
+        excel: Already-open Excel COM instance (reused across a batch). If
+            None, opens and closes its own instance.
+
+    Returns:
+        str: Absolute path of the generated PDF.
+
+    Raises:
+        FileNotFoundError: If `caminho_template` does not exist.
+        KeyError: If `nome_aba` does not exist in the template.
+    """
 
     if not os.path.isfile(caminho_template):
         raise FileNotFoundError(f"Template não encontrado: {os.path.abspath(caminho_template)}")
@@ -135,6 +160,7 @@ def gerar_ac_prio_po(
     pasta_saida = os.path.dirname(os.path.abspath(caminho_pdf_original))
 
     def sanitize(txt):
+        """Replaces characters invalid for a file/path name with a hyphen."""
         return re.sub(r'[<>:"/\\|?*]+', "-", str(txt or "")).strip()
 
     certificado = sanitize(dados.get("certificado")).replace(" ", "")

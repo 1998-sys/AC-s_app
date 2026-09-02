@@ -23,6 +23,15 @@ from datetime import datetime, timedelta
 
 
 def _adicionar_dia_util(data):
+    """Adds one day to `data` and pushes the result to the next business day if it falls on a weekend.
+
+    Args:
+        data: Reference date.
+
+    Returns:
+        datetime: `data` + 1 day, advanced by 1 or 2 more days if the result
+        falls on a Saturday or Sunday (guaranteeing a business-day return).
+    """
     data += timedelta(days=1)
     if data.weekday() == 5:  # sábado
         data += timedelta(days=2)
@@ -58,6 +67,21 @@ _TITULOS_CATEGORIA = {
 
 
 def _titulo_categoria(categoria, permitir_split_pt_pdt, max_range):
+    """Resolves the critical-analysis title corresponding to the instrument category.
+
+    Walks through the category groups (`_GRUPOS_CATEGORIA`) until it finds
+    the given category; when `permitir_split_pt_pdt` is enabled and the
+    category is the generic pressure transmitter, it distinguishes PT from
+    PDT by the maximum calibrated range (`max_range` <= 250 becomes PDT).
+
+    Args:
+        categoria: Instrument category name (already upper case).
+        permitir_split_pt_pdt: If True, enables the PT/PDT distinction by range.
+        max_range: Maximum calibrated range of the instrument (used only in the PT/PDT split).
+
+    Returns:
+        str: Corresponding title, or None if the category is not recognized.
+    """
     for categorias, grupo in _GRUPOS_CATEGORIA:
         if categoria not in categorias:
             continue
@@ -80,15 +104,23 @@ def _titulo_categoria(categoria, permitir_split_pt_pdt, max_range):
 
 
 def gerar_ac_completo(config, dados, caminho_pdf_original, excel=None):
-    """Preenche o template AC completo (PRIO/YINSON/YINSON ATLANTA) e exporta
-    como PDF via Excel COM.
+    """Fills the full AC template (PRIO/YINSON/YINSON ATLANTA) and exports it as PDF via Excel COM.
 
-    Trata título por categoria de instrumento, quebra de linha do campo local,
-    data de entrega ajustada para dia útil (+1 dia) e observações em rich text
-    (range/SN atualizado ou sem alteração). Retorna o caminho absoluto do PDF.
+    Handles the title by instrument category, line breaking of the local
+    field, delivery date adjusted to a business day (+1 day) and
+    observations as rich text (updated range/SN or no change).
 
-    Se `excel` for passado (instância COM já aberta, reaproveitada em lote),
-    usa essa instância e não a encerra; senão abre e encerra a própria.
+    Args:
+        config: Client configuration dictionary (template, cells and
+            flags), one of `CONFIG_PRIO`/`CONFIG_YINSON`/`CONFIG_YINSON_ATLANTA`.
+        dados: Certificate fields.
+        caminho_pdf_original: Path of the source PDF, used to determine the
+            output folder.
+        excel: Already-open Excel COM instance (reused across a batch). If
+            None, opens and closes its own instance.
+
+    Returns:
+        str: Absolute path of the generated PDF.
     """
     caminho_template = config["template"]
     caminho_temp = os.path.join(
@@ -256,15 +288,15 @@ CONFIG_YINSON_ATLANTA = {
 
 
 def gerar_ac_prio(dados, caminho_pdf_original, excel=None):
-    """Preenche o template AC PRIO e exporta como PDF via Excel COM."""
+    """Fills the AC PRIO template and exports it as PDF via Excel COM."""
     return gerar_ac_completo(CONFIG_PRIO, dados, caminho_pdf_original, excel=excel)
 
 
 def gerar_ac_yinson(dados, caminho_pdf_original, excel=None):
-    """Preenche o template AC YINSON e exporta como PDF via Excel COM."""
+    """Fills the AC YINSON template and exports it as PDF via Excel COM."""
     return gerar_ac_completo(CONFIG_YINSON, dados, caminho_pdf_original, excel=excel)
 
 
 def gerar_ac_yinson_atlanta(dados, caminho_pdf_original, excel=None):
-    """Preenche o template AC YINSON ATLANTA e exporta como PDF via Excel COM."""
+    """Fills the AC YINSON ATLANTA template and exports it as PDF via Excel COM."""
     return gerar_ac_completo(CONFIG_YINSON_ATLANTA, dados, caminho_pdf_original, excel=excel)

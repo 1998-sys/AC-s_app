@@ -38,6 +38,7 @@ from validation.rules_po import (
 
 class ValidationEngine:
     def __init__(self):
+        """Builds the validation rule sets and the mapping from instrument type to the rule set to apply."""
 
         self.common_rules = []
 
@@ -76,6 +77,19 @@ class ValidationEngine:
         }
 
     def run(self, context):
+        """Runs, against `context`, the rule set corresponding to the PDF's instrument and collects the divergences found.
+
+        Args:
+            context: ValidationContext instance holding the data to validate.
+
+        Returns:
+            list[ValidationIssue]: divergences found (one per rule that returned something
+            other than None).
+
+        Notes:
+            If a rule raises an exception, it does not stop the others: it is recorded as
+            its own blocking ValidationIssue (`erro_regra_<nome>`) and validation continues.
+        """
         issues = []
 
         instrumento = context.pdf.get("instrumento")

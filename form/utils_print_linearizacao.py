@@ -63,7 +63,15 @@ _LINHA_BORDA_REF = 30
 
 
 def _data_br(data_iso: str) -> str:
-    """'2026-04-25' → '25/04/2026'"""
+    """Converts a date from ISO format (YYYY-MM-DD) to BR format (DD/MM/YYYY).
+
+    Args:
+        data_iso: Date in ISO format, e.g. "2026-04-25".
+
+    Returns:
+        str: Date in "DD/MM/YYYY" format, e.g. "25/04/2026"; returns
+        `data_iso` unchanged if it cannot be parsed.
+    """
     try:
         return datetime.strptime(data_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
     except Exception:
@@ -71,7 +79,16 @@ def _data_br(data_iso: str) -> str:
 
 
 def _cliente_do_caminho(caminho: str) -> str:
-    """Extrai o nome do cliente do path do arquivo (ex: .../PRIO/... → 'PRIO')."""
+    """Extracts the client name from the file path.
+
+    Args:
+        caminho: File path (e.g. ".../PRIO/...").
+
+    Returns:
+        str: Recognized client name (PRIO, YINSON, ORIGEM, SBM or
+        PETROBRAS) found in some segment of the path, or an empty string
+        if none is found.
+    """
     partes = caminho.upper().replace("\\", "/").split("/")
     for p in partes:
         for cliente in ("PRIO", "YINSON", "ORIGEM", "SBM", "PETROBRAS"):
@@ -81,10 +98,19 @@ def _cliente_do_caminho(caminho: str) -> str:
 
 
 def contexto_db(tag: str):
-    """Busca aplicacao e sistema no cadastro de instrumentos pelo TAG — usado
-    só como valor pré-preenchido do prompt que pede esses dois campos ao
-    usuário (ver PdfProcessingService._processar_xml_ft); medidores de vazão
-    não são desse cadastro, então normalmente volta vazio."""
+    """Looks up application and system in the instrument registry by TAG.
+
+    Used only as the pre-filled value for the prompt that asks the user for
+    these two fields (see PdfProcessingService._processar_xml_ft); flow
+    meters are usually not in this registry, so this tends to come back empty.
+
+    Args:
+        tag: Instrument TAG to look up.
+
+    Returns:
+        tuple: (aplicacao, sistema), each as a string (empty if not found
+        or on a lookup error).
+    """
     try:
         from data.utils_db import buscar_instrumento_por_tag
         inst = buscar_instrumento_por_tag(tag)
@@ -96,22 +122,34 @@ def contexto_db(tag: str):
 
 
 def _celula(col: str, linha: int) -> str:
+    """Builds a cell address from column and row (e.g. "C", 22 -> "C22")."""
     return f"{col}{linha}"
 
 
 def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
-    """Mostra exatamente as `n_pontos` linhas usadas (linha_ini até
-    linha_ini+n_pontos-1) — ocultando as demais, mesmo que originalmente
-    fossem visíveis — e normaliza a borda de cada uma pela linha
-    _LINHA_BORDA_REF (uma linha "do meio" da tabela, com borda fina),
-    fechando a última linha usada com borda grossa embaixo. Sem isso,
-    linhas reexibidas (originalmente ocultas, com < 10 pontos) saem com
-    contorno mais grosso, e a antiga última linha (31), quando deixa de
-    ser a última por causa de pontos extras, ficaria com a borda grossa
-    "sobrando" no meio da tabela.
+    """Shows only the table rows actually used and normalizes their borders.
 
-    TABELA2_OFFSET: a tabela "Dados a Serem Configurados" espelha, na
-    linha N+34, a linha N desta tabela (ex.: linha 22 -> linha 56)."""
+    Displays exactly the `n_pontos` used rows (from `linha_ini` to
+    `linha_ini + n_pontos - 1`), hiding the rest even if they were
+    originally visible, normalizes each row's border against row
+    `_LINHA_BORDA_REF` (a "middle" row of the table, with a thin border) and
+    closes the last used row with a thick border at the bottom.
+
+    Args:
+        ws: openpyxl worksheet.
+        linha_ini: First row of the calibration table.
+        linha_fim_max: Last possible row of the table (maximum capacity).
+        n_pontos: Number of calibration points for this certificate.
+
+    Notes:
+        Without this normalization, re-shown rows (originally hidden, when
+        there are fewer than 10 points) come out with a thicker outline, and
+        the old last row (31), once it stops being the last one due to
+        extra points, would be left with the thick border "leftover" in the
+        middle of the table. The "Dados a Serem Configurados" table mirrors,
+        on row N + `TABELA2_OFFSET` (34), row N of this table (e.g. row 22 ->
+        row 56), so each hidden/shown row is also replicated there.
+    """
     TABELA2_OFFSET = 34
     linha_fim_usada = linha_ini + n_pontos - 1 if n_pontos else linha_ini - 1
 
@@ -136,10 +174,25 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
 
 
 def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
-    """
-    Preenche Template_Linearizacao.xlsx com os dados do medidor de vazão e
-    exporta XLSX + PDF na mesma pasta do XML de entrada.
-    Retorna o caminho do XLSX gerado.
+    """Fills Template_Linearizacao.xlsx with the flow meter data and exports XLSX + PDF.
+
+    The output files are saved in the same folder as the input XML.
+
+    Args:
+        dados: Flow meter and calibration data (header and list of points
+            under "pontos").
+        caminho_xml: Path of the input XML; used only to determine the
+            output folder and, from the path, the client.
+
+    Returns:
+        str: Path of the generated XLSX (the PDF is generated alongside it,
+        with the same base name).
+
+    Raises:
+        ValueError: If the certificate has more calibration points than
+            the template supports.
+        PermissionError: If the output PDF already exists and is open (it
+            cannot be overwritten).
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     caminho_template = os.path.join(base_dir, "Template_Linearizacao.xlsx")

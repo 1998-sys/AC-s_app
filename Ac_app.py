@@ -31,11 +31,20 @@ else:
 
 
 def _resource(relative_path: str) -> str:
+    """Resolve the absolute path of a resource, accounting for the packaged app (PyInstaller) or running from source.
+
+    Args:
+        relative_path: Path relative to the base resource directory (e.g., "webui/index.html").
+
+    Returns:
+        str: Resolved absolute path to the resource.
+    """
     base = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent
     return str(base / relative_path)
 
 
 def main():
+    """Initialize the database, create the CertiFlow main window and start the pywebview loop."""
     criar_tabela()
     migrar()
 

@@ -14,9 +14,17 @@ import re
 
 
 def _normalizar_numero(valor):
-    """Converte um número do relatório da Origem (ponto decimal, por vezes
-    notação científica, ex.: '5E-05') pro formato brasileiro com vírgula
-    usado no resto do app (ex.: '0,00005')."""
+    """Converts a number from the Origem report (decimal point, sometimes
+    scientific notation, e.g., '5E-05') into the Brazilian comma format
+    used throughout the rest of the app (e.g., '0,00005').
+
+    Args:
+        valor: String with the number in the report's original format.
+
+    Returns:
+        str: Number in PT-BR format (decimal comma), or the original `valor`
+        unchanged if it cannot be converted to float; None if `valor` is None.
+    """
     if valor is None:
         return None
     valor = valor.strip()
@@ -31,9 +39,14 @@ def _normalizar_numero(valor):
 
 
 def identificar_origem_cromato(texto):
-    """Identifica o relatório de cromatografia do laboratório interno da
-    Origem Energia Alagoas (LIMS "Report Builder"/mylimsweb.cloud) — layout
-    completamente diferente do relatório da SGS (ver parser_sgs.py)."""
+    """Identifies the chromatography report from Origem Energia Alagoas's
+    internal lab (LIMS "Report Builder"/mylimsweb.cloud) — a layout
+    completely different from the SGS report (see parser_sgs.py).
+
+    Returns:
+        bool: True if the text contains that lab's characteristic header,
+        False otherwise (including when `texto` is empty).
+    """
     if not texto:
         return False
     return bool(re.search(
@@ -43,10 +56,17 @@ def identificar_origem_cromato(texto):
 
 
 def extrair_empresa_origem(texto):
-    """<EMPRESA> aqui é o próprio laboratório/empresa dono do relatório —
-    diferente do relatório da SGS, esse não tem um "Cliente:" externo
-    (o "Cliente:" que aparece no relatório é a estação de coleta interna,
-    não uma empresa cliente da ODS)."""
+    """Extracts the name of the lab/company that owns the report.
+
+    <EMPRESA> here is the lab/company that owns the report itself — unlike
+    the SGS report, this one has no external "Cliente:" (the "Cliente:" that
+    appears in the report is the internal collection station, not an ODS
+    client company).
+
+    Returns:
+        str: Name extracted after "Laboratório Cromatografia - ", or None if
+        the pattern is not found.
+    """
     if not texto:
         return None
     m = re.search(r"Laborat[óo]rio\s+Cromatografia\s*-\s*(.+)", texto, re.IGNORECASE)
@@ -54,10 +74,17 @@ def extrair_empresa_origem(texto):
 
 
 def extrair_certificado_origem(texto):
-    """O número do relatório aparece com pequenas variações de formatação
-    ao longo do documento (ex.: "15833/2026.0.A" no relatório principal e
-    "15833/2026.0" no relatório complementar de propriedades) — usa a
-    variante mais específica (a mais longa)."""
+    """Extracts the Origem analysis report number.
+
+    The report number appears with small formatting variations throughout
+    the document (e.g., "15833/2026.0.A" in the main report and
+    "15833/2026.0" in the supplementary properties report) — uses the most
+    specific variant (the longest one).
+
+    Returns:
+        str: The longest report number among the occurrences found, or None
+        if no occurrence is found.
+    """
     if not texto:
         return None
     candidatos = [
@@ -69,12 +96,21 @@ def extrair_certificado_origem(texto):
 
 
 def _linha_propriedade(texto, nome_exato):
-    """Busca, na tabela "Resultados Analíticos", a linha cuja análise é
-    exatamente `nome_exato` (ex.: "Massa Molar", "Fator de
-    compressibilidade - CL") e retorna (valor, incerteza) das colunas
-    Resultado/Incerteza. O valor só é aceito se vier logo após o nome, sem
-    nada no meio — isso evita casar "Densidade Absoluta" com a linha
-    "Densidade Absoluta - CL ..."."""
+    """Searches the "Resultados Analíticos" table for the row whose analysis is
+    exactly `nome_exato` (e.g., "Massa Molar", "Fator de
+    compressibilidade - CL") and returns (valor, incerteza) from the
+    Resultado/Incerteza columns. The value is only accepted if it comes right
+    after the name, with nothing in between — this avoids matching "Densidade
+    Absoluta" with the "Densidade Absoluta - CL ..." row.
+
+    Args:
+        texto: Report text extracted.
+        nome_exato: Analysis name, exactly as it appears in the table.
+
+    Returns:
+        tuple: (valor, incerteza) as raw strings (not yet normalized by
+        _normalizar_numero), or (None, None) if the row is not found.
+    """
     pat = re.compile(
         r"^[ \t]*" + re.escape(nome_exato) + r"[ \t]+"
         r"(?P<valor>[<>]?\s*[\d.,]+(?:[Ee][+-]?\d+)?)"
@@ -102,10 +138,23 @@ _CAMPOS_ORIGEM = [
 
 
 def extrair_campos_cromato_origem(texto):
-    """Extrai os campos de cromatografia do relatório da Origem Energia
-    Alagoas no mesmo formato usado por extrair_campos_cromato
-    (pdf/parser_sgs.py), pra alimentar xml_cromatografia() sem precisar de
-    nenhuma mudança lá."""
+    """Extracts the chromatography fields from the Origem Energia Alagoas
+    report in the same format used by extrair_campos_cromato
+    (pdf/parser_sgs.py), to feed xml_cromatografia() without requiring any
+    changes there.
+
+    Iterates over _CAMPOS_ORIGEM, looking up each property with
+    _linha_propriedade and distributing the result between the "padrao" and
+    "amostragem" lists as mapped.
+
+    Args:
+        texto: Report text extracted.
+
+    Returns:
+        dict: Keys "empresa", "certificado", "propriedades_pad" and
+        "propriedades_amost", in the same format returned by
+        pdf.parser_sgs.extrair_campos_cromato.
+    """
     t = (texto or "").replace("\r\n", "\n").replace("\r", "\n")
 
     propriedades_padrao = []

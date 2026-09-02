@@ -14,11 +14,32 @@ import defusedxml.ElementTree as ET
 
 
 def _texto(element, path, default=""):
+    """Reads the (stripped) text of a sub-element located by `path`.
+
+    Args:
+        element: XML element to search in.
+        path: relative path (ElementTree find syntax) of the sub-element.
+        default: value returned if the element does not exist or has no text.
+
+    Returns:
+        str: element text, or `default`.
+    """
     el = element.find(path)
     return el.text.strip() if el is not None and el.text else default
 
 
 def _float(element, path, default=0.0):
+    """Reads the text of a sub-element and converts it to float, tolerating decimal comma and "NI".
+
+    Args:
+        element: XML element to search in.
+        path: relative path (ElementTree find syntax) of the sub-element.
+        default: value returned if the text is empty, is "NI" (not
+            informed) or cannot be converted.
+
+    Returns:
+        float: converted value, or `default`.
+    """
     val = _texto(element, path)
     if not val or val == "NI":
         return default
@@ -29,7 +50,15 @@ def _float(element, path, default=0.0):
 
 
 def is_certificado_ft(caminho_xml):
-    """Retorna True se o XML for um CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO."""
+    """Checks whether the XML file is a flow meter external calibration certificate.
+
+    Args:
+        caminho_xml: path of the XML file to inspect.
+
+    Returns:
+        bool: True if the root tag contains "CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO",
+        False otherwise or if the XML cannot be parsed.
+    """
     try:
         for _, elem in ET.iterparse(caminho_xml, events=("start",)):
             return "CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO" in elem.tag
@@ -38,15 +67,23 @@ def is_certificado_ft(caminho_xml):
 
 
 def extrair_dados_ft(caminho_xml):
-    """
-    Parseia CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO e retorna dict com
-    os campos de cabeçalho e a lista de pontos de calibração.
+    """Extracts from the flow meter external calibration certificate the data for the linearization report.
 
-    Frequência, K-factor corrigido, Status, KF médio e os limites de alarme
-    NÃO são calculados aqui — são fórmulas já presentes no
-    Template_Linearizacao.xlsx, derivadas dos valores que este dict fornece
-    (vazão, volumes, meter factor, erro, incerteza). Ver
-    form/utils_print_linearizacao.py."""
+    Args:
+        caminho_xml: path of the CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO XML file.
+
+    Returns:
+        dict: header fields (certificate number, laboratory, tag,
+        manufacturer, calibrated range, K factor etc.) and the "pontos" key
+        with the list of calibration points (flow rate, reference/meter
+        volumes in liters, meter factor, percentage error, uncertainty).
+
+    Notes:
+        Frequency, corrected K-factor, Status, average KF and the alarm
+        limits are NOT calculated here — they are formulas already present
+        in Template_Linearizacao.xlsx, derived from the values this dict
+        provides. See form/utils_print_linearizacao.py.
+    """
     tree = ET.parse(caminho_xml)
     root = tree.getroot()
 

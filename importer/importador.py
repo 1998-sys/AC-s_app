@@ -26,10 +26,12 @@ _SUFIXOS_TEMP    = {"TT"}
 
 
 def _segmentos(tag):
+    """Returns the set of TAG segments (separated by "-"), in uppercase."""
     return {s.upper() for s in tag.split("-")}
 
 
 def _e_grupo_mvs(tags):
+    """Indicates whether the set of TAGs corresponds to an MVS (both pressure and temperature suffixes present)."""
     todos = set()
     for t in tags:
         todos |= _segmentos(t)
@@ -37,10 +39,16 @@ def _e_grupo_mvs(tags):
 
 
 def _resolver_mvs(resultado):
-    """
-    Analisa mvs_candidato e resolve automaticamente os grupos onde o padrão de
-    sufixo de TAG indica um MVS (pressão + temperatura no mesmo NS).
-    Os demais permanecem em mvs_candidato para confirmação manual.
+    """Promotes to "inserir" (insert) the mvs_candidato groups whose TAG suffix pattern indicates an MVS.
+
+    Groups the items in `resultado["mvs_candidato"]` by serial number (NS) and, when the
+    group's set of TAGs indicates pressure + temperature under the same NS, marks the type
+    as "MVS" and moves the items to `resultado["inserir"]`. The remaining groups stay in
+    mvs_candidato for manual user confirmation.
+
+    Args:
+        resultado: categorization dict (same format returned by `ler_xlsx`), mutated in
+            place — `mvs_candidato` and `inserir` are updated directly on the dict.
     """
     grupos = defaultdict(list)
     for item in resultado["mvs_candidato"]:
@@ -60,11 +68,18 @@ def _resolver_mvs(resultado):
 
 
 def ler_xlsx(caminho_xlsx):
-    """
-    Lê o xlsx e retorna o resultado categorizado sem escrever no banco.
+    """Reads the xlsx spreadsheet and categorizes each row against the instrument registry, without writing to the database.
+
+    Args:
+        caminho_xlsx: path of the xlsx file to be read.
 
     Returns:
-        dict com listas: inserir, mantido, divergente, bloqueado, aviso, mvs_candidato
+        dict with the keys "inserir", "mantido", "divergente", "bloqueado", "aviso" and
+        "mvs_candidato", each containing the list of rows classified under that category.
+
+    Notes:
+        Data is read starting at row 3 (rows 1 and 2 are header/description).
+        Fully empty rows are ignored.
     """
     try:
         wb = openpyxl.load_workbook(caminho_xlsx, data_only=True)
@@ -80,6 +95,7 @@ def ler_xlsx(caminho_xlsx):
     idx = {h: i for i, h in enumerate(headers)}
 
     def get(row, col):
+        """Reads the cell value from `row` in column `col` (by header name), as a trimmed string, or None if absent."""
         i = idx.get(col)
         if i is None:
             return None
@@ -113,12 +129,13 @@ def ler_xlsx(caminho_xlsx):
 
 
 def executar(resultado, sobrescrever):
-    """
-    Persiste no banco os registros válidos.
+    """Persists to the database the records classified as new or confirmed for overwrite.
 
     Args:
-        resultado   : dict retornado por ler_xlsx
-        sobrescrever: lista de itens de resultado['divergente'] confirmados pelo usuário
+        resultado: dict returned by `ler_xlsx`; the items in `resultado["inserir"]` are
+            inserted as new records.
+        sobrescrever: list of items from `resultado["divergente"]` that the user confirmed
+            to overwrite (updates SN, sensor SN, range, and extra fields of the existing record).
     """
     for item in resultado["inserir"]:
         if item["tipo"] == "PO":

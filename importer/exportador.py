@@ -49,12 +49,10 @@ _COLUNAS = [
 
 
 def exportar() -> str:
-    """
-    Exporta todos os instrumentos do banco para um xlsx no mesmo
-    formato do template de importação.
+    """Exports every instrument registered in the database to an xlsx file, in the same format as the import template.
 
     Returns:
-        str: caminho absoluto do arquivo gerado.
+        str: absolute path of the generated xlsx file.
     """
     instrumentos = listar_todos()
 

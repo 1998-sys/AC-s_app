@@ -14,16 +14,19 @@ from pathlib import Path
 
 
 def pasta_documentos(subpasta: str) -> Path:
-    """
-    Resolve a pasta 'Documentos' do usuário via registro do Windows (respeita
-    pastas Documentos redirecionadas, ex.: OneDrive) e retorna uma subpasta
-    dentro dela, criando-a se necessário.
+    """Resolve the user's 'Documents' folder and return a subfolder inside it, creating it if needed.
 
     Args:
-        subpasta (str): Caminho relativo dentro de Documentos, ex.: "AC's Generator/Relatórios".
+        subpasta: Path relative to Documents, e.g., "AC's Generator/Relatórios".
 
     Returns:
-        Path: pasta resolvida e já criada.
+        Path: Resolved folder, already created on disk.
+
+    Notes:
+        The 'Documents' folder is read from the Windows registry (the "Personal" key
+        under Shell Folders) instead of assuming Path.home() / "Documents", since that
+        is what honors redirections such as OneDrive's. If reading the registry fails
+        for any reason, it falls back to Path.home() / "Documents".
     """
     try:
         import winreg

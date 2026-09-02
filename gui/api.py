@@ -36,6 +36,12 @@ class Api:
     """
 
     def __init__(self):
+        """Initializes the review-session state (ongoing review and batch queue) and instantiates the delegated services.
+
+        Notes:
+            `_window` starts as None and is only set in `set_window`; see the
+            explanation there of why this reference must stay private.
+        """
         # Nome com underscore de propósito: pywebview injeta este objeto como
         # `js_api` e reflete recursivamente sobre todo atributo público não-
         # privado em busca de métodos pra expor ao JS (ver pywebview/util.py
@@ -92,103 +98,133 @@ class Api:
         self._import_export_service = ImportExportService(self)
 
     def set_window(self, window):
+        """Registers the created pywebview window, used by DialogBridge to call evaluate_js."""
         self._window = window
 
     # ---------- Bridge de diálogos / navegação (usado pela UI e pelos processors) ----------
 
     def _js(self, expr):
+        """Delegates to `DialogBridge.js`."""
         return self._dialogs.js(expr)
 
     def confirm(self, title, message):
+        """Delegates to `DialogBridge.confirm`."""
         return self._dialogs.confirm(title, message)
 
     def alert(self, title, message, variant="info"):
+        """Delegates to `DialogBridge.alert`."""
         return self._dialogs.alert(title, message, variant)
 
     def prompt(self, title, message, fields):
+        """Delegates to `DialogBridge.prompt`."""
         return self._dialogs.prompt(title, message, fields)
 
     def escolher_arquivo(self, titulo, extensoes):
+        """Delegates to `DialogBridge.escolher_arquivo`."""
         return self._dialogs.escolher_arquivo(titulo, extensoes)
 
     def escolher_arquivos(self, titulo, extensoes):
+        """Delegates to `DialogBridge.escolher_arquivos`."""
         return self._dialogs.escolher_arquivos(titulo, extensoes)
 
     def after(self, delay, fn, *args):
+        """Delegates to `DialogBridge.after`."""
         self._dialogs.after(delay, fn, *args)
 
     def _progress(self, percent, active, done):
+        """Delegates to `DialogBridge.progress`."""
         self._dialogs.progress(percent, active, done)
 
     def _voltar_para_selecao(self):
+        """Delegates to `DialogBridge.voltar_para_selecao`."""
         self._dialogs.voltar_para_selecao()
 
     def solicitar_dados_origem(self, dados_pdf, callback):
+        """Delegates to `PdfProcessingService.solicitar_dados_origem`."""
         return self._pdf_service.solicitar_dados_origem(dados_pdf, callback)
 
     def dados_origem_automaticos(self, tag):
+        """Delegates to `PdfProcessingService.dados_origem_automaticos`."""
         return self._pdf_service.dados_origem_automaticos(tag)
 
     # ---------- Tela 1 → 2: seleção, leitura e classificação do PDF/XML ----------
 
     def escolher_arquivos_pdf(self):
+        """Delegates to `PdfProcessingService.escolher_arquivos_pdf`."""
         return self._pdf_service.escolher_arquivos_pdf()
 
     def receber_arquivos_soltos(self, arquivos):
+        """Delegates to `PdfProcessingService.receber_arquivos_soltos`."""
         return self._pdf_service.receber_arquivos_soltos(arquivos)
 
     def iniciar_leitura(self, itens):
+        """Delegates to `PdfProcessingService.iniciar_leitura`."""
         return self._pdf_service.iniciar_leitura(itens)
 
     def cancelar_leitura(self):
+        """Delegates to `PdfProcessingService.cancelar_leitura`."""
         return self._pdf_service.cancelar_leitura()
 
     # ---------- Tela 3: revisar divergências / gerar AC ----------
 
     def iniciar_revisao(self, dados_pdf):
+        """Delegates to `RevisionService.iniciar_revisao`."""
         return self._revision_service.iniciar_revisao(dados_pdf)
 
     def resolver_divergencia(self, key, aplicar):
+        """Delegates to `RevisionService.resolver_divergencia`."""
         return self._revision_service.resolver_divergencia(key, aplicar)
 
     def desfazer_divergencia(self, key):
+        """Delegates to `RevisionService.desfazer_divergencia`."""
         return self._revision_service.desfazer_divergencia(key)
 
     def voltar_da_revisao(self):
+        """Delegates to `RevisionService.voltar_da_revisao`."""
         return self._revision_service.voltar_da_revisao()
 
     def confirmar_geracao(self):
+        """Delegates to `RevisionService.confirmar_geracao`."""
         return self._revision_service.confirmar_geracao()
 
     def abrir_arquivo(self, caminho):
+        """Delegates to `RevisionService.abrir_arquivo`."""
         return self._revision_service.abrir_arquivo(caminho)
 
     # ---------- Tela 3 (Fase 6): revisão agregada em lote ----------
 
     def resolver_divergencia_lote(self, tag, key, aplicar):
+        """Delegates to `RevisionService.resolver_divergencia_lote`."""
         return self._revision_service.resolver_divergencia_lote(tag, key, aplicar)
 
     def desfazer_divergencia_lote(self, tag, key):
+        """Delegates to `RevisionService.desfazer_divergencia_lote`."""
         return self._revision_service.desfazer_divergencia_lote(tag, key)
 
     def pular_instrumento_lote(self, tag):
+        """Delegates to `RevisionService.pular_instrumento_lote`."""
         return self._revision_service.pular_instrumento_lote(tag)
 
     def confirmar_geracao_lote(self):
+        """Delegates to `RevisionService.confirmar_geracao_lote`."""
         return self._revision_service.confirmar_geracao_lote()
 
     # ---------- Tela 5: editar / consultar instrumento ----------
 
     def buscar_instrumento(self, tag):
+        """Delegates to `InstrumentService.buscar_instrumento`."""
         return self._instrument_service.buscar_instrumento(tag)
 
     def salvar_instrumento(self, payload):
+        """Delegates to `InstrumentService.salvar_instrumento`."""
         return self._instrument_service.salvar_instrumento(payload)
 
     # ---------- Importação / exportação XLSX ----------
 
     def importar_xlsx(self):
+        """Delegates to `ImportExportService.importar_xlsx`."""
         return self._import_export_service.importar_xlsx()
 
     def exportar_xlsx(self):
+        """Delegates to `ImportExportService.exportar_xlsx`."""
         return self._import_export_service.exportar_xlsx()

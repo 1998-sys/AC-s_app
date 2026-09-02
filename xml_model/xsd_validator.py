@@ -17,6 +17,13 @@ from datetime import datetime
 
 
 def _base_path() -> Path:
+    """Returns the project's base directory, accounting for frozen mode (PyInstaller).
+
+    Returns:
+        Path: temporary extraction folder (`sys._MEIPASS`) when running as a
+        frozen executable, or the project root (two levels above this file)
+        in normal execution.
+    """
     if getattr(sys, "frozen", False):
         return Path(sys._MEIPASS)
     return Path(__file__).parent.parent
@@ -29,10 +36,21 @@ _PARSER_SEGURO = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
 def validar_xml(caminho_xml: Path) -> list:
-    """Valida caminho_xml contra o schema Petrobras e retorna a lista de erros
-    (vazia se válido). Só um XML malformado gera itens nessa lista — falhas de
-    ambiente (XSD ausente, permissão) propagam como exceção em vez de serem
-    confundidas com "XML gerado é inválido"."""
+    """Validates an XML against the Petrobras schema.
+
+    Args:
+        caminho_xml: path of the XML file to validate.
+
+    Returns:
+        list[str]: list of error messages (empty if the XML is valid).
+
+    Notes:
+        Environment failures (missing XSD, no read permission) propagate as
+        an exception instead of becoming an item in the error list — only a
+        malformed XML or one that violates the schema generates items in
+        this list, so as not to confuse "broken environment" with
+        "generated XML is invalid".
+    """
     with open(XSD_PATH, "rb") as f:
         schema = etree.XMLSchema(etree.parse(f))
 
@@ -47,6 +65,17 @@ def validar_xml(caminho_xml: Path) -> list:
 
 
 def registrar_log(caminho_xml: Path, erros: list):
+    """Writes a .log file (same name as `caminho_xml`) with the validation error list.
+
+    Args:
+        caminho_xml: path of the validated XML; the log is written next to
+            it, replacing the extension with .log.
+        erros: list of error messages (see `validar_xml`).
+
+    Returns:
+        Path | None: path of the written log file, or None if `erros` is
+        empty (no log is written in that case).
+    """
     if not erros:
         return None
     caminho_log = Path(caminho_xml).with_suffix(".log")

@@ -35,11 +35,18 @@ ativos = {
 
 
 def identificar_instalacao(numero_ci: str) -> str | None:
-    """
-    Identifica o nome da instalação a partir do número do CI,
-    buscando o código numérico de 4 dígitos dos ativos embutido no número.
-    Ex: 'CI-1300.0000-...' → 'Cidade de São Miguel dos Campos'
-        'CI-FQI-1900002A-...' → 'ESGN'
+    """Identifies the installation name from the CI number.
+
+    Looks for the assets' 4-digit numeric code (`ativos` dict) embedded
+    in the CI number. E.g.: 'CI-1300.0000-...' -> 'Cidade de São Miguel dos
+    Campos'; 'CI-FQI-1900002A-...' -> 'ESGN'.
+
+    Args:
+        numero_ci: Uncertainty Calculation report number.
+
+    Returns:
+        str: Matching installation name, or None if `numero_ci` is empty
+        or no asset code is found in it.
     """
     if not numero_ci:
         return None
@@ -58,10 +65,18 @@ MESES_PT = {
 }
 
 def extrair_data_ci(texto: str) -> str | None:
-    """
-    Extrai a data do CI e converte para o formato DD/MM/AAAA.
-    Retorna a última ocorrência, que corresponde à data de emissão no rodapé.
-    Ex: '7 maio, 2026' → '07/05/2026'
+    """Extracts the CI date and converts it to DD/MM/YYYY format.
+
+    Returns the last occurrence of the pattern "<day> <month name>, <year>",
+    which corresponds to the issue date in the footer (not the first date
+    mentioned in the document body). E.g.: '7 maio, 2026' -> '07/05/2026'.
+
+    Args:
+        texto: Text extracted from the CI report.
+
+    Returns:
+        str: Date in "DD/MM/YYYY" format, or None if no written-out date
+        is found.
     """
     meses = "|".join(MESES_PT.keys())
     matches = re.findall(rf'(\d{{1,2}})\s+({meses}),?\s+(\d{{4}})', texto, re.IGNORECASE)
@@ -72,38 +87,40 @@ def extrair_data_ci(texto: str) -> str | None:
 
 
 def extrair_cliente(texto: str) -> str | None:
-    """
-    Extrai o nome do cliente da linha 'Cliente: <nome>'.
-    Ex: 'Cliente: Origem' → 'Origem'
-    """
+    """Extracts the client name from the 'Cliente: <name>' line. E.g.: 'Cliente: Origem' -> 'Origem'."""
     match = re.search(r'Cliente[:\s]+(.+?)(?:\n|$)', texto, re.IGNORECASE)
     return match.group(1).strip() if match else None
 
 
 def extrair_tag(texto: str) -> str | None:
-    """
-    Extrai a TAG da malha da linha 'TAG da Malha ( Loop TAG) : <TAG>'.
-    Ex: 'TAG da Malha ( Loop TAG) : FQI-1900002A-02' → 'FQI-1900002A-02'
+    """Extracts the loop TAG from the 'TAG da Malha ( Loop TAG) : <TAG>' line.
+
+    E.g.: 'TAG da Malha ( Loop TAG) : FQI-1900002A-02' -> 'FQI-1900002A-02'.
     """
     match = re.search(r'TAG\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
     return match.group(1).strip() if match else None
 
 
 def extrair_descricao_malha(texto: str) -> str | None:
-    """
-    Extrai a descrição da malha da linha 'Descrição da Malha ( Loop Description ) : <desc>'.
-    Ex: 'Descrição da Malha ( Loop Description ) : RETIRADA POÇO' → 'RETIRADA POÇO'
+    """Extracts the loop description from the 'Descrição da Malha ( Loop Description ) : <desc>' line.
+
+    E.g.: 'Descrição da Malha ( Loop Description ) : RETIRADA POÇO' -> 'RETIRADA POÇO'.
     """
     match = re.search(r'Descri[çc][aã]o\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
     return match.group(1).strip() if match else None
 
 
 def extrair_numero_relatorio(texto: str) -> str | None:
-    """
-    Extrai o número do CI. Tenta dois formatos:
-    - Formato antigo: CI-1300.0000-6252-813-O2C-027
-    - Formato novo:   número após 'Relatório de Cálculo de Incerteza' ou 'Uncertainty Calculation Report'
-                      ex: CI-FQI-1900002A-02-01.26
+    """Extracts the CI number, trying two formats.
+
+    First tries the old format (e.g.: "CI-1300.0000-6252-813-O2C-027");
+    if it doesn't match, tries the new format — the number that follows
+    "Relatório de Cálculo de Incerteza" or "Uncertainty Calculation Report"
+    (e.g.: "CI-FQI-1900002A-02-01.26").
+
+    Returns:
+        str: CI number in whichever format matched, or None if neither
+        pattern matches.
     """
     match = re.search(r'[A-Z]{2}-\d+\.\d+-\d+-\d+-[A-Z0-9]+-\d+(?:[_\.]REV\.\d+)?', texto)
     if match:
@@ -118,18 +135,28 @@ def extrair_numero_relatorio(texto: str) -> str | None:
 
 
 def extrair_tabelas_uc(caminho_pdf: str) -> dict:
-    """
-    Extrai duas tabelas específicas do PDF via pdfplumber:
-      - 'documentos': lista de instrumentos com TAG e certificado de calibração.
-      - 'budget': budget de incerteza com símbolo e contribuição por grandeza.
+    """Extracts the instruments/certificates table from the CI PDF via pdfplumber.
 
-    A detecção é feita pelo cabeçalho com "documentos" + "certificado".
-    Retorna assim que encontrar, sem varrer o restante do PDF.
+    Searches all pages for the table whose header contains both "documentos"
+    and "certificado" (columns: instrument, TAG, ..., calibration
+    certificate) and returns the data rows right below it, stopping at the
+    first separator (near-empty row) or the end of the table.
+    Returns as soon as it finds it, without scanning the rest of the PDF.
+
+    Args:
+        caminho_pdf: Path to the CI report's PDF file.
+
+    Returns:
+        list | None: List of rows (each one a list of cells) from the
+        documents table, or None if the table isn't found or the reading
+        fails (the error is logged, not propagated).
     """
     def e_separador(linha):
+        """Treats `linha` as a table separator when it has at most one non-empty cell."""
         return sum(1 for c in linha if c.strip()) <= 1
 
     def extrair_apos_cabecalho(dados, idx_header):
+        """Collects the data rows right after the header index, up to the next separator."""
         linhas = []
         for linha in dados[idx_header + 1:]:
             if e_separador(linha):
@@ -157,19 +184,28 @@ def extrair_tabelas_uc(caminho_pdf: str) -> dict:
 
 
 def extrair_fluxos_dp(texto: str) -> dict:
-    """
-    Extrai vazão (m³/h) e pressão diferencial (kPa) mínimas e máximas
-    das tabelas 'DP High' e, se existir, 'DP Low'.
+    """Extracts min/max flow rate (m³/h) and differential pressure (kPa)
+    from the 'DP High' and, if present, 'DP Low' tables.
 
-    A seção é localizada pelo cabeçalho 'Tabelas Vazão x Incerteza'.
-    Cada linha de dados tem 3 colunas por DP: Vazão | Incerteza | Pressão.
-    O regex captura as 3 colunas de cada DP.
+    The section is located via the 'Tabelas Vazão x Incerteza' header.
+    Each data row has 3 columns per DP: Flow | Uncertainty | Pressure.
+    The regex captures the 3 columns for each DP.
 
-    Com DP Low: 6 colunas por linha → grupos (vazao_H, incerteza_H, pressao_H, vazao_L, incerteza_L, pressao_L).
-    Sem DP Low: 3 colunas por linha → grupos (vazao_H, incerteza_H, pressao_H).
+    With DP Low: 6 columns per row -> groups (vazao_H, incerteza_H, pressao_H, vazao_L, incerteza_L, pressao_L).
+    Without DP Low: 3 columns per row -> groups (vazao_H, incerteza_H, pressao_H).
 
-    Os pares são ordenados por vazão para garantir que pressao_min/max
-    correspondam à menor e maior vazão respectivamente (fisicamente correlatos).
+    Pairs are sorted by flow rate to guarantee that pressao_min/max
+    correspond to the lowest and highest flow rate respectively (physically correlated).
+
+    Args:
+        texto: Text extracted from the CI report.
+
+    Returns:
+        dict: {"dp_high": dict|None, "dp_low": dict|None}, each sub-dict with
+        "vazao_min", "vazao_max", "incerteza_min", "incerteza_max",
+        "pressao_min" and "pressao_max" (strings in the PDF's original format).
+        "dp_high" and "dp_low" are None if the section or the data aren't
+        found; "dp_low" is also None when the report has no DP Low.
     """
     match = re.search(r'Tabelas\s+Vazão\s+x\s+Incerteza', texto, re.IGNORECASE)
     if not match:
@@ -194,9 +230,11 @@ def extrair_fluxos_dp(texto: str) -> dict:
         return {"dp_high": None, "dp_low": None}
 
     def br_float(v: str) -> float:
+        """Converts a number in PT-BR format (thousands dot, decimal comma) to float."""
         return float(v.replace('.', '').replace(',', '.'))
 
     def min_max(vazoes: list, incertezas: list, pressoes: list) -> dict:
+        """Sorts the (flow, uncertainty, pressure) triples by flow and returns the lowest/highest-flow pairs."""
         # Ordena pelo valor da vazão para manter o par vazão↔pressão coerente
         pares = sorted(zip(vazoes, incertezas, pressoes), key=lambda x: br_float(x[0]))
         return {
@@ -221,20 +259,19 @@ def extrair_fluxos_dp(texto: str) -> dict:
 
 
 def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> dict:
-    """
-    Transforma as linhas brutas das tabelas em um dict estruturado por instrumento.
+    """Turns the tables' raw rows into a dict structured by instrument.
 
-    O mapeamento entre nome do instrumento (coluna 0 da tabela 'documentos') e
-    a chave do resultado é feito por substring — ex. "Trecho de Medição" → "trecho".
+    The mapping between instrument name (column 0 of the 'documentos' table) and
+    the result key is done by substring — e.g. "Trecho de Medição" -> "trecho".
 
-    Trecho e Placa recebem também o diâmetro medido extraído do budget de incerteza:
-      - trecho → símbolo 'D' (diâmetro interno do trecho de medição)
-      - placa  → símbolo 'd' (diâmetro do orifício a 20 °C)
+    Trecho and Placa also receive the measured diameter extracted from the uncertainty budget:
+      - trecho -> symbol 'D' (internal diameter of the meter run)
+      - placa  -> symbol 'd' (orifice diameter at 20 °C)
 
-    DP High e DP Low recebem os valores de vazão e pressão vindos de extrair_fluxos_dp,
-    pois esses dados não estão na tabela de documentos — apenas na tabela de vazão.
+    DP High and DP Low receive the flow and pressure values from extrair_fluxos_dp,
+    since that data isn't in the documents table — only in the flow table.
 
-    O número do certificado é normalizado (espaços removidos) via normalizar_certificado.
+    The certificate number is normalized (spaces removed) via normalizar_certificado.
     """
     MAPA_INSTRUMENTOS = {
         "trecho":        "trecho",
@@ -286,13 +323,12 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> d
 
 
 def extrair_campos_uc(caminho: str, texto: str = None) -> dict:
-    """
-    Ponto de entrada do parser: coordena a extração completa de um PDF de CI.
-    Retorna um dict pronto para ser consumido pelo xml_uc_generator.
+    """Parser entry point: coordinates the full extraction of a CI PDF.
+    Returns a dict ready to be consumed by xml_uc_generator.
 
-    `texto` é opcional — se o chamador já extraiu o texto do PDF (ex.:
-    select_extract, que já roda extrair_texto antes de rotear), passe-o aqui
-    para evitar reabrir e reprocessar o mesmo PDF.
+    `texto` is optional — if the caller has already extracted the PDF text
+    (e.g.: select_extract, which already runs extrair_texto before routing),
+    pass it here to avoid reopening and reprocessing the same PDF.
     """
     if texto is None:
         texto = extrair_texto(caminho)
@@ -319,10 +355,9 @@ def extrair_campos_uc(caminho: str, texto: str = None) -> dict:
 
 
 def identificar_uc(texto: str) -> bool:
-    """
-    Verificação rápida usada pelo utils_parser para rotear o PDF antes de
-    processar qualquer dado — recebe o texto já extraído (não reabre o PDF)
-    e testa o padrão do número CI.
+    """Quick check used by utils_parser to route the PDF before processing
+    any data — receives the already-extracted text (does not reopen the PDF)
+    and tests the CI number pattern.
     """
     if extrair_numero_relatorio(texto) is not None:
         return True

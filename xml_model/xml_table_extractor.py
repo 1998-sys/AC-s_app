@@ -24,6 +24,15 @@ from pdf.parser_certificados import extrair_categoria_intrumento
 
 
 def to_float(valor):
+    """Converts a table cell value to float, normalizing minus signs and decimal comma.
+
+    Args:
+        valor: raw value extracted from the table (str, number or None).
+
+    Returns:
+        float | None: converted value, or None if `valor` is None or
+        cannot be converted.
+    """
     if valor is None:
         return None
 
@@ -42,12 +51,19 @@ def to_float(valor):
 
 
 def to_valor_eng(valor):
-    """
-    Usado para:
-    - incerteza
-    - k
-    - tendência
-    - veff
+    """Converts an "engineering" value (uncertainty, k, deviation, veff) while preserving special markers.
+
+    Unlike `to_float`, keeps the texts "INFINITO" and "NI" (not informed)
+    instead of returning None when the value is not numeric.
+
+    Args:
+        valor: raw value extracted from the table (str, number or None).
+
+    Returns:
+        float | str | None: converted numeric value; "INFINITO" if the
+        value represents infinity ("∞", "INFINITO", "infinito"); "NI" if
+        it is a not-informed marker ("-", "--", "- / -", "NI") or cannot be
+        converted; None if `valor` is None.
     """
     if valor is None:
         return None
@@ -73,9 +89,18 @@ def to_valor_eng(valor):
 
 
 def pegar_valor_kpa(valor):
-    """
-    Regra metrológica:
-    Para transmissores de pressão elétricos, usa o valor após a barra (/) que representa kPa
+    """Extracts the value in kPa from a cell in "valor_ma/valor_kpa" format.
+
+    Metrological rule: for electric pressure transmitters, uses the value
+    after the slash (/), which represents kPa; if there is no slash, uses
+    the whole value.
+
+    Args:
+        valor: raw content of the cell (accepts None).
+
+    Returns:
+        str | None: part after the slash (or the whole value, without a
+        slash), as a string; None if `valor` is None.
     """
     if valor is None:
         return None
@@ -86,6 +111,16 @@ def pegar_valor_kpa(valor):
 
 
 def extrair_texto_pagina(pdf, indice):
+    """Extracts the text of a PDF page by index, tolerating an out-of-range index.
+
+    Args:
+        pdf: open PDF object (pdfplumber).
+        indice: (0-based) index of the page to extract.
+
+    Returns:
+        str: page text, or empty string if the index does not exist or the
+        page has no text.
+    """
     try:
         return pdf.pages[indice].extract_text() or ""
     except IndexError:
@@ -93,6 +128,19 @@ def extrair_texto_pagina(pdf, indice):
 
 
 def extrair_tabelas_pagina_2(pdf):
+    """Extracts the tables from the second page (index 1) of the calibration PDF.
+
+    Tries the lines-based strategy first (drawn borders); if no table is
+    found, uses the text-based strategy as a fallback (for PDFs without
+    visible borders).
+
+    Args:
+        pdf: open PDF object (pdfplumber).
+
+    Returns:
+        list: list of extracted tables (each table is a list of rows);
+        empty list if no table is found.
+    """
     page = pdf.pages[1]
 
     tabelas = page.extract_tables({
@@ -110,6 +158,19 @@ def extrair_tabelas_pagina_2(pdf):
 
 
 def classificar_tabelas(tabelas):
+    """Classifies the tables extracted from the results page into AS_FOUND, AS_LEFT and RESULTADOS.
+
+    Convention: the last table is always RESULTADOS; of the remaining
+    ones, the first is AS_FOUND and, if there is a second one, it is
+    AS_LEFT.
+
+    Args:
+        tabelas: list of extracted tables (see `extrair_tabelas_pagina_2`).
+
+    Returns:
+        dict: {"AS_FOUND": tabela | None, "AS_LEFT": tabela | None,
+        "RESULTADOS": tabela | None}.
+    """
     classificacao = {
         "AS_FOUND": None,
         "AS_LEFT": None,
@@ -135,6 +196,24 @@ def classificar_tabelas(tabelas):
 
 
 def ajustar_transmissor_pressao_eletrico(categoria, tabelas):
+    """Structures the AS FOUND/AS LEFT/RESULTADOS records of an electric pressure transmitter.
+
+    In the AS FOUND/AS LEFT tables, reads reference (SI and kPa),
+    increasing/decreasing cycle points and standard deviation of each
+    cycle. In the RESULTADOS table, applies the metrological rule of
+    extracting the value in kPa (after the "/") for deviation and
+    uncertainty via `pegar_valor_kpa`.
+
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ..., "tabelaN": table name, "resultsN":
+        list of records}, for N = 1..2 (AS FOUND/AS LEFT) and the
+        RESULTADOS table.
+    """
     resultado = {"categoria": categoria}
     idx = 1
 
@@ -188,6 +267,21 @@ def ajustar_transmissor_pressao_eletrico(categoria, tabelas):
 
 
 def ajustar_transmissor_temperatura_eletrico(categoria, tabelas):
+    """Structures the AS FOUND/AS LEFT/RESULTADOS records of an electric temperature transmitter.
+
+    Reads, from each row, reference in °C, mean in °C, mean in mA,
+    deviation, uncertainty, k and veff.
+
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ..., "tabelaN": table name, "resultsN": list of
+        records}, for each table present among AS FOUND, AS LEFT and
+        RESULTADOS.
+    """
     resultado = {"categoria": categoria}
     idx = 1
 
@@ -219,9 +313,19 @@ def ajustar_transmissor_temperatura_eletrico(categoria, tabelas):
 
 
 def ajustar_transmissor_temperatura(categoria, tabelas):
-    """
-    Formato simplificado de Transmissor de Temperatura (6 colunas, sem coluna mA):
-    Reference | Average Reading | Error | Expanded Uncertainty | k | Veff
+    """Structures the RESULTADOS table records of a temperature transmitter in the simplified format.
+
+    Simplified Temperature Transmitter format (6 columns, no mA column):
+    Reference | Average Reading | Error | Expanded Uncertainty | k | Veff.
+
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ...} plus "tabela1"/"results1" if the
+        RESULTADOS table exists; otherwise, just {"categoria": ...}.
     """
     resultado = {"categoria": categoria}
 
@@ -249,6 +353,23 @@ def ajustar_transmissor_temperatura(categoria, tabelas):
 
 
 def ajustar_manometros(categoria, tabelas):
+    """Structures the AS FOUND/AS LEFT/RESULTADOS records of pressure gauges (digital, analog and differential).
+
+    In the AS FOUND/AS LEFT tables, reads reference (SI and kPa),
+    increasing/decreasing cycle points, standard deviation of each cycle
+    and the mean. In the RESULTADOS table, extracts the part before the
+    slash ("/") from the deviation column (value in kPa).
+
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ..., "tabelaN": table name, "resultsN": list of
+        records}, for each table present among AS FOUND, AS LEFT and
+        RESULTADOS.
+    """
     resultado = {"categoria": categoria}
     idx = 1
 
@@ -300,6 +421,21 @@ def ajustar_manometros(categoria, tabelas):
 
 
 def ajustar_pt100(categoria, tabelas):
+    """Structures the AS FOUND/AS LEFT/RESULTADOS records of PT-100 thermoresistances (2, 3 or 4 wires).
+
+    Reads, from each row, depth, standard used, reference value, mean in
+    ohm, mean in °C, deviation, uncertainty, k and veff.
+
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ..., "tabelaN": table name, "resultsN": list of
+        records}, for each table present among AS FOUND, AS LEFT and
+        RESULTADOS.
+    """
     resultado = {"categoria": categoria}
     idx = 1
 
@@ -330,17 +466,20 @@ def ajustar_pt100(categoria, tabelas):
 
 
 def ajustar_termometro_digital_analogico(categoria, tabelas):
-    """
-    Ajuste para certificados de:
-    - Termômetro Digital
-    - Termômetro Analógico
+    """Structures the AS FOUND/AS LEFT/RESULTADOS records of digital or analog thermometers.
 
-    Suporta:
-    - AS FOUND
-    - AS LEFT (se existir)
+    Expected table structure: Reference | Reading Medium | Deviation |
+    Uncertainty | k | Veff.
 
-    Estrutura esperada das tabelas:
-    Reference | Reading Medium | Deviation | Uncertainty | k | Veff
+    Args:
+        categoria: instrument category (text extracted from the PDF),
+            passed back unchanged in the result.
+        tabelas: dict classified by `classificar_tabelas`.
+
+    Returns:
+        dict: {"categoria": ..., "tabelaN": table name, "resultsN": list of
+        records}, for each table present among AS FOUND, AS LEFT and
+        RESULTADOS.
     """
 
     resultado = {"categoria": categoria}
@@ -374,6 +513,25 @@ def ajustar_termometro_digital_analogico(categoria, tabelas):
 
 
 def processar_pdf(pdf_path):
+    """Opens a calibration certificate PDF and extracts the calibration records according to the instrument category.
+
+    Extracts the instrument category (page 1) and the results tables
+    (page 2), classifies the tables into AS_FOUND/AS_LEFT/RESULTADOS and
+    dispatches to the adjustment function specific to the category
+    (electric pressure/temperature transmitter, temperature transmitter,
+    pressure gauge, PT-100 or digital/analog thermometer).
+
+    Args:
+        pdf_path: path of the calibration certificate's PDF file.
+
+    Returns:
+        dict: structured calibration records, in the format returned by
+        the adjustment function corresponding to the category.
+
+    Raises:
+        ValueError: if the instrument category is not supported by any of
+            the known adjustment functions.
+    """
     with pdfplumber.open(pdf_path) as pdf:
 
         categoria = extrair_categoria_intrumento(

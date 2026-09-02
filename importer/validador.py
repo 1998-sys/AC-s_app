@@ -16,6 +16,12 @@ TIPOS_VALIDOS = {"SEC", "PO"}
 
 
 def _to_float(val):
+    """Converts `val` to float, accepting a decimal comma.
+
+    Returns:
+        tuple: (converted value, None) on success; (None, original text) if the
+        conversion fails; (None, None) if `val` is None.
+    """
     if val is None:
         return None, None
     try:
@@ -26,15 +32,30 @@ def _to_float(val):
 
 def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
                   sistema=None, aplicacao=None, ativo=None):
-    """
-    Valida uma linha do xlsx e retorna (categoria, payload).
+    """Validates a row from the import spreadsheet against the instrument registry.
 
-    Categorias possíveis:
-        'aviso'      — linha ignorada, motivo registrado no relatório
-        'bloqueado'  — conflito crítico, não pode ser importado
-        'mantido'    — registro idêntico já existe no banco
-        'divergente' — TAG+tipo existem mas NS é diferente; aguarda decisão do usuário
-        'inserir'    — novo registro válido pronto para inserção
+    Args:
+        n: row number in the spreadsheet (used only to build the return payload).
+        tag: instrument TAG.
+        sn: instrument serial number.
+        tipo: instrument type ("SEC" or "PO").
+        sn_sensor: sensor serial number (applicable only to SEC).
+        min_raw: raw value (str) of the minimum range (applicable only to SEC).
+        max_raw: raw value (str) of the maximum range (applicable only to SEC).
+        sistema: system associated with the instrument, if provided.
+        aplicacao: application associated with the instrument, if provided.
+        ativo: instrument's "ativo" (active) field, if provided.
+
+    Returns:
+        tuple: (categoria, payload), where categoria is one of the strings below and
+        payload is a dict with the row data, whose content varies according to the category:
+
+        - "aviso": row ignored, with "motivo" (reason) recorded for the report.
+        - "bloqueado": critical conflict, cannot be imported.
+        - "mantido": identical record already exists in the database.
+        - "divergente": TAG+type exist but the SN is different; awaits user decision.
+        - "mvs_candidato": SN already belongs to another TAG; may be an MVS pending confirmation.
+        - "inserir": new valid record, ready for insertion.
     """
     # TAG ou SN vazio
     if not tag or not sn:

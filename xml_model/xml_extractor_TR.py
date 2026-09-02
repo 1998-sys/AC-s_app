@@ -17,6 +17,14 @@ from xml_model.xml_table_extractor import to_valor_eng
 
 
 def normalizar_texto(texto):
+    """Normalizes text for comparison: lowercase, no accents and collapsed spaces.
+
+    Args:
+        texto: text to normalize (accepts None/empty).
+
+    Returns:
+        str: normalized text, or empty string if `texto` is empty/None.
+    """
     if not texto:
         return ""
     texto = texto.lower()
@@ -27,7 +35,17 @@ def normalizar_texto(texto):
 
 
 def separar_valor_unidade(celula):
-    """Separa valor numérico e unidade de célula como '52,57 mm' ou '1,48 µm Ra'."""
+    """Splits the numeric value and unit from a cell like '52,57 mm' or '1,48 µm Ra'.
+
+    Args:
+        celula: raw content of the table cell (accepts None/empty).
+
+    Returns:
+        tuple: (valor_str, unidade_str). If the cell does not match the
+        "number + unit" pattern, returns (celula, None); if `celula` is
+        empty, returns (None, None). The " Ra" suffix is removed from the
+        unit.
+    """
     if not celula:
         return None, None
     celula = str(celula).strip()
@@ -58,6 +76,16 @@ MAPA_SECOES = {
 
 
 def _identificar_secao(texto):
+    """Identifies the report section (upstream/downstream pipe, orifice carrier etc.) from the text.
+
+    Args:
+        texto: text extracted above a table, where the section name (in
+            English or Portuguese) should appear.
+
+    Returns:
+        str | None: internal section key (see MAPA_SECOES), or None if no
+        known section name appears in the text.
+    """
     texto_norm = normalizar_texto(texto)
     for chave, valor in sorted(MAPA_SECOES.items(), key=lambda x: len(x[0]), reverse=True):
         if chave in texto_norm:
@@ -66,6 +94,18 @@ def _identificar_secao(texto):
 
 
 def _chave_parametro(descricao_raw):
+    """Generates an internal key (slug) from the (English) description of the measured parameter.
+
+    Args:
+        descricao_raw: raw description of the table row, which may contain
+            several lines of text (English on the first line, translation
+            on the following ones).
+
+    Returns:
+        str | None: snake_case key derived from the first line of the
+        description, truncated to 60 characters, or None if no
+        alphanumeric character remains.
+    """
     # Usa apenas a primeira linha (inglês) para gerar a chave
     primeira_linha = str(descricao_raw).split("\n")[0]
     norm = normalizar_texto(primeira_linha)
@@ -75,20 +115,22 @@ def _chave_parametro(descricao_raw):
 
 
 def extrair_dados_dim_tr(caminho_pdf):
-    """
-    Extrai todas as tabelas de resultados do relatório dimensional (DIM),
-    organizadas pela seção que precede cada tabela (Upstream Pipe 1/2,
-    Downstream Pipe, Orifice Carrier, Zanker). A ordem é detectada
-    dinamicamente — pode variar entre documentos.
+    """Extracts the dimensional results tables from the straight run/meter run DIM report, organized by section.
 
-    Retorna:
-        {
-            "upstream_pipe_1": { "medium_internal_diameter_at_20c": { valor, unidade, incerteza, k, veff }, ... },
-            "upstream_pipe_2": { ... },
-            "downstream_pipe": { ... },
-            "orifice_carrier": { ... },
-            "zanker":          { ... },
-        }
+    Walks through the PDF tables (from the second page on) identifying,
+    from the text preceding each table, which section it belongs to
+    (Upstream Pipe 1/2, Downstream Pipe, Orifice Carrier, Zanker, Orifice
+    Flange, Meter Run for Flare) — the section order is detected
+    dynamically, since it can vary between documents. For each section,
+    keeps only the relevant diameter parameters (varies by section).
+
+    Args:
+        caminho_pdf: path of the dimensional inspection PDF (DIM).
+
+    Returns:
+        dict: map from section (e.g. "tubo_a_montante_1", "porta_placa") to
+        a parameter dict -> {"valor", "unidade", "incerteza", "k", "veff"}.
+        Sections with no extracted parameter do not appear in the result.
     """
     resultado = {}
     secao_atual = None

@@ -26,11 +26,24 @@ from xml_model.xml_generator import normalizar_certificado
 
 # Utilitários para regras de validação
 def normalizar_local(local_calibracao):
+    """Translates the calibration location text from the PDF (in English) into the internal key used by the CMC rules ("permanente"/"cliente"/"movel")."""
     if not local_calibracao:
         return None
     return MAP_LOCAL.get(local_calibracao)
 
 def obter_cmc(categoria, local, valor_referencia):
+    """Looks up the CMC (Calibration and Measurement Capability) applicable to an instrument category, calibration location and reference value.
+
+    Args:
+        categoria: instrument category as reported in the PDF (internally mapped to the
+            rule family via MAPA_CATEGORIA_CMC, when applicable).
+        local: already normalized calibration location ("permanente"/"cliente"/"movel").
+        valor_referencia: reference value (span or point) used to locate the matching
+            range in CMC_REGRAS.
+
+    Returns:
+        float: applicable CMC, or None if the category, location or range are not found.
+    """
     familia = MAPA_CATEGORIA_CMC.get(categoria, categoria)
     regras_categoria = CMC_REGRAS.get(familia)
     if not regras_categoria:
@@ -47,6 +60,7 @@ def obter_cmc(categoria, local, valor_referencia):
     return None
 
 def normalizar_texto(texto):
+    """Normalizes text for comparison: converts to uppercase and strips accents."""
     if not texto:
         return ""
     texto = texto.upper()
@@ -54,6 +68,7 @@ def normalizar_texto(texto):
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 def to_float(value):
+    """Converts `value` to float, accepting a decimal comma; returns None if the conversion fails or the value is None."""
     try:
         if value is None:
             return None
@@ -62,6 +77,15 @@ def to_float(value):
         return None
 
 def contar_dias_uteis(data_inicial, data_final):
+    """Counts the business days between two dates, excluding Saturdays, Sundays and Brazilian national holidays.
+
+    Args:
+        data_inicial: start date of the count (exclusive).
+        data_final: end date of the count (inclusive).
+
+    Returns:
+        int: number of business days between `data_inicial` and `data_final`.
+    """
     br_feriados = holidays.Brazil()
 
     dias_uteis = 0
@@ -80,6 +104,13 @@ def contar_dias_uteis(data_inicial, data_final):
 
 # TAG vs SN (MVS ou divergente)
 def regra_tag_vs_sn(ctx):
+    """Checks whether the certificate's SN already belongs to another registered TAG and, if so, flags a possible MVS or a divergent TAG.
+
+    Returns:
+        ValidationIssue: non-blocking, asking whether it is an MVS, when the SN already
+        belongs to a device of one of the types that make up an MVS; blocking, indicating
+        a divergent TAG, otherwise; None if the SN does not belong to any other record.
+    """
     if ctx.db is None and ctx.reg_sn is not None:
         tipos_mvs = {
             "Manometro Digital",
@@ -128,6 +159,12 @@ def regra_tag_vs_sn(ctx):
 
 # Novo Instrumento
 def regra_novo_instrumento(ctx):
+    """Detects a new instrument: when neither the certificate's TAG nor its SN has a matching record in the database.
+
+    Returns:
+        ValidationIssue: non-blocking, proposing registration of the new instrument; None
+        if the TAG or the SN already exist in the database.
+    """
     if ctx.db is None and ctx.reg_sn is None:
         return ValidationIssue(
             key="novo_instrumento",
@@ -152,6 +189,13 @@ def regra_novo_instrumento(ctx):
 
 # SN do Instrumento
 def regra_sn_instrumento(ctx):
+    """Compares the instrument's SN in the certificate with the one registered in the database.
+
+    Returns:
+        ValidationIssue: with options to use the certificate's value or keep the
+        database's, if they diverge; None if they match or if the instrument is not
+        yet registered.
+    """
     if ctx.db is None:
         return None
 
@@ -178,6 +222,13 @@ def regra_sn_instrumento(ctx):
 
 # SN do Sensor
 def regra_sn_sensor(ctx):
+    """Compares the sensor's SN in the certificate with the one registered in the database.
+
+    Returns:
+        ValidationIssue: with options to use the certificate's value or keep the
+        database's, if they diverge; None if they match or if the instrument is not
+        yet registered.
+    """
     if ctx.db is None:
         return None
 
@@ -204,6 +255,17 @@ def regra_sn_sensor(ctx):
 
 # RANGE
 def regra_range(ctx):
+    """Compares the certificate's range (min/max) with the one registered in the database, normalizing both to float.
+
+    Returns:
+        ValidationIssue: proposing to register the range, if absent in the database; with
+        options to use the certificate or keep the database's, if divergent; None if they
+        match or if the instrument is not yet registered.
+
+    Notes:
+        As a side effect, normalizes `ctx.pdf["min_range"/"max_range"]` and
+        `ctx.db["min_range"/"max_range"]` to float.
+    """
     if ctx.db is None:
         return None
 
@@ -257,6 +319,12 @@ def regra_range(ctx):
 
 # HASTE (somente TE)
 def regra_haste_te(ctx):
+    """For thermowell (TE) TAGs, validates that the rod diameter does not exceed the reported length.
+
+    Returns:
+        ValidationIssue: blocking if the data is invalid, missing, or cannot be parsed as
+        a number; None if the TAG is not a thermowell or the data is valid.
+    """
     if "TE" not in (ctx.pdf.get("tag") or ""):
         return None
 
@@ -287,6 +355,12 @@ def regra_haste_te(ctx):
 
 # LOCAL
 def regra_local_fpso(ctx):
+    """Checks whether the calibration location reported in the PDF matches one of the known facilities (FPSOs, Polvo, Origem Energia).
+
+    Returns:
+        ValidationIssue: blocking if the location does not match any registered facility;
+        None otherwise.
+    """
     local_pdf = normalizar_texto(ctx.pdf.get("local"))
 
     fpsos = {
@@ -314,6 +388,15 @@ def regra_local_fpso(ctx):
 
 # RANGE indicado x calibrado
 def regra_rangein(ctx):
+    """Checks whether the calibrated range (min/max) is contained within the instrument's indicated range (inmin/inmax).
+
+    Returns:
+        ValidationIssue: blocking if the calibrated range exceeds the indicated range;
+        None if it is contained or if any of the values cannot be converted to a number.
+
+    Notes:
+        As a side effect, normalizes `ctx.pdf["min_range"/"max_range"/"inmin_range"/"inmax_range"]` to float.
+    """
 
     # Converter valores do PDF para float
     pdf_min = to_float(ctx.pdf.get("min_range"))
@@ -347,8 +430,14 @@ def regra_rangein(ctx):
 
     return None
 
-# Incerteza e Erro fiducial 
+# Incerteza e Erro fiducial
 def regra_incert_fidu(ctx):
+    """Checks whether the certificate's uncertainty or fiducial error exceed the 0.1% limit.
+
+    Returns:
+        ValidationIssue: blocking if the uncertainty is >= 0.1 or the fiducial error is
+        > 0.1; None otherwise, or if the values cannot be converted to a number.
+    """
 
     # Converter valores do PDF para float
     incert= to_float(ctx.pdf.get("incerteza"))
@@ -399,6 +488,7 @@ MAP_LOCAL = {
 # (permanente/cliente/movel sempre usam a mesma tabela de faixas) — por isso os
 # valores são declarados uma única vez e replicados para os 3 locais.
 def _mesma_faixa_todas_localidades(faixas):
+    """Replicates the same list of CMC ranges across the three calibration locations (permanent, customer, mobile)."""
     return {"permanente": faixas, "cliente": faixas, "movel": faixas}
 
 
@@ -460,6 +550,19 @@ CMC_REGRAS = {
 
 
 def regra_cmc(ctx):
+    """Checks whether the uncertainty declared in the certificate meets the CMC applicable to the instrument category and calibration location.
+
+    For pressure instruments (PT/DPT-type points), the CMC is obtained from the span
+    between the lowest and highest calibrated reference and compared against the
+    certificate's single uncertainty value. For the other types (e.g., temperature), the
+    CMC is checked point by point, comparing each point's uncertainty against the CMC for
+    its respective reference.
+
+    Returns:
+        ValidationIssue: blocking if the declared uncertainty falls below the applicable
+        CMC (at any point, in the non-PT/DPT case); None if it meets the CMC or if there
+        is not enough data for the check (category, location, points, etc.).
+    """
     tag = ctx.pdf.get("tag")
     categoria = ctx.pdf.get("categoria")
     local_raw = ctx.pdf.get("local_calibracao")
@@ -548,6 +651,12 @@ def regra_cmc(ctx):
     
 
 def regra_classe(ctx):
+    """Checks whether the instrument class reported in the PDF is one of the valid classes (Fiscal, Apropriação/Allocation, Custody Transfer, Operational).
+
+    Returns:
+        ValidationIssue: blocking if the reported class is not recognized; None if it is
+        valid or if no class was reported (or it is "NA").
+    """
     classe_raw = ctx.pdf.get("classe")
     if not classe_raw or classe_raw == "NA":
         return None
@@ -572,6 +681,13 @@ def regra_classe(ctx):
 
 
 def data_proxcal(ctx):
+    """Checks that the next calibration date is not earlier than the current calibration date.
+
+    Returns:
+        ValidationIssue: blocking if the next calibration is earlier than the current
+        date; None otherwise, if no next-calibration date was provided, or if the dates
+        cannot be parsed.
+    """
     data_atual_str = ctx.pdf.get("data")
     data_prox_cal_str = ctx.pdf.get("proxima_cal")
 
@@ -599,6 +715,16 @@ def data_proxcal(ctx):
 
 
 def prazo_emissao(ctx):
+    """Checks whether the certificate was issued within the maximum number of business days required by the client, counted from the calibration date.
+
+    The applicable deadline depends on the client (3 business days for PRIO; 10 business
+    days for Yinson and Origem Energia Alagoas); for other clients the rule does not apply.
+
+    Returns:
+        ValidationIssue: blocking if the deadline is exceeded and the certificate is not
+        a revision ("REV" in the number); None otherwise, or if required data is missing
+        (dates, client) or the client has no defined deadline.
+    """
     data_cal_str = ctx.pdf.get("data")
     data_emissao_str = ctx.pdf.get("report_date")
     cliente = (ctx.pdf.get("cliente") or "").upper()

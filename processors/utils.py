@@ -11,6 +11,23 @@
 # ----------------------------------------------------------------
 
 def fluxo_origem(app, dados_certificado, callback):
+    """Fills in the AC number and location automatically for ORIGEM
+    clients, or prompts the user when they are not found.
+
+    If the certificate's client is not ORIGEM, simply forwards the data
+    unchanged. For ORIGEM clients, tries to obtain the AC number and
+    location from a "Related Items" document (see
+    `Api.dados_origem_automaticos`); if both are found, fills in the data
+    automatically, otherwise requests manual input from the user.
+
+    Args:
+        app: Reference to the application, used to obtain automatic data
+            or request manual input.
+        dados_certificado: Certificate data; updated in-place with
+            `n_ac` and `localizacao` when found automatically.
+        callback: Function called with the final certificate data to
+            continue the flow.
+    """
     cliente = (dados_certificado.get("cliente") or "").strip().upper()
 
     if "ORIGEM" not in cliente:

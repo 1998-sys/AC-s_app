@@ -16,15 +16,32 @@ from xml_model.xml_generator import normalizar_certificado
 
 
 def normalizar_espacos(texto):
-    """Colapsa qualquer sequência de espaços/quebras de linha em um único espaço."""
+    """Collapses any run of spaces/line breaks into a single space.
+
+    Args:
+        texto: Input text, potentially with multiple spaces/line breaks.
+
+    Returns:
+        str: Text with all whitespace sequences collapsed into a single one.
+    """
     return re.sub(r"\s+", " ", texto)
 
 
 def extrair_numero_evaluation(texto):
-    """Extrai o número do Evaluation Report (ex.: 'Nº 25-ODS-...-ER').
+    """Extracts the Evaluation Report number from the certificate text.
 
-    Compartilhado entre parser_po_ER.py e parser_tr_ER.py — a única diferença
-    entre os dois certificados é o restante do documento, não este campo.
+    Recognizes patterns such as "Nº 25-ODS-...-ER" (with or without the
+    "RELATÓRIO DE AVALIAÇÃO" prefix), first normalizing the different
+    dash/hyphen variants (‐, -, –, —) to a plain hyphen before applying the regex.
+
+    Shared between parser_po_ER.py and parser_tr_ER.py — the only difference
+    between the two certificates is the rest of the document, not this field.
+
+    Args:
+        texto: Text extracted from the certificate.
+
+    Returns:
+        str: Normalized Evaluation Report number, or None if not found.
     """
     texto = re.sub(r"[‐\-–—]", "-", texto)
     m = re.search(
