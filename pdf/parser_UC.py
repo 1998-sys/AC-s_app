@@ -70,44 +70,72 @@ def extrair_data_ci(texto: str) -> str | None:
     Returns the last occurrence of the pattern "<day> <month name>, <year>",
     which corresponds to the issue date in the footer (not the first date
     mentioned in the document body). E.g.: '7 maio, 2026' -> '07/05/2026'.
+    Falls back to a plain "DD/MM/YYYY" match (also the last occurrence) when
+    no written-out month name is found — the newer report layout signs only
+    with a numeric date, no month name anywhere in the document.
 
     Args:
         texto: Text extracted from the CI report.
 
     Returns:
-        str: Date in "DD/MM/YYYY" format, or None if no written-out date
-        is found.
+        str: Date in "DD/MM/YYYY" format, or None if neither format is found.
     """
     meses = "|".join(MESES_PT.keys())
     matches = re.findall(rf'(\d{{1,2}})\s+({meses}),?\s+(\d{{4}})', texto, re.IGNORECASE)
-    if not matches:
-        return None
-    dia, mes, ano = matches[-1]
-    return f"{int(dia):02d}/{MESES_PT[mes.lower()]}/{ano}"
+    if matches:
+        dia, mes, ano = matches[-1]
+        return f"{int(dia):02d}/{MESES_PT[mes.lower()]}/{ano}"
+
+    matches_numericas = re.findall(r'\b(\d{1,2})/(\d{1,2})/(\d{4})\b', texto)
+    if matches_numericas:
+        dia, mes, ano = matches_numericas[-1]
+        return f"{int(dia):02d}/{int(mes):02d}/{ano}"
+
+    return None
+
+
+def _extrair_rotulo_bilingue(texto: str, *rotulos: str) -> str | None:
+    """Extracts the value after any of `rotulos`, regardless of which language comes first.
+
+    The report template has two revisions that differ in the order of the
+    bilingual field labels — older: "Cliente ( Customer ): valor"; newer:
+    "Customer ( Cliente ): valor". Anchoring on either label and capturing
+    up to the first colon after it (lazily, so it skips over the
+    parenthetical translation) handles both orders with one pattern.
+
+    Args:
+        texto: Text extracted from the CI report.
+        *rotulos: Label variants to anchor on (any language/order), as
+            regex fragments (not escaped — pass e.g. "TAG\\s+da\\s+Malha"
+            for a multi-word label, or a plain word for a single one).
+
+    Returns:
+        str: The captured value, or None if none of the labels are found.
+    """
+    alternativas = "|".join(rotulos)
+    match = re.search(rf'(?:{alternativas})\b.*?:\s*(.+?)(?:\n|$)', texto, re.IGNORECASE)
+    return match.group(1).strip() if match else None
 
 
 def extrair_cliente(texto: str) -> str | None:
-    """Extracts the client name from the 'Cliente: <name>' line. E.g.: 'Cliente: Origem' -> 'Origem'."""
-    match = re.search(r'Cliente[:\s]+(.+?)(?:\n|$)', texto, re.IGNORECASE)
-    return match.group(1).strip() if match else None
+    """Extracts the client name from the 'Cliente'/'Customer' line. E.g.: 'Customer ( Cliente ): Origem' -> 'Origem'."""
+    return _extrair_rotulo_bilingue(texto, "Cliente", "Customer")
 
 
 def extrair_tag(texto: str) -> str | None:
-    """Extracts the loop TAG from the 'TAG da Malha ( Loop TAG) : <TAG>' line.
+    """Extracts the loop TAG from the 'TAG da Malha'/'Loop Tag' line.
 
-    E.g.: 'TAG da Malha ( Loop TAG) : FQI-1900002A-02' -> 'FQI-1900002A-02'.
+    E.g.: 'Loop Tag ( Tag da Malha ): UT-SG-122101-01' -> 'UT-SG-122101-01'.
     """
-    match = re.search(r'TAG\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
-    return match.group(1).strip() if match else None
+    return _extrair_rotulo_bilingue(texto, "TAG\\s+da\\s+Malha", "Loop\\s+Tag")
 
 
 def extrair_descricao_malha(texto: str) -> str | None:
-    """Extracts the loop description from the 'Descrição da Malha ( Loop Description ) : <desc>' line.
+    """Extracts the loop description from the 'Descrição da Malha'/'Loop Description' line.
 
-    E.g.: 'Descrição da Malha ( Loop Description ) : RETIRADA POÇO' -> 'RETIRADA POÇO'.
+    E.g.: 'Loop Description ( Descrição da Malha ): TESTE POÇO - SG-122101-01' -> 'TESTE POÇO - SG-122101-01'.
     """
-    match = re.search(r'Descri[çc][aã]o\s+da\s+Malha\s*\([^)]*\)\s*:\s*(.+)', texto, re.IGNORECASE)
-    return match.group(1).strip() if match else None
+    return _extrair_rotulo_bilingue(texto, "Descri[çc][aã]o\\s+da\\s+Malha", "Loop\\s+Description")
 
 
 def extrair_numero_relatorio(texto: str) -> str | None:
@@ -134,22 +162,25 @@ def extrair_numero_relatorio(texto: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def extrair_tabelas_uc(caminho_pdf: str) -> dict:
+def extrair_tabelas_uc(caminho_pdf: str) -> tuple:
     """Extracts the instruments/certificates table from the CI PDF via pdfplumber.
 
     Searches all pages for the table whose header contains both "documentos"
     and "certificado" (columns: instrument, TAG, ..., calibration
-    certificate) and returns the data rows right below it, stopping at the
-    first separator (near-empty row) or the end of the table.
-    Returns as soon as it finds it, without scanning the rest of the PDF.
+    certificate) and returns that header row plus the data rows right below
+    it, stopping at the first separator (near-empty row) or the end of the
+    table. Returns as soon as it finds it, without scanning the rest of the PDF.
 
     Args:
         caminho_pdf: Path to the CI report's PDF file.
 
     Returns:
-        list | None: List of rows (each one a list of cells) from the
-        documents table, or None if the table isn't found or the reading
-        fails (the error is logged, not propagated).
+        tuple: (cabecalho, linhas) — cabecalho is the header row (list of
+        cells), used by organizar_dados_uc to map columns by name for report
+        layouts whose column order/count differs from the original one;
+        linhas is the list of data rows below it. Both are None if the
+        table isn't found or the reading fails (the error is logged, not
+        propagated).
     """
     def e_separador(linha):
         """Treats `linha` as a table separator when it has at most one non-empty cell."""
@@ -175,24 +206,27 @@ def extrair_tabelas_uc(caminho_pdf: str) -> dict:
                     for i, linha in enumerate(dados):
                         texto = " ".join(linha).lower()
                         if "documentos" in texto and "certificado" in texto:
-                            return extrair_apos_cabecalho(dados, i)
+                            return linha, extrair_apos_cabecalho(dados, i)
     except Exception:
         print(f"Erro ao extrair tabelas de '{caminho_pdf}':")
         traceback.print_exc()
 
-    return None
+    return None, None
 
 
 def extrair_fluxos_dp(texto: str) -> dict:
     """Extracts min/max flow rate (m³/h) and differential pressure (kPa)
     from the 'DP High' and, if present, 'DP Low' tables.
 
-    The section is located via the 'Tabelas Vazão x Incerteza' header.
-    Each data row has 3 columns per DP: Flow | Uncertainty | Pressure.
-    The regex captures the 3 columns for each DP.
+    The section is located via the 'Tabela(s) Vazão x Incerteza'/'Table Flow
+    x Uncertainty' header (older revision: plural "Tabelas"; newer: singular
+    "Tabela"). Each data row has 3 columns per DP; the column order differs
+    between revisions — older: Flow | Uncertainty | Pressure; newer: Flow |
+    Pressure | Uncertainty (headed "Qv | DP | U (%)", detected via the "Qv"
+    marker, which only appears in the newer layout's header).
 
-    With DP Low: 6 columns per row -> groups (vazao_H, incerteza_H, pressao_H, vazao_L, incerteza_L, pressao_L).
-    Without DP Low: 3 columns per row -> groups (vazao_H, incerteza_H, pressao_H).
+    With DP Low: 6 columns per row -> groups (vazao_H, ?, ?, vazao_L, ?, ?).
+    Without DP Low: 3 columns per row -> groups (vazao_H, ?, ?).
 
     Pairs are sorted by flow rate to guarantee that pressao_min/max
     correspond to the lowest and highest flow rate respectively (physically correlated).
@@ -207,16 +241,25 @@ def extrair_fluxos_dp(texto: str) -> dict:
         "dp_high" and "dp_low" are None if the section or the data aren't
         found; "dp_low" is also None when the report has no DP Low.
     """
-    match = re.search(r'Tabelas\s+Vazão\s+x\s+Incerteza', texto, re.IGNORECASE)
+    match = re.search(
+        r'Tabelas?\s+Vaz[ãa]o\s+x\s+Incerteza|Table\s+Flow\s+x\s+Uncertainty',
+        texto, re.IGNORECASE
+    )
     if not match:
         return {"dp_high": None, "dp_low": None}
 
     secao = texto[match.start():]
     tem_dp_low = bool(re.search(r'DP\s+Low', secao, re.IGNORECASE))
+    # "Qv" só aparece no cabeçalho da revisão mais nova ("Qv | DP | U (%)"),
+    # onde a pressão vem antes da incerteza — a revisão antiga usa
+    # "Vazão | Incerteza | Pressão", então esse marcador distingue as duas
+    # sem precisar de uma amostra real de cada revisão pra comparar.
+    pressao_antes_incerteza = bool(re.search(r'\bQv\b', secao[:600], re.IGNORECASE))
 
     num = r'\d[\d.]*(?:,\d+)?'
 
-    # Captura: vazao_high, incerteza_high, pressao_high, [vazao_low, incerteza_low, pressao_low]
+    # Captura 3 (ou 6, com DP Low) números por linha — o significado de cada
+    # coluna depende de pressao_antes_incerteza (ver _extrair_grupo_dp).
     if tem_dp_low:
         padrao = re.compile(
             rf'^({num})\s+({num})\s+({num})\s+({num})\s+({num})\s+({num})$',
@@ -230,8 +273,16 @@ def extrair_fluxos_dp(texto: str) -> dict:
         return {"dp_high": None, "dp_low": None}
 
     def br_float(v: str) -> float:
-        """Converts a number in PT-BR format (thousands dot, decimal comma) to float."""
-        return float(v.replace('.', '').replace(',', '.'))
+        """Converts a number to float, in either PT-BR format (thousands dot,
+        decimal comma, e.g. "4.815,70") or plain format (decimal point, no
+        thousands separator, e.g. "4815.7" — used by the newer report
+        revision). Only treats dots as thousands separators when a comma is
+        also present; otherwise the dot is the decimal separator.
+        """
+        v = v.strip()
+        if ',' in v:
+            return float(v.replace('.', '').replace(',', '.'))
+        return float(v)
 
     def min_max(vazoes: list, incertezas: list, pressoes: list) -> dict:
         """Sorts the (flow, uncertainty, pressure) triples by flow and returns the lowest/highest-flow pairs."""
@@ -246,27 +297,94 @@ def extrair_fluxos_dp(texto: str) -> dict:
             "pressao_max":    pares[-1][2],
         }
 
+    def extrair_grupo(m: tuple, offset: int) -> tuple:
+        """Reads one DP's 3-column group starting at `offset`, honoring the detected column order.
+
+        Returns:
+            tuple: (vazao, incerteza, pressao), regardless of their original
+            column order in the report.
+        """
+        if pressao_antes_incerteza:
+            vazao, pressao, incerteza = m[offset], m[offset + 1], m[offset + 2]
+        else:
+            vazao, incerteza, pressao = m[offset], m[offset + 1], m[offset + 2]
+        return vazao, incerteza, pressao
+
     if tem_dp_low:
+        altos  = [extrair_grupo(m, 0) for m in matches]
+        baixos = [extrair_grupo(m, 3) for m in matches]
         return {
-            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches], [m[2] for m in matches]),
-            "dp_low":  min_max([m[3] for m in matches], [m[4] for m in matches], [m[5] for m in matches]),
+            "dp_high": min_max([g[0] for g in altos],  [g[1] for g in altos],  [g[2] for g in altos]),
+            "dp_low":  min_max([g[0] for g in baixos], [g[1] for g in baixos], [g[2] for g in baixos]),
         }
     else:
+        grupos = [extrair_grupo(m, 0) for m in matches]
         return {
-            "dp_high": min_max([m[0] for m in matches], [m[1] for m in matches], [m[2] for m in matches]),
+            "dp_high": min_max([g[0] for g in grupos], [g[1] for g in grupos], [g[2] for g in grupos]),
             "dp_low":  None,
         }
 
 
-def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> dict:
+def _mapear_colunas_documentos(cabecalho: list | None) -> dict | None:
+    """Maps each relevant field to its column index by matching the documents table's header text.
+
+    The original layout (TAG in column 1, certificate in the last column)
+    is fixed-position and doesn't have a documented header sample to
+    validate a name-based mapping against, so it's kept as the fallback in
+    organizar_dados_uc. This function only recognizes the newer, wider
+    layout (which added a "Serial Number" column and lists the certificate
+    before the trailing blank columns, breaking the old fixed positions) —
+    when it can't confidently map all required columns, the caller falls
+    back to the original fixed-position logic untouched.
+
+    Args:
+        cabecalho: Header row of the documents table (list of cells), or None.
+
+    Returns:
+        dict | None: {"tag": i, "u": i, "erro": i, "unidade": i,
+        "certificado": i, "diametro": i|None}, or None if `cabecalho` is
+        None or any required column isn't found.
+    """
+    if not cabecalho:
+        return None
+
+    indices = {}
+    for i, cel in enumerate(cabecalho):
+        texto = (cel or "").strip().lower()
+        if not texto:
+            continue
+        if "identifica" in texto and "tag" not in indices:
+            indices["tag"] = i
+        elif texto == "u":
+            indices["u"] = i
+        elif "maximum error" in texto or "erro máximo" in texto or "erro maximo" in texto:
+            indices["erro"] = i
+        elif "diameter" in texto or "diâmetro" in texto or "diametro" in texto:
+            indices["diametro"] = i
+        elif "unit" in texto or "unidade" in texto:
+            indices["unidade"] = i
+        elif "certificate" in texto or "certificado" in texto:
+            indices["certificado"] = i
+
+    obrigatorias = {"tag", "u", "erro", "unidade", "certificado"}
+    return indices if obrigatorias.issubset(indices) else None
+
+
+def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None, cabecalho: list | None = None) -> dict:
     """Turns the tables' raw rows into a dict structured by instrument.
 
     The mapping between instrument name (column 0 of the 'documentos' table) and
     the result key is done by substring — e.g. "Trecho de Medição" -> "trecho".
 
-    Trecho and Placa also receive the measured diameter extracted from the uncertainty budget:
-      - trecho -> symbol 'D' (internal diameter of the meter run)
-      - placa  -> symbol 'd' (orifice diameter at 20 °C)
+    Column positions differ between report layout revisions (see
+    _mapear_colunas_documentos), so columns are mapped by the header's text
+    first; only when that mapping isn't confident does this fall back to the
+    original fixed positions (column 1 = TAG, last column = certificate)
+    that the older layout used.
+
+    Trecho and Placa also receive the measured diameter, when the row's own
+    unit column reads "mm" (both layouts place it right next to the
+    diameter value, just at a different column index).
 
     DP High and DP Low receive the flow and pressure values from extrair_fluxos_dp,
     since that data isn't in the documents table — only in the flow table.
@@ -285,12 +403,11 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> d
         "diferencial":   "dp_high",
     }
 
+    colunas = _mapear_colunas_documentos(cabecalho)
     resultado = {}
 
     for linha in (documentos or []):
-        nome        = linha[0].strip()
-        tag         = linha[1].strip()
-        certificado = normalizar_certificado(linha[-1].strip())
+        nome = linha[0].strip()
 
         chave = None
         for palavra, k in MAPA_INSTRUMENTOS.items():
@@ -300,16 +417,27 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None) -> d
         if chave is None:
             continue  # linha não reconhecida pelo mapa, ignora
 
-        dados_instrumento = {
-            "tag":         tag,
-            "certificado": certificado,
-            "u":           linha[3].strip() if len(linha) > 3 else "",
-            "fator_k":     linha[4].strip() if len(linha) > 4 else "",
-            "erro":        linha[5].strip() if len(linha) > 5 else "",
-        }
-
-        if linha[-2].strip() == "mm":
-            dados_instrumento["diametro"] = linha[-3].strip()
+        if colunas:
+            dados_instrumento = {
+                "tag":         linha[colunas["tag"]].strip(),
+                "certificado": normalizar_certificado(linha[colunas["certificado"]].strip()),
+                "u":           linha[colunas["u"]].strip(),
+                "fator_k":     "",  # este layout não tem coluna de fator de cobertura separada
+                "erro":        linha[colunas["erro"]].strip(),
+            }
+            idx_diametro = colunas.get("diametro")
+            if idx_diametro is not None and linha[colunas["unidade"]].strip().lower() == "mm":
+                dados_instrumento["diametro"] = linha[idx_diametro].strip()
+        else:
+            dados_instrumento = {
+                "tag":         linha[1].strip(),
+                "certificado": normalizar_certificado(linha[-1].strip()),
+                "u":           linha[3].strip() if len(linha) > 3 else "",
+                "fator_k":     linha[4].strip() if len(linha) > 4 else "",
+                "erro":        linha[5].strip() if len(linha) > 5 else "",
+            }
+            if linha[-2].strip() == "mm":
+                dados_instrumento["diametro"] = linha[-3].strip()
 
         # Injeta vazão e pressão para transmissores de pressão diferencial
         if fluxos and chave in ("dp_high", "dp_low"):
@@ -338,9 +466,9 @@ def extrair_campos_uc(caminho: str, texto: str = None) -> dict:
     cliente = extrair_cliente(texto)
     tag = extrair_tag(texto)
     nome_sistema = extrair_descricao_malha(texto)
-    documentos = extrair_tabelas_uc(caminho)
+    cabecalho, documentos = extrair_tabelas_uc(caminho)
     fluxos = extrair_fluxos_dp(texto)
-    dados = organizar_dados_uc(documentos, fluxos)
+    dados = organizar_dados_uc(documentos, fluxos, cabecalho)
     ci_dados = {
         "numero_ci":    numero_ci    or "NI",
         "ativo":       ativo        or "NI",
