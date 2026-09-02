@@ -410,7 +410,7 @@ def tipo_transmissor_pressao(dados):
     Notes:
         Function not wired into the generation flow
         (`gerar_xml_certificado` / `criar_identificacao_instrumento`) —
-        business decision documented in TASKS.md: TIPO_TRANSMISSOR_PRESSAO
+        business decision documented in tasks/TASKS.md: TIPO_TRANSMISSOR_PRESSAO
         is optional in the XSD (minOccurs="0") and enabling it would
         change the content of real certificates, so it was kept but left
         unwired, pending confirmation before use.
