@@ -25,7 +25,7 @@ from openpyxl.worksheet.page import PageMargins
 def gerar_ac_prio_po(
     dados: dict,
     caminho_pdf_original,
-    caminho_template = "TemplateAC_PO_PRIO.xlsx",
+    caminho_template = "templates/TemplateAC_PO_PRIO.xlsx",
     nome_aba = "Template Formulário",
     print_area_fixa: str | None = None,
     linhas_extra_topo: int = 2,

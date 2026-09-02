@@ -31,15 +31,17 @@ Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDesc
 ; Aplicativo compilado (todos os arquivos da pasta dist\Ac_app)
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; Templates Excel (ficam na mesma pasta do exe para o app encontrá-los)
-Source: "TemplateAC_ORIGEM.xlsx";             DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_PRIO.xlsx";               DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_YINSON.xlsx";             DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_YINSON - ATLANTA.xlsx";   DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_PO_ORIGEM.xlsx";          DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_PO_PRIO.xlsx";            DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_PO_YINSON.xlsx";          DestDir: "{app}"; Flags: ignoreversion
-Source: "TemplateAC_PO_YINSON - ATLANTA.xlsx"; DestDir: "{app}"; Flags: ignoreversion
+; Templates Excel (ficam em templates\ dentro da pasta do exe para o app encontrá-los)
+Source: "templates\TemplateAC_ORIGEM.xlsx";             DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_PRIO.xlsx";               DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_YINSON.xlsx";             DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_YINSON - ATLANTA.xlsx";   DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_PO_ORIGEM.xlsx";          DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_PO_PRIO.xlsx";            DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_PO_YINSON.xlsx";          DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\TemplateAC_PO_YINSON - ATLANTA.xlsx"; DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\Template_Linearizacao.xlsx";         DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "templates\template_importacao_instrumentos.xlsx"; DestDir: "{app}\templates"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}";           Filename: "{app}\{#AppExeName}"

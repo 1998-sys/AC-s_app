@@ -126,7 +126,7 @@ def gerar_ac_po(config, dados, caminho_pdf_original, excel=None):
 
 
 CONFIG_ORIGEM_PO = {
-    "template": "TemplateAC_PO_ORIGEM.xlsx",
+    "template": "templates/TemplateAC_PO_ORIGEM.xlsx",
     "prefixo_temp": "temp_ac_origem_",
     "campos": {
         "A6": "sn_inst",
@@ -140,7 +140,7 @@ CONFIG_ORIGEM_PO = {
 }
 
 CONFIG_YINSON_PO = {
-    "template": "TemplateAC_PO_YINSON.xlsx",
+    "template": "templates/TemplateAC_PO_YINSON.xlsx",
     "prefixo_temp": "temp_ac_yinson_",
     "campos": {
         "A13": "certificado",
@@ -153,7 +153,7 @@ CONFIG_YINSON_PO = {
 }
 
 CONFIG_YINSON_ATLANTA_PO = {
-    "template": "TemplateAC_PO_YINSON - ATLANTA.xlsx",
+    "template": "templates/TemplateAC_PO_YINSON - ATLANTA.xlsx",
     "prefixo_temp": "temp_ac_yinson_atlanta_",
     "campos": {
         "A13": "certificado",

@@ -316,10 +316,10 @@ flowchart TD
     P9["9. form/utils_print.py — gerar_ac_escolha()\nAdicionar elif com condição\ncliente + instrumento → chamar novo gerador"]
     P9 --> P10
 
-    P10["10. TemplateAC_NOVOTIPO.xlsx\nCriar template Excel com\nlayout da AC do novo tipo"]
+    P10["10. templates/TemplateAC_NOVOTIPO.xlsx\nCriar template Excel com\nlayout da AC do novo tipo"]
     P10 --> P11
 
-    P11["11. main.spec\nSe necessário, incluir novos\narquivos de dados no build"]
+    P11["11. Ac_app.spec\nSe necessário, incluir novos\narquivos de dados no build"]
 
     P11 --> END([Novo instrumento integrado])
 ```

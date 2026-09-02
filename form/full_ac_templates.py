@@ -260,7 +260,7 @@ def gerar_ac_completo(config, dados, caminho_pdf_original, excel=None):
 
 
 CONFIG_PRIO = {
-    "template": "TemplateAC_PRIO.xlsx",
+    "template": "templates/TemplateAC_PRIO.xlsx",
     "prefixo_temp": "temp_ac_prio_",
     "titulo_cell": "B2",
     "local_cell": "C7",
@@ -269,7 +269,7 @@ CONFIG_PRIO = {
 }
 
 CONFIG_YINSON = {
-    "template": "TemplateAC_YINSON.xlsx",
+    "template": "templates/TemplateAC_YINSON.xlsx",
     "prefixo_temp": "temp_ac_yinson_",
     "titulo_cell": "C2",
     "local_cell": "C8",
@@ -278,7 +278,7 @@ CONFIG_YINSON = {
 }
 
 CONFIG_YINSON_ATLANTA = {
-    "template": "TemplateAC_YINSON - ATLANTA.xlsx",
+    "template": "templates/TemplateAC_YINSON - ATLANTA.xlsx",
     "prefixo_temp": "temp_ac_yinson_atlanta_",
     "titulo_cell": "C2",
     "local_cell": "C8",

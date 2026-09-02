@@ -8,13 +8,13 @@ datas = [
     ('pdf', 'pdf'),
     ('data', 'data'),
     ('logo', 'logo'),
+    ('templates', 'templates'),
     ('xml_model\\PetrobrasSchemaV3.0.0 (1) (1).xsd', 'xml_model'),
 ]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('holidays')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
 
 a = Analysis(
     ['Ac_app.py'],
@@ -34,8 +34,6 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
     name='Ac_app',
     debug=False,
@@ -51,4 +49,13 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['logo\\logo icon.ico'],
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    name='Ac_app',
 )

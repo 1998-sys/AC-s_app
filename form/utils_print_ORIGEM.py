@@ -98,7 +98,7 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
 
     print(dados)
 
-    caminho_template = "TemplateAC_ORIGEM.xlsx"
+    caminho_template = "templates/TemplateAC_ORIGEM.xlsx"
     caminho_temp = os.path.join(
         tempfile.gettempdir(),
         f"temp_ac_origem_{uuid.uuid4().hex}.xlsx"

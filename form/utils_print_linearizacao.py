@@ -195,7 +195,7 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
             cannot be overwritten).
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    caminho_template = os.path.join(base_dir, "Template_Linearizacao.xlsx")
+    caminho_template = os.path.join(base_dir, "templates", "Template_Linearizacao.xlsx")
 
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Linearização"]
