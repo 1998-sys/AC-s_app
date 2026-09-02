@@ -506,7 +506,7 @@ class PdfProcessingService:
         self.api._voltar_para_selecao()
 
     def _processar_xml_ft(self, caminho):
-        """Validates a flow meter external calibration certificate XML, asks the user for Application/System, and generates the Linearization spreadsheet.
+        """Validates a flow meter external calibration certificate XML, asks the user for Application/System (and optionally Elaborado/Verificado por), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
 
         Args:
             caminho: path of the XML file (CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO).
@@ -520,7 +520,7 @@ class PdfProcessingService:
         """
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
-            from form.utils_print_linearizacao import gerar_linearizacao, contexto_db
+            from form.utils_print_linearizacao import gerar_linearizacao, contexto_db, ler_nomes_assinatura
 
             self.api._progress(30, "extract", [])
             if not is_certificado_ft(caminho):
@@ -570,20 +570,78 @@ class PdfProcessingService:
             dados["aplicacao"] = valores.get("aplicacao", "")
             dados["sistema"] = valores.get("sistema", "")
 
+            # O template já vem com um par padrão de nomes de "Elaborado
+            # por"/"Verificado por" — só pergunta se o usuário quer trocar
+            # pra este relatório específico; se não, segue com o padrão do
+            # template (gerar_linearizacao não sobrescreve nesse caso).
+            elaborado_padrao, verificado_padrao = ler_nomes_assinatura()
+            if self.api.confirm(
+                "Elaborado por / Verificado por",
+                f"Nomes atuais: \"{elaborado_padrao}\" (elaborado por) e "
+                f"\"{verificado_padrao}\" (verificado por). Deseja alterar "
+                "para este relatório?",
+            ):
+                valores_assinatura = self.api.prompt(
+                    "Elaborado por / Verificado por",
+                    "Informe os nomes para este relatório.",
+                    [
+                        {
+                            "name": "elaborado_por",
+                            "label": "Elaborado por",
+                            "required": True,
+                            "value": elaborado_padrao,
+                        },
+                        {
+                            "name": "verificado_por",
+                            "label": "Verificado por",
+                            "required": True,
+                            "value": verificado_padrao,
+                        },
+                    ],
+                )
+                if not valores_assinatura:
+                    self.api._voltar_para_selecao()
+                    return
+                dados["elaborado_por"] = valores_assinatura.get("elaborado_por", "")
+                dados["verificado_por"] = valores_assinatura.get("verificado_por", "")
+
             if self._cancelado:
                 self.api._voltar_para_selecao()
                 return
             self.api._progress(70, "build", ["extract", "compare", "validate"])
-            caminho_saida = gerar_linearizacao(dados, caminho)
+            caminho_xlsx = gerar_linearizacao(dados, caminho)
+            caminho_pdf = os.path.splitext(caminho_xlsx)[0] + ".pdf"
             limpar_certificado_solto(caminho)
             self.api._progress(100, "build", CHECKLIST_ALL)
 
-            self.api.alert(
-                "Linearização gerada",
-                f"Planilha gerada com sucesso:\n{os.path.basename(caminho_saida)}",
-                "success",
-            )
-            self.api._voltar_para_selecao()
+            titulo = dados.get("tag") or dados.get("numero_certificado") or "Linearização"
+            resultado = {
+                "tag": titulo,
+                "badge": "XLSX",
+                "sub": f"{titulo} · Linearização",
+                "avisos": 0,
+                "files": [
+                    {
+                        "kind": "XLSX",
+                        "name": os.path.basename(caminho_xlsx),
+                        "meta": f"{os.path.getsize(caminho_xlsx) // 1024} KB",
+                        "path": caminho_xlsx,
+                    },
+                    {
+                        "kind": "PDF",
+                        "name": os.path.basename(caminho_pdf),
+                        "meta": f"{os.path.getsize(caminho_pdf) // 1024} KB",
+                        "path": caminho_pdf,
+                    },
+                ],
+            }
+
+            if self.em_lote_ativo():
+                self.api.resultados_lote.append(resultado)
+                self.api._voltar_para_selecao()
+            else:
+                payload = {"sub": resultado["sub"], "files": resultado["files"]}
+                self.api._js(f"App.showOutput({json.dumps(payload)})")
 
         except Exception as e:
             traceback.print_exc()

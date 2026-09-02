@@ -11,6 +11,7 @@
 # ----------------------------------------------------------------
 
 from copy import copy
+import math
 import openpyxl
 from openpyxl.styles import Border, Side
 import win32com.client as win32
@@ -53,6 +54,17 @@ CELLS = {
     "col_mf":          "K",
     "col_erro":        "M",
     "col_incerteza":   "Q",
+    # Títulos de coluna (unidade escrita entre parênteses é sobrescrita
+    # dinamicamente com a unidade real do certificado — ver gerar_linearizacao).
+    "titulo_vazao":     "C21",
+    "titulo_vol_ref":   "G21",
+    "titulo_vol_med":   "I21",
+    # Bloco de assinatura (nomes padrão já vêm preenchidos no template; só
+    # são sobrescritos se o usuário optar por alterar no prompt).
+    "elaborado_nome": "F96",
+    "elaborado_data": "F98",
+    "verificado_nome": "N96",
+    # verificado_data (N98) é fórmula "=F98" no template — não sobrescrever.
 }
 
 # Colunas com borda na tabela de calibração (B = borda externa esquerda até
@@ -60,6 +72,13 @@ CELLS = {
 # "normal" (fina) do meio da tabela — ver _ajustar_bordas_tabela.
 _BORDA_COLS = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"]
 _LINHA_BORDA_REF = 30
+
+# A tabela "Dados a Serem Configurados" (linha + TABELA2_OFFSET) é mais
+# estreita que a de cima — só usa H a M (N°/Vazão/Frequência/K-factor
+# corrigido); C a G e N a T ficam sempre sem borda ali. Aplicar o range de
+# colunas da tabela 1 (B a T) nela sobra borda grossa nas colunas N a T da
+# linha de fechamento, "vazando" pra fora da caixa real da tabela 2.
+_BORDA_COLS_TABELA2 = ["H", "I", "J", "K", "L", "M"]
 
 
 def _data_br(data_iso: str) -> str:
@@ -121,6 +140,65 @@ def contexto_db(tag: str):
     return "", ""
 
 
+def ler_nomes_assinatura():
+    """Reads the default "Elaborado por"/"Verificado por" names baked into Template_Linearizacao.xlsx.
+
+    Used only to pre-fill the rename prompt shown to the user before
+    generating the report (see PdfProcessingService._processar_xml_ft) —
+    the template ships with a fixed pair of names that most reports reuse
+    as-is.
+
+    Returns:
+        tuple: (elaborado, verificado), each as a string (empty if the
+        corresponding template cell has no value).
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho_template = os.path.join(base_dir, "templates", "Template_Linearizacao.xlsx")
+    wb = openpyxl.load_workbook(caminho_template, read_only=True)
+    try:
+        ws = wb["Linearização"]
+        return ws[CELLS["elaborado_nome"]].value or "", ws[CELLS["verificado_nome"]].value or ""
+    finally:
+        wb.close()
+
+
+def _formato_decimal(casas: int) -> str:
+    """Builds an Excel number format string with a fixed number of decimal places.
+
+    Args:
+        casas: number of decimal places (0 means an integer format).
+
+    Returns:
+        str: Excel number format, e.g. "0.000" for `casas=3`, or "0" for `casas=0`.
+    """
+    return f"0.{'0' * casas}" if casas > 0 else "0"
+
+
+def _formato_significativos(valor: float, digitos: int = 7) -> str:
+    """Builds an Excel number format string that always displays `digitos` significant figures.
+
+    Unlike `_formato_decimal` (fixed decimal places, used when the output
+    must mirror the certificate's own precision), this pads with trailing
+    zeros when the source value naturally has fewer significant digits —
+    required for K-Factor, which must always show 7 digits regardless of
+    its order of magnitude.
+
+    Args:
+        valor: value that will be written to the cell.
+        digitos: number of significant figures to display (default: 7).
+
+    Returns:
+        str: Excel number format, e.g. "0.000000" for a value between 1 and
+        9.999999, or "0.00000000" for a value between 0.01 and 0.09999999.
+    """
+    if not valor:
+        return f"0.{'0' * (digitos - 1)}"
+
+    ordem = math.floor(math.log10(abs(valor)))
+    casas = max(0, digitos - 1 - ordem)
+    return _formato_decimal(casas)
+
+
 def _celula(col: str, linha: int) -> str:
     """Builds a cell address from column and row (e.g. "C", 22 -> "C22")."""
     return f"{col}{linha}"
@@ -146,9 +224,16 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
         there are fewer than 10 points) come out with a thicker outline, and
         the old last row (31), once it stops being the last one due to
         extra points, would be left with the thick border "leftover" in the
-        middle of the table. The "Dados a Serem Configurados" table mirrors,
-        on row N + `TABELA2_OFFSET` (34), row N of this table (e.g. row 22 ->
-        row 56), so each hidden/shown row is also replicated there.
+        middle of the table. The template's row HEIGHT is also inconsistent
+        between blocks (some rows are None/default, others a fixed 15.0,
+        15.75 or 14.45) — normalized here too, or a re-shown/last row comes
+        out visibly taller/shorter than the rest even with a correct border.
+        The "Dados a Serem Configurados" table mirrors, on row N +
+        `TABELA2_OFFSET` (34), row N of this table (e.g. row 22 -> row 56) —
+        visibility, border AND height normalization below are all applied to
+        both tables; missing the second one leaves its old 10-point closing
+        border stuck in the middle when there are more points, plus stray
+        thick verticals and inconsistent heights on the re-shown rows.
     """
     TABELA2_OFFSET = 34
     linha_fim_usada = linha_ini + n_pontos - 1 if n_pontos else linha_ini - 1
@@ -161,13 +246,34 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
         if not usada or row == linha_ini:
             continue  # linha de cabeçalho da tabela: mantém a borda original
 
+        # A altura das linhas do template original também é inconsistente
+        # entre blocos (algumas ficam com altura padrão/None, outras com um
+        # valor fixo tipo 15.0/15.75/14.45) — sem normalizar isso, uma linha
+        # reexibida ou a última linha usada saem com altura diferente das
+        # demais, mesmo com a borda já uniformizada.
+        ws.row_dimensions[row].height = ws.row_dimensions[_LINHA_BORDA_REF].height
+        ws.row_dimensions[row + TABELA2_OFFSET].height = ws.row_dimensions[
+            _LINHA_BORDA_REF + TABELA2_OFFSET
+        ].height
+
         for col in _BORDA_COLS:
             ws[f"{col}{row}"].border = copy(ws[f"{col}{_LINHA_BORDA_REF}"].border)
+        for col in _BORDA_COLS_TABELA2:
+            ws[f"{col}{row + TABELA2_OFFSET}"].border = copy(
+                ws[f"{col}{_LINHA_BORDA_REF + TABELA2_OFFSET}"].border
+            )
 
     if n_pontos:
         for col in _BORDA_COLS:
             atual = ws[f"{col}{linha_fim_usada}"].border
             ws[f"{col}{linha_fim_usada}"].border = Border(
+                top=atual.top, left=atual.left, right=atual.right,
+                bottom=Side(style="medium"),
+            )
+        for col in _BORDA_COLS_TABELA2:
+            row_fim2 = linha_fim_usada + TABELA2_OFFSET
+            atual = ws[f"{col}{row_fim2}"].border
+            ws[f"{col}{row_fim2}"].border = Border(
                 top=atual.top, left=atual.left, right=atual.right,
                 bottom=Side(style="medium"),
             )
@@ -225,7 +331,17 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     ws[C["faixa_calibrada"]] = dados.get("faixa_calibrada", "")
 
     # ── K-Factor nominal ──────────────────────────────────────────────────
-    ws[C["fator_k"]] = dados.get("fator_k", "")
+    # Sempre 7 dígitos significativos (completa com zeros se o certificado
+    # tiver menos) — K-Factor não tem uma casa decimal fixa como os demais
+    # campos, é significância que importa, não posição decimal.
+    fator_k = dados.get("fator_k", 0.0)
+    ws[C["fator_k"]] = fator_k
+    ws[C["fator_k"]].number_format = _formato_significativos(fator_k)
+
+    # ── Títulos de coluna (unidade real do certificado, sem conversão) ────
+    ws[C["titulo_vazao"]]   = f"Vazão da Calibração ({dados.get('vazao_unidade') or 'm³/h'})"
+    ws[C["titulo_vol_ref"]] = f"Volume de Referência ({dados.get('vol_referencia_unidade') or 'L'})"
+    ws[C["titulo_vol_med"]] = f"Volume do Medidor ({dados.get('vol_medidor_unidade') or 'L'})"
 
     # ── Tabela de calibração ────────────────────────────────────────────
     # Frequência (E), K-factor corrigido (O) e Status (S) são fórmulas do
@@ -242,9 +358,18 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     for i, p in enumerate(pontos):
         row = linha_ini + i
 
-        ws[_celula(C["col_vazao"],     row)] = p["vazao"]
-        ws[_celula(C["col_vol_ref"],   row)] = p["vol_referencia_l"]
-        ws[_celula(C["col_vol_med"],   row)] = p["vol_medidor_l"]
+        cel_vazao = ws[_celula(C["col_vazao"], row)]
+        cel_vazao.value = p["vazao"]
+        cel_vazao.number_format = _formato_decimal(p.get("vazao_casas", 0))
+
+        cel_vol_ref = ws[_celula(C["col_vol_ref"], row)]
+        cel_vol_ref.value = p["vol_referencia"]
+        cel_vol_ref.number_format = _formato_decimal(p.get("vol_referencia_casas", 0))
+
+        cel_vol_med = ws[_celula(C["col_vol_med"], row)]
+        cel_vol_med.value = p["vol_medidor"]
+        cel_vol_med.number_format = _formato_decimal(p.get("vol_medidor_casas", 0))
+
         ws[_celula(C["col_mf"],        row)] = p["meter_factor"]
         ws[_celula(C["col_erro"],      row)] = p["erro_pct"]
         ws[_celula(C["col_incerteza"], row)] = p["incerteza"]
@@ -256,6 +381,19 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     # uniformiza a borda (senão as linhas reexibidas saem com um contorno
     # mais grosso, herdado do estilo delas quando ocultas).
     _ajustar_linhas_tabela(ws, C["tabela_linha_ini"], C["tabela_linha_fim"], len(pontos))
+
+    # ── Assinaturas (Elaborado por / Verificado por) ───────────────────────
+    # Data sempre atualizada para hoje (o template vem com uma data de
+    # exemplo fixa); a data de "Verificado por" (N98) já é a fórmula "=F98"
+    # no próprio template, então acompanha sozinha — não escrever nela.
+    # Os nomes só são sobrescritos se o usuário optou por alterar no prompt
+    # (PdfProcessingService._processar_xml_ft); senão ficam com o padrão já
+    # preenchido no template (ver ler_nomes_assinatura).
+    ws[C["elaborado_data"]] = datetime.now()
+    if dados.get("elaborado_por"):
+        ws[C["elaborado_nome"]] = dados["elaborado_por"]
+    if dados.get("verificado_por"):
+        ws[C["verificado_nome"]] = dados["verificado_por"]
 
     # ── Salvar XLSX de saída ──────────────────────────────────────────────
     pasta_saida   = os.path.dirname(os.path.abspath(caminho_xml))

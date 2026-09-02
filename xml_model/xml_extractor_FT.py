@@ -49,6 +49,57 @@ def _float(element, path, default=0.0):
         return default
 
 
+def _unidade_amigavel(unidade: str) -> str:
+    """Normalizes an ASCII engineering unit from UNIDADE_ENG (e.g. "m3/h") to its display form ("m³/h").
+
+    Args:
+        unidade: raw value of the UNIDADE_ENG attribute.
+
+    Returns:
+        str: `unidade` with "m3" replaced by "m³" (the schema allows either
+        spelling); returned unchanged for any other unit.
+    """
+    return unidade.replace("m3", "m³") if unidade else unidade
+
+
+def _valor_unidade(element, path, default=0.0):
+    """Reads a `t_valor_decimal_eng` element: its value, original decimal places and UNIDADE_ENG attribute.
+
+    Every numeric field of this XML schema (VAZAO_CALIBRADA, VOLUME_PADRAO,
+    VOLUME_MEDIDOR etc.) carries its actual engineering unit in the
+    UNIDADE_ENG attribute — the same element/schema is used by different
+    meter types with different units, so the unit can't be assumed fixed.
+
+    Args:
+        element: XML element to search in.
+        path: relative path (ElementTree find syntax) of the sub-element.
+        default: value returned if the text is empty, is "NI" or cannot be
+            converted.
+
+    Returns:
+        tuple: (valor: float, casas_decimais: int, unidade: str) — casas_decimais
+        is the number of decimal digits in the certificate's own text (0 if
+        it's an integer), so the output cell can be formatted to match it
+        instead of a fixed template format. unidade is already normalized
+        via `_unidade_amigavel`.
+    """
+    el = element.find(path)
+    unidade = _unidade_amigavel(el.get("UNIDADE_ENG", "")) if el is not None else ""
+
+    texto = el.text.strip() if el is not None and el.text else ""
+    if not texto or texto == "NI":
+        return default, 0, unidade
+
+    texto_ponto = texto.replace(",", ".")
+    try:
+        valor = float(texto_ponto)
+    except ValueError:
+        return default, 0, unidade
+
+    casas_decimais = len(texto_ponto.split(".")[1]) if "." in texto_ponto else 0
+    return valor, casas_decimais, unidade
+
+
 def is_certificado_ft(caminho_xml):
     """Checks whether the XML file is a flow meter external calibration certificate.
 
@@ -74,9 +125,14 @@ def extrair_dados_ft(caminho_xml):
 
     Returns:
         dict: header fields (certificate number, laboratory, tag,
-        manufacturer, calibrated range, K factor etc.) and the "pontos" key
-        with the list of calibration points (flow rate, reference/meter
-        volumes in liters, meter factor, percentage error, uncertainty).
+        manufacturer, calibrated range, K factor etc.), the unit of each
+        numeric column ("vazao_unidade", "vol_referencia_unidade",
+        "vol_medidor_unidade" — read from each point's own UNIDADE_ENG
+        attribute, not assumed) and the "pontos" key with the list of
+        calibration points (flow rate, reference/meter volumes — kept in
+        the certificate's own unit, no forced conversion — meter factor,
+        percentage error, uncertainty, plus a "*_casas" decimal-place count
+        per value so the output cell can mirror the certificate's precision).
 
     Notes:
         Frequency, corrected K-factor, Status, average KF and the alarm
@@ -116,12 +172,11 @@ def extrair_dados_ft(caminho_xml):
     )
 
     for p in pontos_xml:
-        vazao = _float(p, "VAZAO_CALIBRADA")
-
-        vol_padrao_m3   = _float(p, "VOLUME_PADRAO")
-        vol_medidor_m3  = _float(p, "VOLUME_MEDIDOR")
-        meter_factor    = _float(p, "FATOR_DO_MEDIDOR/VALOR", 1.0)
-        desvio          = _float(p, "DESVIO_MEDIO")
+        vazao, vazao_casas, vazao_unidade = _valor_unidade(p, "VAZAO_CALIBRADA")
+        vol_ref, vol_ref_casas, vol_ref_unidade = _valor_unidade(p, "VOLUME_PADRAO")
+        vol_med, vol_med_casas, vol_med_unidade = _valor_unidade(p, "VOLUME_MEDIDOR")
+        meter_factor = _float(p, "FATOR_DO_MEDIDOR/VALOR", 1.0)
+        desvio       = _float(p, "DESVIO_MEDIO")
 
         incerteza_el = p.find("FATOR_DO_MEDIDOR/INCERTEZA_EXP")
         incerteza = (
@@ -131,12 +186,20 @@ def extrair_dados_ft(caminho_xml):
         )
 
         dados["pontos"].append({
-            "vazao":            vazao,
-            "vol_referencia_l": round(vol_padrao_m3 * 1000, 2),
-            "vol_medidor_l":    round(vol_medidor_m3 * 1000, 2),
-            "meter_factor":     meter_factor,
-            "erro_pct":         desvio,
-            "incerteza":        incerteza,
+            "vazao":              vazao,
+            "vazao_casas":        vazao_casas,
+            "vol_referencia":     vol_ref,
+            "vol_referencia_casas": vol_ref_casas,
+            "vol_medidor":        vol_med,
+            "vol_medidor_casas":  vol_med_casas,
+            "meter_factor":       meter_factor,
+            "erro_pct":           desvio,
+            "incerteza":          incerteza,
         })
+        # Unidade é do próprio schema do medidor, igual em todos os pontos do
+        # certificado — usa a do primeiro ponto lido para os títulos de coluna.
+        dados.setdefault("vazao_unidade", vazao_unidade)
+        dados.setdefault("vol_referencia_unidade", vol_ref_unidade)
+        dados.setdefault("vol_medidor_unidade", vol_med_unidade)
 
     return dados
