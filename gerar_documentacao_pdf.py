@@ -318,12 +318,12 @@ def make_clients_table():
 # Geração do PDF
 # ---------------------------------------------------------------------------
 
-def gerar_pdf(output_path: str = "Documentacao_ACs_Generator.pdf"):
+def gerar_pdf(output_path: str = "docs/Documentacao_ACs_Generator.pdf"):
     """Generate the AC's Generator technical documentation PDF, with flowcharts (via mermaid.ink), validation rules and the supported clients/templates table, and save it to disk.
 
     Args:
-        output_path: Path of the PDF file to generate (default: "Documentacao_ACs_Generator.pdf"
-            in the current directory).
+        output_path: Path of the PDF file to generate (default: "docs/Documentacao_ACs_Generator.pdf",
+            relative to the current directory).
 
     Notes:
         Requires an internet connection to render the Mermaid flowcharts via mermaid.ink;
