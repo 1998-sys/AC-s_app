@@ -1,7 +1,7 @@
-#define AppName "ACs Generator"
+#define AppName "CERTIFLOW"
 #define AppVersion "1.0"
 #define AppPublisher "ODS Metering Systems"
-#define AppExeName "Ac_app.exe"
+#define AppExeName "certiflow.exe"
 #define SourceDir "dist\Ac_app"
 
 [Setup]
