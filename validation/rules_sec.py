@@ -371,8 +371,9 @@ def regra_local_fpso(ctx):
         "ORIGEM ENERGIA ALAGOAS S.A.": ["ORIGEM", "ENERGIA", "ALAGOAS"],
         "FPSO MARIA QUITERIA": ["FPSO", "MARIA", "QUITERIA"],
         "FPSO ANNA NERY": ["FPSO", "ANNA", "NERY"],
-        "FPSO ATLANTA": ["FPSO", "ATLANTA"]
-        
+        "FPSO ATLANTA": ["FPSO", "ATLANTA"],
+        "FPSO PEREGRINO": ["FPSO", "PEREGRINO"]
+
     }
 
     for nome_fpso, palavras in fpsos.items():
