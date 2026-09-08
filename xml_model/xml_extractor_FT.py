@@ -167,9 +167,18 @@ def extrair_dados_ft(caminho_xml):
         "pontos":             [],
     }
 
+    # AS_LEFT só existe quando o medidor recebeu ajuste manual da constante
+    # de calibração durante o ensaio — nesse caso é o resultado final (pós-
+    # ajuste) que deve ser reportado, não o AS_FOUND (desvio antes do
+    # ajuste, só para rastreabilidade). Sem ajuste, o certificado só traz
+    # AS_FOUND mesmo (é o próprio resultado da calibração).
     pontos_xml = root.findall(
-        "MEDIDOR_VAZAO/CALIBRACAO_AS_FOUND/PONTOS_DE_CALIBRACAO/PONTO_DE_CALIBRACAO"
+        "MEDIDOR_VAZAO/CALIBRACAO_AS_LEFT/PONTOS_DE_CALIBRACAO/PONTO_DE_CALIBRACAO"
     )
+    if not pontos_xml:
+        pontos_xml = root.findall(
+            "MEDIDOR_VAZAO/CALIBRACAO_AS_FOUND/PONTOS_DE_CALIBRACAO/PONTO_DE_CALIBRACAO"
+        )
 
     for p in pontos_xml:
         vazao, vazao_casas, vazao_unidade = _valor_unidade(p, "VAZAO_CALIBRADA")

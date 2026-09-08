@@ -43,19 +43,43 @@ def _resource(relative_path: str) -> str:
     return str(base / relative_path)
 
 
+LARGURA_PADRAO = 560
+ALTURA_PADRAO = 940
+MARGEM_TASKBAR = 80  # reserva espaço pra barra de tarefas/título não cobrir a janela
+
+
+def _tamanho_janela():
+    """Computes the window size to use, capping the design size (560x940) to the primary
+    screen's resolution so the window fits on smaller notebook displays.
+
+    Returns:
+        tuple: (width, height) to pass to webview.create_window.
+    """
+    try:
+        tela = webview.screens[0]
+        largura = min(LARGURA_PADRAO, tela.width - 40)
+        altura = min(ALTURA_PADRAO, tela.height - MARGEM_TASKBAR)
+        return max(largura, 400), max(altura, 500)
+    except Exception:
+        return LARGURA_PADRAO, ALTURA_PADRAO
+
+
 def main():
     """Initialize the database, create the CertiFlow main window and start the pywebview loop."""
     criar_tabela()
     migrar()
+
+    largura, altura = _tamanho_janela()
 
     api = Api()
     window = webview.create_window(
         "CERTIFLOW",
         _resource(os.path.join("webui", "index.html")),
         js_api=api,
-        width=560,
-        height=940,
-        resizable=False,
+        width=largura,
+        height=altura,
+        min_size=(400, 500),
+        resizable=True,
     )
     api.set_window(window)
     webview.start(icon=_resource(os.path.join("logo", "logo icon.ico")))

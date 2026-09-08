@@ -21,12 +21,18 @@ from datetime import datetime
 
 # ── MAPA DE CÉLULAS ─────────────────────────────────────────────────────────
 # Endereços confirmados abrindo Template_Linearizacao.xlsx (aba "Linearização").
-# Frequência (E), K-factor corrigido (O), Status (S), a 2ª tabela "Dados a
-# Serem Configurados" (linhas 56-75), KF médio (L76) e os limites de alarme
-# (J79/M79) já são FÓRMULAS no próprio template — todas derivadas das
-# colunas que preenchemos aqui (C/G/I/K/M/Q). Não escrever nelas: o Excel
-# recalcula sozinho ao abrir/exportar (inclusive a cor aprovado/reprovado,
-# que é formatação condicional nativa em S22:T41 — não precisa de PatternFill).
+# Frequência (E), Status (S), a 2ª tabela "Dados a Serem Configurados" (linhas
+# 56-75), KF médio (L76) e os limites de alarme (J79/M79) já são FÓRMULAS no
+# próprio template — todas derivadas das colunas que preenchemos aqui
+# (C/G/I/K/M/Q). Não escrever nelas: o Excel recalcula sozinho ao abrir/
+# exportar (inclusive a cor aprovado/reprovado, que é formatação condicional
+# nativa em S22:T41 — não precisa de PatternFill).
+# K-factor corrigido (O) também é fórmula do template, mas o ROUND()/formato
+# fixos em 5 casas do template só fecham 7 dígitos significativos quando o
+# valor cai entre 10 e 100 — pra um K-Factor típico (perto de 1) isso rende
+# só 6 dígitos. Por isso essa fórmula é reescrita por linha em
+# gerar_linearizacao (casa decimal calculada a partir da ordem de grandeza,
+# mesma regra do K-Factor nominal) em vez de deixada intacta como as demais.
 CELLS = {
     # Cabeçalho esquerda
     "cliente":         "D9",
@@ -45,6 +51,8 @@ CELLS = {
     "faixa_calibrada": "M15",
     # K-Factor nominal
     "fator_k":         "D19",
+    # KF médio (fórmula "=AVERAGE(...)" do template, na 2ª tabela)
+    "kf_medio":        "L76",
     # Tabela de calibração (linhas 22 a 41 — até 20 pontos)
     "tabela_linha_ini": 22,
     "tabela_linha_fim": 41,
@@ -52,6 +60,7 @@ CELLS = {
     "col_vol_ref":     "G",
     "col_vol_med":     "I",
     "col_mf":          "K",
+    "col_kfc":         "O",
     "col_erro":        "M",
     "col_incerteza":   "Q",
     # Títulos de coluna (unidade escrita entre parênteses é sobrescrita
@@ -79,6 +88,12 @@ _LINHA_BORDA_REF = 30
 # colunas da tabela 1 (B a T) nela sobra borda grossa nas colunas N a T da
 # linha de fechamento, "vazando" pra fora da caixa real da tabela 2.
 _BORDA_COLS_TABELA2 = ["H", "I", "J", "K", "L", "M"]
+
+# Deslocamento de linha da tabela 1 (calibração) para a 2ª tabela ("Dados a
+# Serem Configurados") — ex.: linha 22 da tabela 1 espelha na linha 56 da
+# tabela 2. Usado tanto pra ocultar/mostrar linhas quanto pro formato do
+# K-Factor Corrigido (col. L na tabela 2, que espelha a col. O da tabela 1).
+TABELA2_OFFSET = 34
 
 
 def _data_br(data_iso: str) -> str:
@@ -174,6 +189,24 @@ def _formato_decimal(casas: int) -> str:
     return f"0.{'0' * casas}" if casas > 0 else "0"
 
 
+def _casas_significativas(valor: float, digitos: int = 7) -> int:
+    """Computes how many decimal places make `valor` display with `digitos` significant figures.
+
+    Args:
+        valor: value that will be rounded/displayed.
+        digitos: number of significant figures to target (default: 7).
+
+    Returns:
+        int: number of decimal places (never negative). Falls back to
+        `digitos - 1` when `valor` is zero/None (order of magnitude undefined).
+    """
+    if not valor:
+        return digitos - 1
+
+    ordem = math.floor(math.log10(abs(valor)))
+    return max(0, digitos - 1 - ordem)
+
+
 def _formato_significativos(valor: float, digitos: int = 7) -> str:
     """Builds an Excel number format string that always displays `digitos` significant figures.
 
@@ -191,12 +224,7 @@ def _formato_significativos(valor: float, digitos: int = 7) -> str:
         str: Excel number format, e.g. "0.000000" for a value between 1 and
         9.999999, or "0.00000000" for a value between 0.01 and 0.09999999.
     """
-    if not valor:
-        return f"0.{'0' * (digitos - 1)}"
-
-    ordem = math.floor(math.log10(abs(valor)))
-    casas = max(0, digitos - 1 - ordem)
-    return _formato_decimal(casas)
+    return _formato_decimal(_casas_significativas(valor, digitos))
 
 
 def _celula(col: str, linha: int) -> str:
@@ -234,14 +262,23 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
         both tables; missing the second one leaves its old 10-point closing
         border stuck in the middle when there are more points, plus stray
         thick verticals and inconsistent heights on the re-shown rows.
+
+        The mirror table's Frequência column (K) has the same kind of
+        template inconsistency: rows 56-65 (points 1-10) carry the "0"
+        format (no decimals, matching column E on table 1), but rows 66-75
+        (points 11-20) come as "General" — which displays the raw,
+        un-rounded value (e.g. "677,7777778") instead of the rounded
+        display ("678") table 1 shows for the same point. Synced below on
+        every row regardless of `usada`, since it's cheap and this is a
+        display-only fix (no border/height implication).
     """
-    TABELA2_OFFSET = 34
     linha_fim_usada = linha_ini + n_pontos - 1 if n_pontos else linha_ini - 1
 
     for row in range(linha_ini, linha_fim_max + 1):
         usada = row <= linha_fim_usada
         ws.row_dimensions[row].hidden = not usada
         ws.row_dimensions[row + TABELA2_OFFSET].hidden = not usada
+        ws[f"K{row + TABELA2_OFFSET}"].number_format = ws[f"E{row}"].number_format
 
         if not usada or row == linha_ini:
             continue  # linha de cabeçalho da tabela: mantém a borda original
@@ -344,8 +381,10 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     ws[C["titulo_vol_med"]] = f"Volume do Medidor ({dados.get('vol_medidor_unidade') or 'L'})"
 
     # ── Tabela de calibração ────────────────────────────────────────────
-    # Frequência (E), K-factor corrigido (O) e Status (S) são fórmulas do
-    # template — calculadas a partir do que escrevemos aqui, não tocar.
+    # Frequência (E) e Status (S) são fórmulas do template — calculadas a
+    # partir do que escrevemos aqui, não tocar. K-Factor Corrigido (O) também
+    # é fórmula, mas tem o ROUND()/formato reescritos por linha logo abaixo
+    # (ver comentário junto à escrita da coluna O).
     pontos = dados.get("pontos", [])
     linha_ini = C["tabela_linha_ini"]
     max_pontos = C["tabela_linha_fim"] - linha_ini + 1
@@ -355,6 +394,7 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
             f"de calibração (certificado tem {len(pontos)})."
         )
 
+    kfc_estimados = []
     for i, p in enumerate(pontos):
         row = linha_ini + i
 
@@ -373,6 +413,39 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
         ws[_celula(C["col_mf"],        row)] = p["meter_factor"]
         ws[_celula(C["col_erro"],      row)] = p["erro_pct"]
         ws[_celula(C["col_incerteza"], row)] = p["incerteza"]
+
+        # K-Factor Corrigido (O) = fator_k / meter_factor — mesmos operandos
+        # da fórmula do template, só recalculados aqui pra saber com quantas
+        # casas arredondar (regra dos 7 dígitos significativos). Mantém como
+        # fórmula (não como valor estático) pra continuar recalculando sozinho
+        # se o usuário editar D19/K{row} manualmente no Excel depois.
+        meter_factor = p["meter_factor"]
+        try:
+            kfc_estimado = fator_k / meter_factor
+        except ZeroDivisionError:
+            kfc_estimado = 0
+        casas_kfc = _casas_significativas(kfc_estimado)
+        col_kfc = C["col_kfc"]
+        col_mf = C["col_mf"]
+
+        cel_kfc = ws[_celula(col_kfc, row)]
+        cel_kfc.value = f'=IFERROR(ROUND($D$19/{col_mf}{row},{casas_kfc}),"")'
+        cel_kfc.number_format = _formato_decimal(casas_kfc)
+        kfc_estimados.append(round(kfc_estimado, casas_kfc))
+
+        # Espelho na tabela "Dados a Serem Configurados" (col. L = "=IF(O.."):
+        # mesma fórmula/valor, só precisa do formato acompanhando o de cima.
+        ws[f"L{row + TABELA2_OFFSET}"].number_format = _formato_decimal(casas_kfc)
+
+    # KF médio (L76, "=AVERAGE(...)" do template) tinha formato fixo em 5
+    # casas — pra um K-Factor de ordem de grandeza maior (ex.: Coriolis
+    # ~20000 pulsos/m³) isso estourava bem além de 7 dígitos (ex.:
+    # "19970,57000"). Só o formato é ajustado aqui (valor continua a fórmula
+    # do template) — a média em Python usa os mesmos K-Factor Corrigidos já
+    # escritos na coluna O, então tem a mesma ordem de grandeza do resultado real.
+    if kfc_estimados:
+        media_kfc = sum(kfc_estimados) / len(kfc_estimados)
+        ws[C["kf_medio"]].number_format = _formato_significativos(media_kfc)
 
     # O template só vem com as 10 primeiras linhas de cada tabela visíveis e
     # com borda "normal" (linhas 22-31 e seu espelho 56-65 em "Dados a Serem
