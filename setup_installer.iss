@@ -1,5 +1,5 @@
 #define AppName "CERTIFLOW"
-#define AppVersion "1.0"
+#define AppVersion "1.2"
 #define AppPublisher "ODS Metering Systems"
 #define AppExeName "certiflow.exe"
 #define SourceDir "dist\Ac_app"

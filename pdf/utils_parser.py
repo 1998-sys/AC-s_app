@@ -14,6 +14,8 @@ from pdf.parser_certificados import extrair_campos
 from pdf.parser_po import extrair_campos_po, extrair_item
 from pdf.parser_sgs import extrair_empresa, extrair_campos_cromato
 from pdf.parser_origem_cromato import identificar_origem_cromato, extrair_campos_cromato_origem
+from pdf.parser_gt_quimica import identificar_gt_quimica, extrair_campos_cromato_gt
+from pdf.parser_gt_technology import identificar_gt_technology, extrair_campos_cromato_gt_technology
 from pdf.parser_UC import extrair_campos_uc, identificar_uc
 from pdf.parser_tr import identificar_tr, extrair_campos_tr
 
@@ -22,7 +24,8 @@ def select_extract(caminho):
 
     Tries, in order, to recognize the extracted text as: Uncertainty Calculation
     Report (CI), Gas Meter Run (Trecho Reto), Orifice Plate, Chromatography
-    (SGS or Origem Energia Alagoas); if none match, assumes a secondary instrument.
+    (SGS, Origem Energia Alagoas, GT Química or GT Technology); if none
+    match, assumes a secondary instrument.
 
     Args:
         caminho: Path of the PDF file to be processed.
@@ -57,6 +60,16 @@ def select_extract(caminho):
     elif identificar_origem_cromato(texto):
         print('Relatório de Cromatografia (Origem Energia Alagoas)')
         dados = extrair_campos_cromato_origem(texto)
+        tipo = 'cromatografia'
+
+    elif identificar_gt_quimica(texto):
+        print('Relatório de Cromatografia (GT Química)')
+        dados = extrair_campos_cromato_gt(texto)
+        tipo = 'cromatografia'
+
+    elif identificar_gt_technology(texto):
+        print('Relatório de Cromatografia (GT Technology)')
+        dados = extrair_campos_cromato_gt_technology(texto)
         tipo = 'cromatografia'
 
     else:
