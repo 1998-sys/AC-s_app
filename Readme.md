@@ -1,105 +1,110 @@
 # 📄 CertiFlow — AC's Generator
 
-Aplicativo desktop da ODS Metering Systems para gerar **Análises Críticas
-(AC)** de calibração de instrumentos, em conformidade com as regras da
-ANP. Lê o certificado de calibração em **PDF**, compara com o cadastro
-local (SQLite) e gera automaticamente:
+Desktop application from ODS Metering Systems for generating instrument
+calibration **Critical Analyses (AC)**, in compliance with ANP (Brazil's
+National Petroleum Agency) rules. It reads the calibration certificate
+in **PDF**, compares it against the local registry (SQLite), and
+automatically generates:
 
-- 📑 **Análise Crítica (AC) em PDF**
-- 🧾 **XML no padrão ANP/cliente**
-- 🗄️ **Atualização do cadastro local do instrumento**
+- 📑 **AC (Critical Analysis) in PDF**
+- 🧾 **XML in the ANP/client standard**
+- 🗄️ **Update of the local instrument registry**
 
-Interface em **pywebview** (HTML/CSS/JS embutido numa janela nativa do
-Windows) — não é mais a GUI em Tkinter das versões antigas.
-
----
-
-## ⚙️ Funcionalidades principais
-
-- 📄 Leitura de **um ou vários certificados por vez** (modo lote): a
-  fila lê tudo primeiro, depois mostra uma tela só com as divergências
-  pendentes de cada instrumento, e gera as ACs prontas de uma vez.
-- 🔎 Extração automática de TAG, número do certificado, datas, ranges,
-  SN do instrumento/sensor, pontos de calibração, erro fiducial,
-  incerteza, entre outros — conforme o tipo de documento identificado.
-- 🗃️ Comparação com o cadastro (SQLite) e verificação de divergências:
-  - TAG, SN (instrumento/sensor), Range, Range indicado x calibrado
-  - Diâmetro e comprimento da haste (TE), Localização (FPSO/cliente)
-  - Erro fiducial e incerteza (inclusive contra a CMC aplicável)
-  - Classificação (Fiscal/Apropriação/Transferência de Custódia/
-    Operacional) e prazo de emissão — regras específicas por cliente
-- ✍️ Resolução interativa das divergências: aplicar a correção no
-  cadastro, manter/ignorar, ou pular o certificado quando não há
-  correção possível (ex.: incerteza abaixo da CMC) — em lote, sem
-  travar a fila nem parar nos demais certificados.
-- 📑 Geração da **AC em PDF** a partir de templates `.xlsx` (preenchidos
-  via openpyxl, exportados a PDF via automação COM do Excel — reaproveita
-  uma única instância do Excel para todo o lote).
-- 🧾 Geração do **XML** no padrão ANP/cliente correspondente.
-- 🧪 Relatórios de **cromatografia** (SGS ou laboratório interno da
-  Origem Energia Alagoas) e de **cálculo de incerteza (CI)**: geram o
-  XML direto, sem passar pela tela de revisão.
-- 🖊️ Cadastro/edição manual de instrumento pela interface.
-- 📤📥 Importação/exportação em massa do cadastro via `.xlsx`.
-- 🖱️ Arrastar e soltar arquivos soltos direto na tela (guardados numa
-  pasta permanente em Documentos).
+Interface built with **pywebview** (HTML/CSS/JS embedded in a native
+Windows window) — no longer the old Tkinter GUI from previous versions.
 
 ---
 
-## 🏭 Clientes e tipos de instrumento suportados
+## ⚙️ Main features
 
-**Clientes (geração de AC/XML):** PRIO, YINSON, YINSON ATLANTA, ORIGEM
-ENERGIA ALAGOAS S.A. — cada um com seu próprio template de AC e, para
-placa de orifício, uma variante própria (PO).
-
-**Tipos de instrumento/documento:**
-- PT / PIT, DPT, TT / TIT, sensores TE (com vínculo automático
-  TE ↔ TT/TIT pelo par de TAG)
-- Manômetros analógicos/digitais (inclusive diferenciais e absolutos)
-- Termorresistências PT-100, termômetros, transmissores de temperatura
-- Placa de orifício
-- Trecho reto / Gas Meter Run (gera o XML de dimensional; AC em PDF
-  ainda não implementada para esse tipo)
-- Relatório de cromatografia (SGS ou Origem Energia Alagoas)
-- Relatório de cálculo de incerteza (CI)
+- 📄 Reading **one or several certificates at a time** (batch mode): the
+  queue reads everything first, then shows a single screen with the
+  pending divergences for each instrument, and generates all the ready
+  ACs at once.
+- 🔎 Automatic extraction of TAG, certificate number, dates, ranges,
+  instrument/sensor SN, calibration points, fiducial error,
+  uncertainty, among others — according to the identified document
+  type.
+- 🗃️ Comparison against the registry (SQLite) and divergence checking:
+  - TAG, SN (instrument/sensor), Range, indicated range vs. calibrated
+    range
+  - Stem diameter and length (TE), Location (FPSO/client)
+  - Fiducial error and uncertainty (including against the applicable
+    CMC)
+  - Classification (Fiscal/Appropriation/Custody Transfer/Operational)
+    and issuance deadline — client-specific rules
+- ✍️ Interactive divergence resolution: apply the correction to the
+  registry, keep/ignore it, or skip the certificate when no correction
+  is possible (e.g., uncertainty below the CMC) — in batch, without
+  locking the queue or stopping on the remaining certificates.
+- 📑 Generation of the **AC in PDF** from `.xlsx` templates (filled in
+  via openpyxl, exported to PDF via Excel COM automation — reuses a
+  single Excel instance for the whole batch).
+- 🧾 Generation of the **XML** in the corresponding ANP/client standard.
+- 🧪 **Chromatography** reports (SGS or Origem Energia Alagoas's
+  in-house lab) and **uncertainty calculation (CI)** reports: generate
+  the XML directly, without going through the review screen.
+- 🖊️ Manual instrument registration/editing through the interface.
+- 📤📥 Bulk registry import/export via `.xlsx`.
+- 🖱️ Drag and drop files straight onto the screen (stored in a permanent
+  folder under Documents).
 
 ---
 
-## 📁 Estrutura do projeto
+## 🏭 Supported clients and instrument types
+
+**Clients (AC/XML generation):** PRIO, YINSON, YINSON ATLANTA, ORIGEM
+ENERGIA ALAGOAS S.A. — each with its own AC template and, for orifice
+plates, its own variant (PO).
+
+**Instrument/document types:**
+- PT / PIT, DPT, TT / TIT, TE sensors (with automatic TE ↔ TT/TIT
+  linking by TAG pair)
+- Analog/digital pressure gauges (including differential and absolute)
+- PT-100 RTDs, thermometers, temperature transmitters
+- Orifice plate
+- Straight run / Gas Meter Run (generates the dimensional XML; AC in
+  PDF not yet implemented for this type)
+- Chromatography report (SGS or Origem Energia Alagoas)
+- Uncertainty calculation (CI) report
+
+---
+
+## 📁 Project structure
 
 ```text
 AC's_app/
-│── Ac_app.py                 → Ponto de entrada (abre a janela pywebview)
-│── instrumentos.db           → Banco de dados local (SQLite)
-│── TemplateAC_*.xlsx         → Templates da AC por cliente/variante
+│── Ac_app.py                 → Entry point (opens the pywebview window)
+│── instrumentos.db           → Local database (SQLite)
+│── TemplateAC_*.xlsx         → AC templates per client/variant
 │
-├── webui/                    → Front-end (HTML/CSS/JS) — telas do CertiFlow
-├── gui/                      → Api (ponte JS↔Python) e serviços (leitura,
-│                                revisão, importação/exportação)
-├── pdf/                      → Extração de dados dos PDFs por tipo de doc
-├── validation/                → Motor de regras de validação (divergências)
-├── xml_model/                 → Geração dos XMLs (ANP/petro/PO/TR/cromato/CI)
-├── form/                      → Preenchimento do template Excel e export a PDF
-├── processors/                → Roteamento por tipo de instrumento (Dispatcher)
-└── data/                      → Acesso ao banco (SQLite) e ao sistema de arquivos
+├── webui/                    → Front-end (HTML/CSS/JS) — CertiFlow screens
+├── gui/                      → Api (JS↔Python bridge) and services (reading,
+│                                review, import/export)
+├── pdf/                      → Data extraction from PDFs by document type
+├── validation/                → Validation rules engine (divergences)
+├── xml_model/                 → XML generation (ANP/petro/PO/TR/chromato/CI)
+├── form/                      → Excel template filling and export to PDF
+├── processors/                → Routing by instrument type (Dispatcher)
+└── data/                      → Database (SQLite) and file system access
 ```
 
 ---
 
-## 🖥️ Telas
+## 🖥️ Screens
 
-![Telas do CertiFlow: seleção, leitura, revisão (única e em lote), saída e cadastro](docs/certiflow-demo.gif)
+![CertiFlow screens: selection, reading, review (single and batch), output, and registry](docs/certiflow-demo.gif)
 
-Seleção do certificado → leitura → revisão de divergências (arquivo único
-e agregada em lote) → arquivos gerados → cadastro/edição de instrumento.
+Certificate selection → reading → divergence review (single file and
+aggregated batch) → generated files → instrument registration/editing.
 
 ---
 
-## ▶️ Como executar
+## ▶️ How to run
 
-Requer **Python 3.12**, **Microsoft Excel** instalado (automação COM
-usada pra exportar a AC em PDF) e o **WebView2 Runtime** do Windows
-(já vem por padrão no Windows 10/11 atualizados).
+Requires **Python 3.12**, **Microsoft Excel** installed (COM automation
+is used to export the AC to PDF), and Windows's **WebView2 Runtime**
+(already included by default on up-to-date Windows 10/11).
 
 ```powershell
 python -m venv venv
@@ -107,31 +112,30 @@ venv\Scripts\pip install -r requirements.txt
 venv\Scripts\python.exe Ac_app.py
 ```
 
-> Sempre use o Python do `venv` do projeto — uma versão diferente do
-> pywebview instalada globalmente pode quebrar os diálogos de arquivo
-> silenciosamente.
+> Always use the project's `venv` Python — a different globally
+> installed pywebview version can silently break the file dialogs.
 
-Pra gerar o executável (`.exe`), o projeto já tem `Ac_app.spec` pronto
-pro PyInstaller.
+To generate the executable (`.exe`), the project already has an
+`Ac_app.spec` file ready for PyInstaller.
 
 ---
 
-## 🧭 Fluxo de uso
+## 🧭 Usage workflow
 
-1. Abra o app e clique em **Selecionar certificado(s) PDF** (dá pra
-   escolher mais de um — ativa o modo lote automaticamente).
-2. Clique em **Ler certificado(s)**: o app extrai os dados e compara
-   com o cadastro.
-3. **Um único certificado:** revise as divergências (se houver) e
-   clique em **Gerar relatório e XML**.
-   **Lote:** a leitura de todos os arquivos acontece primeiro; ao
-   final, uma tela agregada mostra só os instrumentos com divergência
-   pendente — resolva cada uma (ou pule o certificado) e clique em
-   **Gerar relatórios** pra gerar todos os que estiverem prontos.
-4. Os arquivos (AC em PDF + XML) são salvos na mesma pasta do PDF
-   original.
+1. Open the app and click **Select PDF certificate(s)** (you can choose
+   more than one — this automatically enables batch mode).
+2. Click **Read certificate(s)**: the app extracts the data and
+   compares it against the registry.
+3. **Single certificate:** review the divergences (if any) and click
+   **Generate report and XML**.
+   **Batch:** all files are read first; at the end, an aggregated
+   screen shows only the instruments with pending divergences —
+   resolve each one (or skip the certificate) and click **Generate
+   reports** to generate all the ones that are ready.
+4. The files (AC in PDF + XML) are saved in the same folder as the
+   original PDF.
 
-> Para calibração em malha aberta (TE + TT/TIT), leia os dois
-> certificados juntos (mesmo lote ou em sequência) — o sistema vincula
-> o certificado do TE ao TT/TIT correspondente automaticamente pelo
-> par de TAG, independente da ordem de leitura.
+> For open-loop calibration (TE + TT/TIT), read both certificates
+> together (same batch or in sequence) — the system automatically
+> links the TE certificate to the corresponding TT/TIT by TAG pair,
+> regardless of the reading order.

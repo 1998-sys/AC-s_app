@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses a flow meter external calibration XML and returns the header fields and calibration points for the linearization report.
-#                 Interpreta o XML de calibração externa de medidor de vazão e retorna os campos de cabeçalho e os pontos de calibração para o relatório de linearização.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -167,11 +166,12 @@ def extrair_dados_ft(caminho_xml):
         "pontos":             [],
     }
 
-    # AS_LEFT só existe quando o medidor recebeu ajuste manual da constante
-    # de calibração durante o ensaio — nesse caso é o resultado final (pós-
-    # ajuste) que deve ser reportado, não o AS_FOUND (desvio antes do
-    # ajuste, só para rastreabilidade). Sem ajuste, o certificado só traz
-    # AS_FOUND mesmo (é o próprio resultado da calibração).
+    # AS_LEFT only exists when the meter received a manual adjustment of the
+    # calibration constant during the test — in that case it's the final
+    # (post-adjustment) result that must be reported, not AS_FOUND (deviation
+    # before the adjustment, kept only for traceability). Without an
+    # adjustment, the certificate only brings AS_FOUND anyway (it's the
+    # calibration's own result).
     pontos_xml = root.findall(
         "MEDIDOR_VAZAO/CALIBRACAO_AS_LEFT/PONTOS_DE_CALIBRACAO/PONTO_DE_CALIBRACAO"
     )
@@ -205,8 +205,8 @@ def extrair_dados_ft(caminho_xml):
             "erro_pct":           desvio,
             "incerteza":          incerteza,
         })
-        # Unidade é do próprio schema do medidor, igual em todos os pontos do
-        # certificado — usa a do primeiro ponto lido para os títulos de coluna.
+        # Unit comes from the meter's own schema, the same in every point of
+        # the certificate — uses the first read point's unit for the column headers.
         dados.setdefault("vazao_unidade", vazao_unidade)
         dados.setdefault("vol_referencia_unidade", vol_ref_unidade)
         dados.setdefault("vol_medidor_unidade", vol_med_unidade)

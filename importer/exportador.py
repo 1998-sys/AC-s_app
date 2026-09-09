@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Exports the full instrument registry to an xlsx file formatted like the import template.
-#                 Exporta o cadastro completo de instrumentos para um arquivo xlsx no mesmo formato do template de importação.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -20,10 +19,10 @@ from openpyxl.utils import get_column_letter
 from data.utils_db import listar_todos
 from data.utils_fs import pasta_documentos
 
-# Cores idênticas ao template de importação
-_FILL_HEADER = PatternFill("solid", fgColor="C0392B")   # vermelho ODS
-_FILL_DESC   = PatternFill("solid", fgColor="F2F3F4")   # cinza claro
-_FILL_EVEN   = PatternFill("solid", fgColor="F8F9FA")   # cinza muito claro (linhas pares)
+# Colors identical to the import template
+_FILL_HEADER = PatternFill("solid", fgColor="C0392B")   # ODS red
+_FILL_DESC   = PatternFill("solid", fgColor="F2F3F4")   # light gray
+_FILL_EVEN   = PatternFill("solid", fgColor="F8F9FA")   # very light gray (even rows)
 
 _FONT_HEADER = Font(bold=True, color="FFFFFF", name="Calibri", size=11)
 _FONT_NORMAL = Font(name="Calibri", size=10)
@@ -60,7 +59,7 @@ def exportar() -> str:
     ws = wb.active
     ws.title = "instrumentos"
 
-    # ── Linha 1: cabeçalhos ──────────────────────────────────────────────
+    # ── Row 1: headers ───────────────────────────────────────────────────
     for col_idx, (campo, _, largura) in enumerate(_COLUNAS, start=1):
         cell = ws.cell(row=1, column=col_idx, value=campo)
         cell.font      = _FONT_HEADER
@@ -71,7 +70,7 @@ def exportar() -> str:
 
     ws.row_dimensions[1].height = 22
 
-    # ── Linha 2: descrições ──────────────────────────────────────────────
+    # ── Row 2: descriptions ──────────────────────────────────────────────
     for col_idx, (_, descricao, _) in enumerate(_COLUNAS, start=1):
         cell = ws.cell(row=2, column=col_idx, value=descricao)
         cell.font      = Font(italic=True, color="555555", name="Calibri", size=9)
@@ -81,7 +80,7 @@ def exportar() -> str:
 
     ws.row_dimensions[2].height = 16
 
-    # ── Linhas de dados ──────────────────────────────────────────────────
+    # ── Data rows ─────────────────────────────────────────────────────────
     for data_idx, inst in enumerate(instrumentos):
         row_num = data_idx + 3
         fill    = _FILL_EVEN if data_idx % 2 == 1 else None
@@ -106,13 +105,13 @@ def exportar() -> str:
 
         ws.row_dimensions[row_num].height = 15
 
-    # ── Congela cabeçalho ────────────────────────────────────────────────
+    # ── Freeze header ────────────────────────────────────────────────────
     ws.freeze_panes = "A3"
 
-    # ── Filtro automático nos cabeçalhos ─────────────────────────────────
+    # ── Automatic filter on headers ──────────────────────────────────────
     ws.auto_filter.ref = f"A1:{get_column_letter(len(_COLUNAS))}1"
 
-    # ── Salva ────────────────────────────────────────────────────────────
+    # ── Save ─────────────────────────────────────────────────────────────
     stamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
     caminho = str(pasta_documentos("AC's Generator/Exportações") / f"instrumentos_{stamp}.xlsx")
     wb.save(caminho)

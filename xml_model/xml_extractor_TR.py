@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Extracts the dimensional results tables (diameters) of a straight run/meter run inspection PDF, organized by section.
-#                 Extrai as tabelas de resultados dimensionais (diâmetros) do PDF de inspeção do trecho reto/meter run, organizadas por seção.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -106,7 +105,7 @@ def _chave_parametro(descricao_raw):
         description, truncated to 60 characters, or None if no
         alphanumeric character remains.
     """
-    # Usa apenas a primeira linha (inglês) para gerar a chave
+    # Uses only the first line (English) to generate the key
     primeira_linha = str(descricao_raw).split("\n")[0]
     norm = normalizar_texto(primeira_linha)
     norm = re.sub(r"[^a-z0-9 ]", "", norm)
@@ -143,7 +142,7 @@ def extrair_dados_dim_tr(caminho_pdf):
 
             prev_bottom = 0
             for tab_obj in tabelas_obj:
-                # texto entre o fim da tabela anterior e o topo desta
+                # text between the end of the previous table and the top of this one
                 bbox_acima = (0, prev_bottom, pagina.width, tab_obj.bbox[1])
                 texto_acima = pagina.crop(bbox_acima).extract_text() or ""
                 prev_bottom = tab_obj.bbox[3]
@@ -177,8 +176,8 @@ def extrair_dados_dim_tr(caminho_pdf):
                     if not chave:
                         continue
 
-                    # porta_placa: só os diâmetros D; flange_de_orificio: só diâmetro a 20°C
-                    # meter_run_for_flare_ultrasonic: só Medium Internal Pipe Diameter (D) at 20°C
+                    # porta_placa: only the D diameters; flange_de_orificio: only diameter at 20°C
+                    # meter_run_for_flare_ultrasonic: only Medium Internal Pipe Diameter (D) at 20°C
                     if secao_atual == "porta_placa":
                         if "diameter" not in chave or "cilindricity" in chave or "2d_4d" in chave:
                             continue

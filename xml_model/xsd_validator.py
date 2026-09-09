@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Validates a generated XML against the Petrobras XSD schema and writes an error log when validation fails.
-#                 Valida um XML gerado contra o schema XSD da Petrobras e grava um log de erros quando a validação falha.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -30,8 +29,8 @@ def _base_path() -> Path:
 
 XSD_PATH = _base_path() / "xml_model" / "PetrobrasSchemaV3.0.0 (1) (1).xsd"
 
-# resolve_entities=False evita expansão de entidades externas/DTD (XXE) —
-# defesa em profundidade mesmo o XML validado aqui sendo gerado internamente.
+# resolve_entities=False prevents expansion of external entities/DTD (XXE) —
+# defense in depth even though the XML validated here is generated internally.
 _PARSER_SEGURO = etree.XMLParser(resolve_entities=False, no_network=True)
 
 

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Manages the SQLite database connection and creates/migrates the 'instrumentos' table schema.
-#                 Gerencia a conexão com o banco de dados SQLite e cria/migra o esquema da tabela 'instrumentos'.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -86,7 +85,7 @@ def migrar():
     if "modificado_em" not in colunas:
         cursor.execute("ALTER TABLE instrumentos ADD COLUMN modificado_em TEXT")
 
-    # Normaliza valores legados para as abreviações atuais
+    # Normalize legacy values to the current abbreviations
     cursor.execute("UPDATE instrumentos SET tipo = 'SEC' WHERE tipo = 'secundario'")
     cursor.execute("UPDATE instrumentos SET tipo = 'PO'  WHERE tipo = 'placa_orificio'")
     conn.commit()

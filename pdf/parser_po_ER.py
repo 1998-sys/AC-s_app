@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses orifice plate Evaluation Report (ER) PDFs, extracting dimensional measurement results (diameter, beta, thickness, roughness, flatness, bevel angle) and their accept/reject outcomes.
-#                 Analisa PDFs de Relatório de Avaliação (ER) de placa de orifício, extraindo os resultados das medições dimensionais (diâmetro, beta, espessura, rugosidade, planeza, ângulo do chanfro) e seus resultados de aprovação/reprovação.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

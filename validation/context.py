@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Bundles the PDF-extracted data, the database record and calibration points into a single context object passed to validation rules.
-#                 Reúne os dados extraídos do PDF, o registro do banco e os pontos de calibração em um único objeto de contexto passado às regras de validação.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

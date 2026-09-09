@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses secondary instrument calibration certificates (pressure/temperature transmitters, thermometers, manometers), extracting tags, ranges, signatories and metrological data.
-#                 Analisa certificados de calibração de instrumentos secundários (transmissores de pressão/temperatura, termômetros, manômetros), extraindo TAGs, ranges, signatários e dados metrológicos.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -279,7 +278,7 @@ def extrair_range_calibrado(texto):
     Returns:
         tuple: (min, max) as float, or (None, None) if no pattern matches.
     """
-    # Padrão principal: "Calibration Range ... Min: X ... Max: Y"
+    # Main pattern: "Calibration Range ... Min: X ... Max: Y"
     padrao = r"""
     Calibration\s*Range.*?
     Min\s*[:\-]?\s*([-+]?[0-9.,]+)
@@ -290,8 +289,8 @@ def extrair_range_calibrado(texto):
     if m:
         return normalizar_num(m.group(1)), normalizar_num(m.group(2))
 
-    # Fallback: pdfplumber fragmenta "Calibration" em layouts multi-coluna,
-    # mesclando-a com o número de modelo. "Range:" permanece intacto.
+    # Fallback: pdfplumber sometimes fragments "Calibration" in multi-column layouts,
+    # merging it with the model number. "Range:" stays intact.
     m = re.search(
         r"Range\s*:\s*Min\s*:\s*([-+]?[0-9.,]+).*?Max\s*:\s*([-+]?[0-9.,]+)",
         texto, flags=re.I | re.S,
@@ -469,7 +468,7 @@ def separar_signatario(assinaturas_raw, signatarios_validos):
             "executante": None
         }
 
-    texto = " ".join(assinaturas_raw.split())  # normaliza espaços
+    texto = " ".join(assinaturas_raw.split())  # normalizes whitespace
 
     for signatario in signatarios_validos:
         if signatario in texto:
@@ -480,7 +479,7 @@ def separar_signatario(assinaturas_raw, signatarios_validos):
                 "executante": executante if executante else None
             }
 
-    # se nenhum signatário válido for encontrado
+    # if no valid signatory is found
     return {
         "signatario": None,
         "executante": texto
@@ -497,7 +496,7 @@ def extrair_condicoes_ambientais(texto):
         "umidade_ambiente": None
     }
 
-    # TEMPERATURA AMBIENTE
+    # AMBIENT TEMPERATURE
     padrao_temp = re.search(
         r"Ambient\s+Temperature:\s*([\d.,]+)\s*°?\s*C",
         texto,
@@ -509,7 +508,7 @@ def extrair_condicoes_ambientais(texto):
             padrao_temp.group(1).replace(",", ".")
         )
 
-    # UMIDADE AMBIENTE
+    # AMBIENT HUMIDITY
     padrao_umid = re.search(
         r"Ambient\s+Humidity:\s*([\d.,]+)\s*%",
         texto,

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Generates the Petrobras-schema orifice plate inspection certificate XML from the measured dimensional values and approval criteria.
-#                 Gera o XML de certificado de inspeção da placa de orifício no padrão Petrobras a partir dos valores dimensionais medidos e critérios de aprovação.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

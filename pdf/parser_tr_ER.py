@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses Gas Meter Run Evaluation Report (ER) PDFs, extracting the accept/reject results for cylindricity, roughness and length checks along the meter run.
-#                 Analisa PDFs de Relatório de Avaliação (ER) de Trecho Reto, extraindo os resultados de aprovação/reprovação das verificações de cilindricidade, rugosidade e comprimento ao longo do trecho.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

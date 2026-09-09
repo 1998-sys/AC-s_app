@@ -5,16 +5,15 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Builds a PDF technical documentation booklet for the AC's Generator, rendering flowcharts and reference tables of validation rules and supported client templates.
-#                 Monta um PDF de documentação técnica do AC's Generator, renderizando fluxogramas e tabelas de referência das regras de validação e templates de clientes suportados.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
 
 """
-Gera PDF de documentação do AC's Generator com:
-  - Fluxo principal (imagem via mermaid.ink)
-  - Tabela de regras de validação
-  - Clientes e templates suportados
+Generates the AC's Generator documentation PDF with:
+  - Main flow (image via mermaid.ink)
+  - Validation rules table
+  - Supported clients and templates
 """
 
 import base64
@@ -33,19 +32,19 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from PIL import Image as PILImage
 
 # ---------------------------------------------------------------------------
-# Conteúdo Mermaid
+# Mermaid content
 # ---------------------------------------------------------------------------
 
 MERMAID_PRINCIPAL = """
 flowchart TD
-    A([Usuário seleciona PDF]) --> B[pdf/utils_parser.py\\nselect_extract]
-    B --> C{Tipo detectado}
+    A([User selects PDF]) --> B[pdf/utils_parser.py\\nselect_extract]
+    B --> C{Detected type}
 
     C -->|CI| D[xml_uc_generator\\ngerar_xml_uc]
-    C -->|Cromatografia| E[xml_cromato\\nxml_cromatografia]
+    C -->|Chromatography| E[xml_cromato\\nxml_cromatografia]
     C -->|secundario / placa_orificio / trecho| F[core/dispatcher.py\\ndispatch]
 
-    D --> Z([Finalizado — apenas XML])
+    D --> Z([Finished — XML only])
     E --> Z
 
     F --> G[core/processor_factory.py\\nget_processor]
@@ -54,41 +53,41 @@ flowchart TD
     G -->|placa_orificio| I[PlacaProcessor]
     G -->|trecho| TR[TrechoProcessor]
 
-    H --> J[Extrair pontos de calibração\\nxml_extractor + xml_table_extractor]
-    I --> K[Solicitar Evaluation Report\\nparser_po_ER]
-    TR --> TRK[Solicitar Evaluation Report\\nparser_tr_ER]
+    H --> J[Extract calibration points\\nxml_extractor + xml_table_extractor]
+    I --> K[Request Evaluation Report\\nparser_po_ER]
+    TR --> TRK[Request Evaluation Report\\nparser_tr_ER]
 
-    J --> L{Cliente ORIGEM?}
+    J --> L{ORIGEM client?}
     K --> L
-    TRK --> TRL{Cliente ORIGEM?}
+    TRK --> TRL{ORIGEM client?}
 
-    L -->|Sim| M[Modal: Localização / SAP / N° AC]
-    L -->|Não| N[app.processar_comparacao]
+    L -->|Yes| M[Modal: Location / SAP / AC No.]
+    L -->|No| N[app.processar_comparacao]
     M --> N
 
-    TRL -->|Sim| TRM[Modal: Localização / SAP / N° AC]
-    TRL -->|Não| TRN[app.processar_comparacao]
+    TRL -->|Yes| TRM[Modal: Location / SAP / AC No.]
+    TRL -->|No| TRN[app.processar_comparacao]
     TRM --> TRN
 
     N --> O[validation/engine.py\\nValidationEngine.run]
     TRN --> O
 
-    O --> P{Issues encontradas?}
+    O --> P{Issues found?}
 
-    P -->|Bloqueante| Q([Erro exibido — geração cancelada])
-    P -->|Ação disponível| R[Usuário confirma correção automática]
-    P -->|Aviso ou sem issues| S[Exibe aviso e continua]
+    P -->|Blocking| Q([Error displayed — generation cancelled])
+    P -->|Action available| R[User confirms automatic correction]
+    P -->|Warning or no issues| S[Displays warning and continues]
     R --> S
     S --> T[form/utils_print.py\\ngerar_ac_escolha]
 
-    T --> U{Cliente + Instrumento}
+    T --> U{Client + Instrument}
 
     U -->|ORIGEM + PO| V[gerar_xml_certificado_po\\ngerar_ac_origem_PO]
     U -->|ORIGEM| W[gerar_xml_certificado\\ngerar_ac_origem]
     U -->|YINSON ATLANTA| X1[gerar_xml_certificado\\ngerar_ac_yinson_atlanta]
     U -->|YINSON| X2[gerar_xml_certificado\\ngerar_ac_yinson]
     U -->|PRIO + PO| Y[gerar_xml_certificado_po\\ngerar_ac_prio_po]
-    U -->|PRIO + Gas Meter Run| TR2[xml_petro_tr.py\\ngerar_xml_certificado_tr\\n⚠ AC PDF pendente]
+    U -->|PRIO + Gas Meter Run| TR2[xml_petro_tr.py\\ngerar_xml_certificado_tr\\n⚠ AC PDF pending]
     U -->|PRIO| Z2[gerar_xml_calibracao\\ngerar_xml_certificado\\ngerar_ac_prio]
 
     V --> VAL[xsd_validator\\nvalidar_e_logar]
@@ -98,24 +97,24 @@ flowchart TD
     Y --> VAL
     Z2 --> VAL
 
-    TR2 --> TRFIM([XML gerado — sem validação XSD por ora])
+    TR2 --> TRFIM([XML generated — no XSD validation for now])
 
-    VAL -->|Inválido| ERR[XML removido + .log gerado]
-    VAL -->|Válido| PDF[Excel template → PDF da AC\\nvia Excel COM]
+    VAL -->|Invalid| ERR[XML removed + .log generated]
+    VAL -->|Valid| PDF[Excel template → AC PDF\\nvia Excel COM]
 
-    PDF --> FIM([AC gerada com sucesso])
+    PDF --> FIM([AC generated successfully])
 """
 
 MERMAID_XSD = """
 flowchart TD
-    A[XML gerado em xml_model/] --> B[form/utils_print.py\\nvalidar_e_logar]
+    A[XML generated in xml_model/] --> B[form/utils_print.py\\nvalidar_e_logar]
     B --> C[xml_model/xsd_validator.py\\nvalidar_xml]
-    C --> D[Carrega PetrobrasSchemaV3.0.0.xsd\\nvia lxml XMLSchema]
-    D --> E{XML válido?}
-    E -->|Sim| F[Imprime: arquivo válido\\nXML mantido]
-    E -->|Não| G[registrar_log\\nGrava .log com erros]
-    G --> H[XML removido com unlink]
-    H --> I([Erros visíveis no .log\\nna mesma pasta do PDF])
+    C --> D[Loads PetrobrasSchemaV3.0.0.xsd\\nvia lxml XMLSchema]
+    D --> E{Valid XML?}
+    E -->|Yes| F[Prints: valid file\\nXML kept]
+    E -->|No| G[registrar_log\\nWrites .log with errors]
+    G --> H[XML removed via unlink]
+    H --> I([Errors visible in the .log\\nin the same folder as the PDF])
 """
 
 # ---------------------------------------------------------------------------
@@ -139,7 +138,7 @@ def mermaid_to_png_bytes(mermaid_code: str) -> bytes | None:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.read()
     except urllib.error.URLError as exc:
-        print(f"[AVISO] Não foi possível buscar imagem do mermaid.ink: {exc}")
+        print(f"[WARNING] Could not fetch image from mermaid.ink: {exc}")
         return None
 
 
@@ -160,12 +159,12 @@ def png_bytes_to_rl_image(png_bytes: bytes, max_width: float, max_height: float)
         scale = min(max_width / w_px, max_height / h_px)
         return Image(io.BytesIO(png_bytes), width=w_px * scale, height=h_px * scale)
     except Exception as exc:
-        print(f"[AVISO] Falha ao processar imagem: {exc}")
+        print(f"[WARNING] Failed to process image: {exc}")
         return None
 
 
 # ---------------------------------------------------------------------------
-# Estilos
+# Styles
 # ---------------------------------------------------------------------------
 
 def build_styles():
@@ -214,33 +213,33 @@ def build_styles():
 
 
 # ---------------------------------------------------------------------------
-# Tabelas de dados
+# Data tables
 # ---------------------------------------------------------------------------
 
 VALIDATION_RULES = [
-    ("regra_tag_vs_sn",       "Divergência entre TAG e SN (detecção MVS)"),
-    ("regra_novo_instrumento","Instrumento não cadastrado → oferta de inserção automática"),
-    ("regra_sn_instrumento",  "SN do instrumento difere do cadastro"),
-    ("regra_sn_sensor",       "SN do sensor difere do cadastro"),
-    ("regra_range",           "Faixa de calibração difere do cadastro"),
-    ("regra_haste_te",        "Validação de haste do sensor TE"),
-    ("regra_local_fpso",      "Localização FPSO inconsistente"),
-    ("regra_rangein",         "Range indicado vs range de calibração"),
-    ("regra_incert_fidu",     "Incerteza / erro fiducial fora do limite"),
+    ("regra_tag_vs_sn",       "Mismatch between TAG and SN (MVS detection)"),
+    ("regra_novo_instrumento","Instrument not registered → offers automatic insertion"),
+    ("regra_sn_instrumento",  "Instrument SN differs from the registered record"),
+    ("regra_sn_sensor",       "Sensor SN differs from the registered record"),
+    ("regra_range",           "Calibration range differs from the registered record"),
+    ("regra_haste_te",        "TE sensor rod validation"),
+    ("regra_local_fpso",      "Inconsistent FPSO location"),
+    ("regra_rangein",         "Indicated range vs. calibration range"),
+    ("regra_incert_fidu",     "Uncertainty / fiducial error out of limit"),
     ("regra_cmc",             "CMC (Capability Measurement Capability)"),
-    ("regra_classe",          "Classe do instrumento"),
-    ("data_proxcal",          "Data da próxima calibração"),
-    ("prazo_emissao",         "Prazo de emissão do certificado"),
+    ("regra_classe",          "Instrument class"),
+    ("data_proxcal",          "Next calibration date"),
+    ("prazo_emissao",         "Certificate issuance deadline"),
 ]
 
 CLIENTS_TEMPLATES = [
-    ("ORIGEM Energia Alagoas", "Secundário",        "TemplateAC_ORIGEM.xlsx",          "xml_petro_generator.py",              "✓"),
-    ("ORIGEM Energia Alagoas", "Placa de Orifício", "TemplateAC_PO_ORIGEM.xlsx",       "xml_petro_po.py",                     "✓"),
-    ("PRIO",                   "Secundário",        "TemplateAC_PRIO.xlsx",            "xml_generator.py + xml_petro_generator.py", "✓"),
-    ("PRIO",                   "Placa de Orifício", "TemplateAC_PO_PRIO.xlsx",         "xml_petro_po.py",                     "✓"),
-    ("PRIO",                   "Gas Meter Run",     "—",                               "xml_petro_tr.py",                     "pendente"),
-    ("YINSON",                 "Secundário",        "TemplateAC_YINSON.xlsx",          "xml_petro_generator.py",              "✓"),
-    ("YINSON (FPSO Atlanta)",  "Secundário",        "TemplateAC_YINSON - ATLANTA.xlsx","xml_petro_generator.py",              "✓"),
+    ("ORIGEM Energia Alagoas", "Secondary",       "TemplateAC_ORIGEM.xlsx",          "xml_petro_generator.py",              "✓"),
+    ("ORIGEM Energia Alagoas", "Orifice Plate",   "TemplateAC_PO_ORIGEM.xlsx",       "xml_petro_po.py",                     "✓"),
+    ("PRIO",                   "Secondary",       "TemplateAC_PRIO.xlsx",            "xml_generator.py + xml_petro_generator.py", "✓"),
+    ("PRIO",                   "Orifice Plate",   "TemplateAC_PO_PRIO.xlsx",         "xml_petro_po.py",                     "✓"),
+    ("PRIO",                   "Gas Meter Run",   "—",                               "xml_petro_tr.py",                     "pending"),
+    ("YINSON",                 "Secondary",       "TemplateAC_YINSON.xlsx",          "xml_petro_generator.py",              "✓"),
+    ("YINSON (FPSO Atlanta)",  "Secondary",       "TemplateAC_YINSON - ATLANTA.xlsx","xml_petro_generator.py",              "✓"),
 ]
 
 
@@ -250,7 +249,7 @@ def make_validation_table():
     Returns:
         Table: Already-styled reportlab table, ready to insert into the document's story.
     """
-    header = ["Regra", "O que verifica"]
+    header = ["Rule", "What it checks"]
     data = [header] + list(VALIDATION_RULES)
 
     col_widths = [5.5 * cm, 12 * cm]
@@ -280,7 +279,7 @@ def make_clients_table():
     Returns:
         Table: Already-styled reportlab table, ready to insert into the document's story.
     """
-    header = ["Cliente", "Instrumento", "Template Excel", "Gerador XML", "AC PDF"]
+    header = ["Client", "Instrument", "Excel Template", "XML Generator", "AC PDF"]
     data = [header] + list(CLIENTS_TEMPLATES)
 
     col_widths = [4.2 * cm, 3.2 * cm, 5.0 * cm, 5.3 * cm, 1.8 * cm]
@@ -304,9 +303,9 @@ def make_clients_table():
         ("ALIGN",        (-1, 1), (-1, -1), "CENTER"),
     ]
 
-    # Célula "pendente" em laranja (linha 5, coluna 4)
+    # "pending" cell in orange (row 5, column 4)
     for i, row in enumerate(CLIENTS_TEMPLATES, start=1):
-        if row[-1] == "pendente":
+        if row[-1] == "pending":
             style.append(("TEXTCOLOR", (-1, i), (-1, i), colors.HexColor("#e07b00")))
             style.append(("FONTNAME",  (-1, i), (-1, i), "Helvetica-Oblique"))
 
@@ -315,7 +314,7 @@ def make_clients_table():
 
 
 # ---------------------------------------------------------------------------
-# Geração do PDF
+# PDF generation
 # ---------------------------------------------------------------------------
 
 def gerar_pdf(output_path: str = "docs/Documentacao_ACs_Generator.pdf"):
@@ -339,56 +338,56 @@ def gerar_pdf(output_path: str = "docs/Documentacao_ACs_Generator.pdf"):
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="AC's Generator — Documentação",
+        title="AC's Generator — Documentation",
         author="ODS Metering Systems",
     )
 
-    PAGE_W = A4[0] - 4 * cm   # largura útil
+    PAGE_W = A4[0] - 4 * cm   # usable width
     PAGE_H = A4[1] - 4 * cm
 
     story = []
 
-    # ── Cabeçalho ──────────────────────────────────────────────────────────
+    # ── Header ──────────────────────────────────────────────────────────
     story.append(Spacer(1, 1 * cm))
     story.append(Paragraph("AC's Generator", title_s))
-    story.append(Paragraph("Documentação Técnica — Fluxo Principal · Regras · Clientes", subtitle_s))
+    story.append(Paragraph("Technical Documentation — Main Flow · Rules · Clients", subtitle_s))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#16213e")))
     story.append(Spacer(1, 0.4 * cm))
 
-    # ── Fluxo Principal ────────────────────────────────────────────────────
-    story.append(Paragraph("1. Fluxo Principal — PDF → AC + XML", section_s))
+    # ── Main Flow ────────────────────────────────────────────────────
+    story.append(Paragraph("1. Main Flow — PDF → AC + XML", section_s))
     story.append(Paragraph(
-        "A partir de um certificado de calibração em PDF, o sistema detecta o tipo de instrumento, "
-        "extrai os dados, valida contra o banco de dados e os schemas XSD, e gera o XML Petrobras "
-        "junto com o PDF da Análise Crítica.",
+        "Starting from a PDF calibration certificate, the system detects the instrument type, "
+        "extracts the data, validates it against the database and the XSD schemas, and generates "
+        "the Petrobras XML along with the Critical Analysis (AC) PDF.",
         normal_s,
     ))
     story.append(Spacer(1, 0.3 * cm))
 
-    print("Buscando fluxograma principal no mermaid.ink...")
+    print("Fetching main flowchart from mermaid.ink...")
     png = mermaid_to_png_bytes(MERMAID_PRINCIPAL)
     if png:
         rl_img = png_bytes_to_rl_image(png, PAGE_W, PAGE_H * 0.85)
         if rl_img:
             story.append(rl_img)
         else:
-            story.append(Paragraph("[Imagem não pôde ser renderizada]", note_s))
+            story.append(Paragraph("[Image could not be rendered]", note_s))
     else:
         story.append(Paragraph(
-            "[Fluxograma indisponível — sem conexão com mermaid.ink]", note_s
+            "[Flowchart unavailable — no connection to mermaid.ink]", note_s
         ))
 
-    # ── Fluxo Validação XSD ───────────────────────────────────────────────
+    # ── XSD Validation Flow ───────────────────────────────────────────────
     story.append(PageBreak())
-    story.append(Paragraph("2. Fluxo de Validação XSD", section_s))
+    story.append(Paragraph("2. XSD Validation Flow", section_s))
     story.append(Paragraph(
-        "Após a geração do XML, o arquivo é validado contra o schema <i>PetrobrasSchemaV3.0.0.xsd</i>. "
-        "Em caso de erro, o XML é removido e um <code>.log</code> é gerado na mesma pasta do PDF.",
+        "After the XML is generated, the file is validated against the <i>PetrobrasSchemaV3.0.0.xsd</i> schema. "
+        "If an error occurs, the XML is removed and a <code>.log</code> file is generated in the same folder as the PDF.",
         normal_s,
     ))
     story.append(Spacer(1, 0.3 * cm))
 
-    print("Buscando fluxograma XSD no mermaid.ink...")
+    print("Fetching XSD flowchart from mermaid.ink...")
     png_xsd = mermaid_to_png_bytes(MERMAID_XSD)
     if png_xsd:
         rl_img_xsd = png_bytes_to_rl_image(png_xsd, PAGE_W, PAGE_H * 0.45)
@@ -396,46 +395,46 @@ def gerar_pdf(output_path: str = "docs/Documentacao_ACs_Generator.pdf"):
             story.append(rl_img_xsd)
 
     story.append(Paragraph(
-        "Nota: o fluxo de Gas Meter Run ainda não passa pela validação XSD — "
-        "o XML é gerado diretamente para testes.",
+        "Note: the Gas Meter Run flow does not yet go through XSD validation — "
+        "the XML is generated directly for testing.",
         note_s,
     ))
 
-    # ── Regras de Validação ────────────────────────────────────────────────
+    # ── Validation Rules ────────────────────────────────────────────────
     story.append(PageBreak())
-    story.append(Paragraph("3. Regras de Validação — Instrumentos Secundários", section_s))
+    story.append(Paragraph("3. Validation Rules — Secondary Instruments", section_s))
     story.append(Paragraph(
-        "O motor de validação (<code>validation/engine.py</code>) executa as regras abaixo. "
-        "Cada regra pode retornar um aviso, uma ação corretiva ou um bloqueio de geração.",
+        "The validation engine (<code>validation/engine.py</code>) runs the rules below. "
+        "Each rule can return a warning, a corrective action, or a generation block.",
         normal_s,
     ))
     story.append(Spacer(1, 0.3 * cm))
     story.append(make_validation_table())
 
-    # ── Clientes e Templates ───────────────────────────────────────────────
+    # ── Clients and Templates ───────────────────────────────────────────────
     story.append(Spacer(1, 0.8 * cm))
-    story.append(Paragraph("4. Clientes e Templates Suportados", section_s))
+    story.append(Paragraph("4. Supported Clients and Templates", section_s))
     story.append(Paragraph(
-        "Cada combinação cliente × instrumento possui um template Excel dedicado "
-        "e um gerador XML específico. A coluna <i>AC PDF</i> indica se a geração "
-        "do PDF está implementada (✓) ou pendente.",
+        "Each client × instrument combination has a dedicated Excel template "
+        "and a specific XML generator. The <i>AC PDF</i> column indicates whether the "
+        "PDF generation is implemented (✓) or pending.",
         normal_s,
     ))
     story.append(Spacer(1, 0.3 * cm))
     story.append(make_clients_table())
 
-    # ── Rodapé informativo ─────────────────────────────────────────────────
+    # ── Informative footer ─────────────────────────────────────────────────
     story.append(Spacer(1, 0.6 * cm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#aaaaaa")))
     story.append(Spacer(1, 0.2 * cm))
     story.append(Paragraph(
-        "ODS Metering Systems · AC's Generator · Documentação gerada automaticamente",
+        "ODS Metering Systems · AC's Generator · Automatically generated documentation",
         ParagraphStyle("footer", parent=normal_s, fontSize=8,
                        textColor=colors.HexColor("#999999"), alignment=TA_CENTER),
     ))
 
     doc.build(story)
-    print(f"\nPDF gerado: {output_path}")
+    print(f"\nPDF generated: {output_path}")
 
 
 # ---------------------------------------------------------------------------

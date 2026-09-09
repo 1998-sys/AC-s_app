@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Handles the orifice plate (Placa de Orifício) instrument flow, requesting the Report Valuation and extracting its measured points.
-#                 Trata o fluxo do instrumento placa de orifício, solicitando o Report Valuation e extraindo seus pontos medidos.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

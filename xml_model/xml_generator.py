@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Generates the ODS-format standard calibration XML (Calibracion) for TE/TT/PT/DPT instruments from the extracted PDF data and points.
-#                 Gera o XML de calibração padrão ODS (Calibracion) para instrumentos TE/TT/PT/DPT a partir dos dados e pontos extraídos do PDF.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

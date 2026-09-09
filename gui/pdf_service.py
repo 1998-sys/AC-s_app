@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Orchestrates the certificate reading queue, classifying each PDF/XML and routing it to direct XML generation or to the Dispatcher.
-#                 Orquestra a fila de leitura de certificados, classificando cada PDF/XML e encaminhando para geração direta de XML ou para o Dispatcher.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -31,9 +30,9 @@ class PdfProcessingService:
     Dispatcher/ProcessorFactory (secundário, placa de orifício, trecho reto).
     """
 
-    # Tempo mínimo (segundos) que cada certificado do lote fica visível na
-    # tela de leitura antes de trocar pro próximo — dá sensação de progresso
-    # contínuo em vez de um flash entre telas quando a extração é rápida.
+    # Minimum time (seconds) each batch certificate stays visible on the
+    # reading screen before switching to the next one — gives a sense of
+    # continuous progress instead of a flash between screens when extraction is fast.
     TEMPO_MINIMO_POR_ITEM = 2.0
 
     def __init__(self, api):
@@ -42,17 +41,17 @@ class PdfProcessingService:
         self._cancelado = False
         self._inicio_item_ts = None
 
-        # Cache de "Itens Relacionados" da Origem (ex.: LDN-030.pdf) pra essa
-        # sessão de leitura — ver dados_origem_automaticos. Resetado a cada
-        # iniciar_leitura pra não vazar de uma sessão de leitura pra outra.
+        # Cache of Origem's "Related Items" (e.g. LDN-030.pdf) for this
+        # reading session — see dados_origem_automaticos. Reset on every
+        # iniciar_leitura so it doesn't leak from one reading session to another.
         self._itens_relacionados_cache = {}
         self._itens_relacionados_perguntado = False
 
-        # Tipos que geram XML diretamente a partir do PDF, sem passar pela tela
-        # de revisão — diferente dos tipos despachados via Dispatcher/ProcessorFactory.
-        # Adicionar um novo tipo aqui não exige editar _processar_pdf_thread.
-        # ("cromatografia" tem checklist/saída próprios — interceptado antes
-        # desse dict em _processar_pdf_thread, ver _gerar_cromatografia.)
+        # Types that generate XML directly from the PDF, without going through the
+        # review screen — unlike the types dispatched via Dispatcher/ProcessorFactory.
+        # Adding a new type here doesn't require editing _processar_pdf_thread.
+        # ("cromatografia" has its own checklist/output — intercepted before
+        # this dict in _processar_pdf_thread, see _gerar_cromatografia.)
         self._geradores_diretos = {
             "ci": self._gerar_incerteza,
         }
@@ -168,13 +167,13 @@ class PdfProcessingService:
         self.api.indice_fila = 0
         self.api.instrumentos_lote = []
 
-    # ---------- Fila / modo lote ----------
-    # Todo item da fila termina de um jeito só: `avancar_fila`, chamado via
-    # DialogBridge.voltar_para_selecao — seja por erro/cancelamento, pelos
-    # tipos de geração direta (cromatografia/incerteza/linearização), ou pela
-    # coleta de revisão da Fase 6 (RevisionService.coletar_revisao_lote), que
-    # nunca gera nada por item — só quando a fila esgota é que se decide
-    # mostrar a revisão agregada, gerar tudo, ou ir direto pra saída.
+    # ---------- Queue / batch mode ----------
+    # Every queue item ends in only one way: `avancar_fila`, called via
+    # DialogBridge.voltar_para_selecao — whether by error/cancellation, by the
+    # direct-generation types (cromatografia/incerteza/linearização), or by the
+    # Phase 6 review collection (RevisionService.coletar_revisao_lote), which
+    # never generates anything per item — only when the queue is exhausted is it
+    # decided whether to show the aggregated review, generate everything, or go straight to output.
 
     def em_lote_ativo(self):
         """Indicates whether there's a queue of more than one item in progress (not cancelled and still with a pending item).
@@ -394,9 +393,9 @@ class PdfProcessingService:
                 return
 
             if tipo == "cromatografia":
-                # Sem comparação com cadastro nem validação de regras da ANP
-                # (não há instrumento/divergência aqui) — checklist e fluxo
-                # de saída próprios, ver _gerar_cromatografia.
+                # No comparison against the registry nor ANP rule validation
+                # (there's no instrument/divergence here) — its own checklist and
+                # output flow, see _gerar_cromatografia.
                 self._gerar_cromatografia(caminho, dados_pdf)
                 return
 
@@ -450,9 +449,9 @@ class PdfProcessingService:
         api._js("App.setChecklistTipo('cromatografia')")
         api._progress(50, "extract", [])
 
-        # Dá tempo do usuário ver "Extraindo texto" ativo antes de já pular
-        # pro "Montando XML de cromatografia" — sem isso os dois passos
-        # completam rápido demais pra perceber (mesmo motivo do sleep em
+        # Gives the user time to see "Extraindo texto" active before already jumping
+        # to "Montando XML de cromatografia" — without this the two steps
+        # complete too fast to notice (same reason for the sleep in
         # RevisionService.coletar_revisao_lote).
         time.sleep(2)
         if self._cancelado:
@@ -538,11 +537,11 @@ class PdfProcessingService:
                 self.api._voltar_para_selecao()
                 return
 
-            # Aplicação/Sistema não existem no cadastro de instrumentos pra
-            # medidor de vazão (isso é só pra instrumentos secundários) — e
-            # Aplicação alimenta a fórmula de Status do template (tolerância
-            # ±0,2% pra Fiscal/Transferência de Custódia, ±0,6% pros demais),
-            # então precisa ser pedida ao usuário em vez de deixar em branco.
+            # Application/System don't exist in the instrument registry for
+            # flow meters (that's only for secondary instruments) — and
+            # Application feeds the template's Status formula (tolerance
+            # ±0.2% for Fiscal/Custody Transfer, ±0.6% for the rest),
+            # so it needs to be asked from the user instead of left blank.
             aplicacao_padrao, sistema_padrao = contexto_db(dados.get("tag", ""))
             valores = self.api.prompt(
                 "Aplicação e sistema",
@@ -570,10 +569,10 @@ class PdfProcessingService:
             dados["aplicacao"] = valores.get("aplicacao", "")
             dados["sistema"] = valores.get("sistema", "")
 
-            # O template já vem com um par padrão de nomes de "Elaborado
-            # por"/"Verificado por" — só pergunta se o usuário quer trocar
-            # pra este relatório específico; se não, segue com o padrão do
-            # template (gerar_linearizacao não sobrescreve nesse caso).
+            # The template already comes with a default pair of "Elaborado
+            # por"/"Verificado por" names — it only asks if the user wants to change
+            # them for this specific report; if not, it goes with the template's
+            # default (gerar_linearizacao doesn't overwrite in that case).
             elaborado_padrao, verificado_padrao = ler_nomes_assinatura()
             if self.api.confirm(
                 "Elaborado por / Verificado por",

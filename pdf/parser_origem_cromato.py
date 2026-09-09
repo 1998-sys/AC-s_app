@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses chromatography reports from Origem Energia Alagoas's internal lab (LIMS Report Builder), extracting gas properties and their uncertainties.
-#                 Analisa relatórios de cromatografia do laboratório interno da Origem Energia Alagoas (LIMS Report Builder), extraindo propriedades do gás e suas incertezas.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -126,8 +125,8 @@ def _linha_propriedade(texto, nome_exato):
     return m.group("valor").strip(), m.group("incerteza").strip()
 
 
-# (nome da análise no relatório -> lista de destino) — replica a mesma
-# separação padrão/linha (CL) usada pro relatório da SGS, ver xml_cromato.py
+# (analysis name in the report -> destination list) — replicates the same
+# standard/sampling (CL) split used for the SGS report, see xml_cromato.py
 _CAMPOS_ORIGEM = [
     ("Massa Molar", "padrao"),
     ("Densidade Absoluta", "padrao"),

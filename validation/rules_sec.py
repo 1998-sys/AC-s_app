@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Implements the validation rules for secondary instruments, checking TAG/SN registration, range, CMC and calibration deadlines against the database.
-#                 Implementa as regras de validação para instrumentos secundários, verificando cadastro de TAG/NS, range, CMC e prazos de calibração em relação ao banco de dados.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -24,7 +23,7 @@ from data.utils_db import (
 
 from xml_model.xml_generator import normalizar_certificado
 
-# Utilitários para regras de validação
+# Utilities for validation rules
 def normalizar_local(local_calibracao):
     """Translates the calibration location text from the PDF (in English) into the internal key used by the CMC rules ("permanente"/"cliente"/"movel")."""
     if not local_calibracao:
@@ -95,14 +94,14 @@ def contar_dias_uteis(data_inicial, data_final):
         data_atual += timedelta(days=1)
 
         if (
-            data_atual.weekday() < 5  # Segunda a sexta
+            data_atual.weekday() < 5  # Monday through Friday
             and data_atual.date() not in br_feriados
         ):
             dias_uteis += 1
 
     return dias_uteis
 
-# TAG vs SN (MVS ou divergente)
+# TAG vs SN (MVS or divergent)
 def regra_tag_vs_sn(ctx):
     """Checks whether the certificate's SN already belongs to another registered TAG and, if so, flags a possible MVS or a divergent TAG.
 
@@ -141,7 +140,7 @@ def regra_tag_vs_sn(ctx):
                 blocking=False
             )
 
-        # TAG divergente
+        # Divergent TAG
         return ValidationIssue(
             key="tag_divergente",
             title="TAG divergente",
@@ -157,7 +156,7 @@ def regra_tag_vs_sn(ctx):
             blocking=True
         )
 
-# Novo Instrumento
+# New Instrument
 def regra_novo_instrumento(ctx):
     """Detects a new instrument: when neither the certificate's TAG nor its SN has a matching record in the database.
 
@@ -187,7 +186,7 @@ def regra_novo_instrumento(ctx):
             blocking=False
         )
 
-# SN do Instrumento
+# Instrument SN
 def regra_sn_instrumento(ctx):
     """Compares the instrument's SN in the certificate with the one registered in the database.
 
@@ -220,7 +219,7 @@ def regra_sn_instrumento(ctx):
             ],
         )
 
-# SN do Sensor
+# Sensor SN
 def regra_sn_sensor(ctx):
     """Compares the sensor's SN in the certificate with the one registered in the database.
 
@@ -317,7 +316,7 @@ def regra_range(ctx):
 
     return None
 
-# HASTE (somente TE)
+# ROD (thermowell only)
 def regra_haste_te(ctx):
     """For thermowell (TE) TAGs, validates that the rod diameter does not exceed the reported length.
 
@@ -353,7 +352,7 @@ def regra_haste_te(ctx):
 
     return None
 
-# LOCAL
+# LOCATION
 def regra_local_fpso(ctx):
     """Checks whether the calibration location reported in the PDF matches one of the known facilities (FPSOs, Polvo, Origem Energia).
 
@@ -387,7 +386,7 @@ def regra_local_fpso(ctx):
         blocking=True
     )
 
-# RANGE indicado x calibrado
+# Indicated vs calibrated RANGE
 def regra_rangein(ctx):
     """Checks whether the calibrated range (min/max) is contained within the instrument's indicated range (inmin/inmax).
 
@@ -399,23 +398,23 @@ def regra_rangein(ctx):
         As a side effect, normalizes `ctx.pdf["min_range"/"max_range"/"inmin_range"/"inmax_range"]` to float.
     """
 
-    # Converter valores do PDF para float
+    # Convert PDF values to float
     pdf_min = to_float(ctx.pdf.get("min_range"))
     pdf_max = to_float(ctx.pdf.get("max_range"))
     pdf_imin = to_float(ctx.pdf.get("inmin_range"))
     pdf_imax = to_float(ctx.pdf.get("inmax_range"))
 
-    # Se algum valor não puder ser convertido, ignora a regra
+    # If any value cannot be converted, skip the rule
     if pdf_min is None or pdf_max is None or pdf_imin is None or pdf_imax is None:
         return None
 
-    # Atualiza o contexto com os valores normalizados
+    # Update the context with the normalized values
     ctx.pdf["min_range"] = pdf_min
     ctx.pdf["max_range"] = pdf_max
     ctx.pdf["inmin_range"] = pdf_imin
     ctx.pdf["inmax_range"] = pdf_imax
 
-    # Validação: range calibrado deve estar contido no range indicado
+    # Validation: calibrated range must be contained within the indicated range
     if pdf_min < pdf_imin or pdf_max > pdf_imax:
         return ValidationIssue(
             key="range_calibracao",
@@ -425,13 +424,13 @@ def regra_rangein(ctx):
                 f"Range calibrado (PDF): {pdf_imin} → {pdf_imax}\n\n"
                 "O range calibrado está fora do range indicado."
             ),
-            action=None,     # Apenas informativo
-            blocking=True    # Bloqueia a geração da AC
+            action=None,     # Informational only
+            blocking=True    # Blocks AC generation
         )
 
     return None
 
-# Incerteza e Erro fiducial
+# Uncertainty and Fiducial Error
 def regra_incert_fidu(ctx):
     """Checks whether the certificate's uncertainty or fiducial error exceed the 0.1% limit.
 
@@ -440,7 +439,7 @@ def regra_incert_fidu(ctx):
         > 0.1; None otherwise, or if the values cannot be converted to a number.
     """
 
-    # Converter valores do PDF para float
+    # Convert PDF values to float
     incert= to_float(ctx.pdf.get("incerteza"))
     fiducial = to_float(ctx.pdf.get("erro_fid"))
 
@@ -462,14 +461,14 @@ def regra_incert_fidu(ctx):
                 f"Erro fiducial (PDF): {fiducial}\n\n"
                 "Incerteza ou Erro fiducial acima de  0.1%"
             ),
-            action=None,     # Apenas informativo
-            blocking=True    # Bloqueia a geração da AC
+            action=None,     # Informational only
+            blocking=True    # Blocks AC generation
         )
 
     return None
 
 MAPA_CATEGORIA_CMC = {
-    # Temperatura
+    # Temperature
     "Termorresistência PT-100 - 2 Fios": "TERMORRESISTENCIA_PT100",
     "Termorresistência PT-100 - 3 Fios": "TERMORRESISTENCIA_PT100",
     "Termorresistência PT-100 - 4 Fios": "TERMORRESISTENCIA_PT100",
@@ -477,17 +476,17 @@ MAPA_CATEGORIA_CMC = {
     "Termômetro Analógico": 'Termômetro',
 }
 
-# Mapeamento do local de calibração
+# Calibration location mapping
 MAP_LOCAL = {
     "Calibration performed at the permanent facility": "permanente",
     "Calibration performed at the customer's facility": "cliente",
     "Calibration performed in the mobile installation (container)": "movel",
 }
 
-# Regras CMC
-# Nas 10 categorias abaixo, a CMC aplicável não varia por local de calibração
-# (permanente/cliente/movel sempre usam a mesma tabela de faixas) — por isso os
-# valores são declarados uma única vez e replicados para os 3 locais.
+# CMC rules
+# In the 10 categories below, the applicable CMC does not vary by calibration location
+# (permanent/customer/mobile always use the same range table) — so the
+# values are declared once and replicated across the 3 locations.
 def _mesma_faixa_todas_localidades(faixas):
     """Replicates the same list of CMC ranges across the three calibration locations (permanent, customer, mobile)."""
     return {"permanente": faixas, "cliente": faixas, "movel": faixas}

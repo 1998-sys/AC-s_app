@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses SGS chromatography reports, extracting client, certificate number, gas composition and standard/sampling condition properties.
-#                 Analisa relatórios de cromatografia da SGS, extraindo cliente, número do certificado, composição do gás e propriedades nas condições padrão/amostragem.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -84,9 +83,9 @@ def numero_cert(texto):
     if m:
         return m.group(1).strip()
 
-    # Fallback: no mesmo layout "fora de ordem" tratado em extrair_cliente,
-    # o número do certificado aparece colado no título do relatório, não na
-    # primeira linha extraída.
+    # Fallback: in the same "out-of-order" layout handled in extrair_cliente,
+    # the certificate number appears glued to the report's title, not in
+    # the first extracted line.
     m_titulo = re.search(
         r"RELAT[ÓO]RIO DE AN[ÁA]LISES DE G[ÁA]S NATURAL\s+(\S.*)$",
         texto, re.IGNORECASE | re.MULTILINE
@@ -216,9 +215,9 @@ def propriedades_padrao(texto: str):
 
         m_ini = re.search(r"Propriedades do G[aá]s\s*-\s*Condi[cç][aã]o Padr[aã]o\s*\(1\)\s*Refer[êe]ncia", t, re.IGNORECASE)
     if not m_ini:
-        # Fallback: mesmo layout "fora de ordem" tratado em extrair_cliente —
-        # o título da seção fica separado do cabeçalho "Referência", que
-        # aparece isolado numa linha própria antes das propriedades.
+        # Fallback: same "out-of-order" layout handled in extrair_cliente —
+        # the section title ends up separated from the "Referência" header,
+        # which appears alone on its own line before the properties.
         m_ini = re.search(r"^\s*Refer[êe]ncia\s*$", t, re.IGNORECASE | re.MULTILINE)
     if not m_ini:
         return {"propriedades_padrao": []}

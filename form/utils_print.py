@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Routes AC generation by client and instrument type, driving XML generation, XSD validation and the matching PDF template.
-#                 Roteia a geração da AC por cliente e tipo de instrumento, orquestrando a geração de XML, a validação XSD e o template de PDF correspondente.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -106,7 +105,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
         gerar_xml_certificado_tr(dados, dados_dim_tr, caminho_xml)
         #validar_e_logar(caminho_xml)
-        # AC PDF ainda não implementado
+        # AC PDF not yet implemented
         return
 
     elif "ORIGEM ENERGIA ALAGOAS S.A." in cliente:

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Extracts calibration points (reference, mean, deviation, uncertainty, k) from standard PDF certificate tables (TE, TT, PT, DPT).
-#                 Extrai os pontos de calibração (referência, média, tendência, incerteza, k) das tabelas dos certificados padrão em PDF (TE, TT, PT, DPT).
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -103,7 +102,7 @@ def extrair_pontos_calibracao_pdf(caminho_pdf):
     texto_upper = texto.upper()
     pontos = []
 
-    # Classificação
+    # Classification
     is_te = (
         "TERMORRESISTÊNCIA PT-100 - 2 FIOS" in texto_upper or
         "TERMORRESISTÊNCIA PT-100 - 3 FIOS" in texto_upper or

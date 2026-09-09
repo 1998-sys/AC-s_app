@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Bridges Python and the CertiFlow web UI's JS dialogs/navigation via window.evaluate_js.
-#                 Faz a ponte entre o Python e os diálogos/navegação em JS da UI web do CertiFlow via window.evaluate_js.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -15,16 +14,16 @@ from threading import Event
 
 import webview
 
-# webview.FileDialog.OPEN só existe a partir do pywebview 6.x; na 5.x é webview.OPEN_DIALOG.
+# webview.FileDialog.OPEN only exists from pywebview 6.x onward; in 5.x it's webview.OPEN_DIALOG.
 FILE_DIALOG_OPEN = getattr(getattr(webview, "FileDialog", None), "OPEN", None)
 if FILE_DIALOG_OPEN is None:
     FILE_DIALOG_OPEN = webview.OPEN_DIALOG
 
 
 class DialogBridge:
-    """Ponte JS <-> Python para os diálogos customizados (estilo CertiFlow) e
-    para navegação/progresso da UI. Único ponto do código que fala com
-    `window.evaluate_js` — todo o resto do backend passa por aqui.
+    """JS <-> Python bridge for the custom (CertiFlow-styled) dialogs and
+    for UI navigation/progress. The only place in the code that talks to
+    `window.evaluate_js` — the rest of the backend goes through here.
     """
 
     def __init__(self, api):

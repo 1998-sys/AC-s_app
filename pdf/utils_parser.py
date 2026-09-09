@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Identifies the certificate/report type from its extracted text and routes it to the matching parser.
-#                 Identifica o tipo de certificado/relatório a partir do texto extraído e o roteia para o parser correspondente.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

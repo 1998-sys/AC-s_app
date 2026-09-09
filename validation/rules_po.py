@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Implements the validation rules for orifice plates, checking plate registration and comparing certificate data against the Evaluation Report.
-#                 Implementa as regras de validação para placas de orifício, verificando o cadastro da placa e comparando os dados do certificado com o Evaluation Report.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -42,7 +41,7 @@ def regra_nova_placa(ctx):
     if not sn:
         return None
 
-    # Placa sem TAG (N/A, N/C, etc.): identificar pelo SN para evitar conflito entre placas
+    # Plate without TAG (N/A, N/C, etc.): identify by SN to avoid conflicts between plates
     if not tag_raw or tag_raw in _TAG_AUSENTE_PO:
         registro = buscar_placa_por_sn(sn)
         if registro is None:
@@ -58,7 +57,7 @@ def regra_nova_placa(ctx):
             )
         return None
 
-    # Placa com TAG: comportamento padrão
+    # Plate with TAG: default behavior
     tag = tag_raw
     registro = buscar_placa_por_tag(tag)
 

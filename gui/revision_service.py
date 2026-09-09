@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Orchestrates the divergence review screen and generates the Critical Analysis, both for single certificates and batches.
-#                 Orquestra a tela de revisão de divergências e gera a Análise Crítica, tanto para certificados avulsos quanto em lote.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -28,9 +27,9 @@ from gui.support import CHECKLIST_ALL, extrair_tag_base, foto_instrumento, limpa
 
 
 class RevisionService:
-    """Orquestra a tela de revisão: roda a ValidationEngine sobre o certificado,
-    mantém as divergências pendentes e gera a Análise Crítica quando o usuário
-    confirma. Também resolve a listagem/abertura dos arquivos gerados.
+    """Orchestrates the review screen: runs the ValidationEngine over the certificate,
+    keeps track of the pending divergences and generates the Critical Analysis when the user
+    confirms. Also handles listing/opening the generated files.
     """
 
     def __init__(self, api):
@@ -115,9 +114,9 @@ class RevisionService:
             issues, registro = dados_revisao
 
             api._progress(70, "validate", ["extract", "compare"])
-            # Dá tempo do usuário ver "Validando regras da ANP" ativo antes
-            # de já pular pro "Montando relatório e XML" — sem isso os dois
-            # passos completam juntos rápido demais pra perceber.
+            # Gives the user time to see "Validando regras da ANP" active before already
+            # jumping to "Montando relatório e XML" — without this the two
+            # steps complete together too fast to notice.
             time.sleep(2)
 
             api.instrumentos_lote.append({
@@ -132,11 +131,11 @@ class RevisionService:
                 "dados_dim_tr": api.dados_dim_tr,
             })
 
-            # "build" aqui significa "coleta concluída pra esse item" — a
-            # geração de verdade só acontece depois, em gerar_lote, mas
-            # completar visualmente o checklist antes de avançar pro
-            # próximo certificado dá a mesma sensação de progresso contínuo
-            # que os tipos de geração direta já mostram.
+            # "build" here means "collection completed for this item" — the
+            # actual generation only happens later, in gerar_lote, but
+            # visually completing the checklist before advancing to the
+            # next certificate gives the same sense of continuous progress
+            # that the direct-generation types already show.
             api._progress(100, "build", CHECKLIST_ALL)
 
             api._voltar_para_selecao()
@@ -253,11 +252,11 @@ class RevisionService:
                 "blocking": issue.blocking,
                 "has_action": issue.action is not None,
                 "resolved": getattr(issue, "resolved", False),
-                # Qual opção foi escolhida ao resolver (True = usou o
-                # certificado/aplicou a ação; False = manteve o cadastro sem
-                # rodar a ação). None enquanto pendente. Permite a UI
-                # distinguir "divergência de fato corrigida" de "divergência
-                # mantida conscientemente" — ver renderIssueCard em app.js.
+                # Which option was chosen when resolving (True = used the
+                # certificate/ran the action; False = kept the registered record without
+                # running the action). None while pending. Lets the UI
+                # distinguish a "divergence actually fixed" from a "divergence
+                # knowingly kept" — see renderIssueCard in app.js.
                 "aplicado": getattr(issue, "aplicado", None),
                 "opcoes": getattr(issue, "opcoes", None),
             }
@@ -350,11 +349,11 @@ class RevisionService:
             api.alert("Erro", "Existem divergências bloqueantes não resolvidas.", "error")
             return None
 
-        # Divergências resolvidas via "Manter o cadastro" (aplicar=False): o
-        # AC gerado sempre reflete os dados do certificado — a diferença é só
-        # se o cadastro interno foi atualizado ou não — mas ainda assim é uma
-        # divergência que não foi corrigida no cadastro, então pede
-        # confirmação explícita antes de gerar em vez de seguir direto.
+        # Divergences resolved via "Keep the registered record" (aplicar=False): the
+        # generated AC always reflects the certificate's data — the only difference is
+        # whether the internal record was updated or not — but it's still a
+        # divergence that wasn't fixed in the record, so it asks for
+        # explicit confirmation before generating instead of proceeding directly.
         mantidas = [
             i for i in api._issues_pendentes.values()
             if getattr(i, "resolved", False) and i.opcoes and getattr(i, "aplicado", None) is False
@@ -445,7 +444,7 @@ class RevisionService:
             "files": arquivos,
         }
 
-    # ---------- Fase 6: revisão agregada em lote ----------
+    # ---------- Phase 6: aggregated batch review ----------
 
     def _achar_instrumento_lote(self, tag):
         """Looks up in `api.instrumentos_lote` the collected item with this TAG.
@@ -585,9 +584,9 @@ class RevisionService:
                 try:
                     caminho_ac = obter_caminho_ac(dados_pdf, inst["caminho_pdf"])
                     if os.path.exists(caminho_ac):
-                        # Em lote não dá pra perguntar "sobrescrever?" a cada item
-                        # sem virar uma sequência de confirms — sobrescreve direto
-                        # e deixa registrado que aconteceu.
+                        # In batch mode there's no way to ask "overwrite?" for every item
+                        # without turning it into a sequence of confirms — it overwrites directly
+                        # and logs that it happened.
                         api._pdf_service.registrar_evento_lote(
                             inst["tag"] or "certificado",
                             f"Arquivo já existia e foi sobrescrito: {os.path.basename(caminho_ac)}",

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Factory that instantiates the processor class matching a given instrument type.
-#                 Fábrica que instancia a classe de processor correspondente a um dado tipo de instrumento.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

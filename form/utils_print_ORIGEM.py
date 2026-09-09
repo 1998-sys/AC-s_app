@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Fills the AC ORIGEM Excel template and exports it to PDF via Excel COM automation.
-#                 Preenche o template Excel de AC ORIGEM e o exporta para PDF via automação COM do Excel.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -90,9 +89,9 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
             pushed forward to the following Monday if it falls on a
             Saturday/Sunday.
         """
-        if data.weekday() == 5:  # sábado
+        if data.weekday() == 5:  # Saturday
             data += timedelta(days=2)
-        elif data.weekday() == 6:  # domingo
+        elif data.weekday() == 6:  # Sunday
             data += timedelta(days=1)
         return data
 
@@ -122,10 +121,10 @@ def gerar_ac_origem(dados, caminho_pdf_original, dados_xml_petro, excel=None):
 
     escrever(ws, "A6",  dados.get("tag"))
     escrever(ws, "C6",  dados.get("localizacao"))
-    # F6 (SAP) não é mais preenchido — o campo foi removido do fluxo (ver
-    # processors/utils.py::fluxo_origem). Mantém o que já estiver no
-    # template pronto; TODO conferir se a célula fica com aparência
-    # estranha em branco e, se sim, limpar o rótulo direto no template.
+    # F6 (SAP) is no longer filled — the field was removed from the flow
+    # (see processors/utils.py::fluxo_origem). Keeps whatever is already
+    # in the ready template; TODO check whether the cell looks odd when
+    # left blank and, if so, clear the label directly in the template.
     escrever(ws, "G6", f"CE: {dados.get('n_ac', '')}")
     escrever(ws, "A13", dados.get("certificado"))
     escrever(ws, "D13", dados.get("data"))

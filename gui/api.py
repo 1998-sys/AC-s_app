@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Exposes the facade class injected into pywebview as js_api, delegating each UI action to its dedicated gui service.
-#                 Expõe a classe facade injetada no pywebview como js_api, delegando cada ação da UI para o serviço gui correspondente.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -42,29 +41,29 @@ class Api:
             `_window` starts as None and is only set in `set_window`; see the
             explanation there of why this reference must stay private.
         """
-        # Nome com underscore de propósito: pywebview injeta este objeto como
-        # `js_api` e reflete recursivamente sobre todo atributo público não-
-        # privado em busca de métodos pra expor ao JS (ver pywebview/util.py
-        # `get_functions`). Se `window` (o objeto nativo do WebView2/WinForms)
-        # fosse público, essa reflexão desceria pelo grafo de acessibilidade
-        # COM nativo — que tem referências circulares reais — e explodiria em
-        # RecursionError + acessos cross-thread ao CoreWebView2Controller,
-        # travando a janela por vários segundos logo na abertura do app.
+        # Name has a leading underscore on purpose: pywebview injects this object as
+        # `js_api` and recursively reflects over every public (non-underscore)
+        # attribute looking for methods to expose to JS (see pywebview/util.py
+        # `get_functions`). If `window` (the native WebView2/WinForms object)
+        # were public, that reflection would walk down the native COM
+        # accessibility graph — which has real circular references — and blow up
+        # with a RecursionError plus cross-thread access to CoreWebView2Controller,
+        # hanging the window for several seconds right at app startup.
         self._window = None
         self.dispatcher = Dispatcher(self)
 
-        # Estado da sessão de revisão em andamento, compartilhado pelos serviços abaixo.
+        # State of the review session in progress, shared by the services below.
         self.pontos_calibracao = []
         self.caminho_pdf_atual = None
-        # TE (elemento de temperatura) → TT/TIT (transmissor) usa o mesmo
-        # número de certificado do TE que o mede; casados pela parte do TAG
-        # sem o prefixo de tipo (ver xml_model.xml_generator.chave_par_te).
-        # Um dict por par evita que, com vários pares TE+TT num mesmo lote,
-        # um TT pegue por engano o certificado do TE de outro instrumento —
-        # o que aconteceria com um único valor "último TE visto" (bug real
-        # encontrado nesta sessão). Vive pela sessão inteira do app (não é
-        # resetado por leitura), já que o usuário pode processar o TE e o
-        # TT em ações separadas, não necessariamente no mesmo lote.
+        # TE (temperature element) → TT/TIT (transmitter) uses the same
+        # certificate number as the TE that measures it; matched by the TAG part
+        # without the type prefix (see xml_model.xml_generator.chave_par_te).
+        # A dict per pair avoids that, with several TE+TT pairs in the same batch,
+        # a TT would mistakenly pick up the certificate of another instrument's
+        # TE — which would happen with a single "last TE seen" value (a real
+        # bug found in this session). It lives for the whole app session (it is
+        # not reset per reading), since the user may process the TE and the
+        # TT in separate actions, not necessarily in the same batch.
         self.certificados_te_por_par = {}
         self.pontos_calibracao_petro = None
         self.dados_certificado_atual = None
@@ -76,19 +75,19 @@ class Api:
         self._dados_pdf_review = None
         self._registro_review = None
 
-        # Estado da fila de processamento em lote (Fase 5 — múltiplos PDFs).
-        # Compartilhado entre PdfProcessingService (que a alimenta e avança) e
-        # RevisionService (que acrescenta um resultado a cada AC gerada).
+        # State of the batch processing queue (Phase 5 — multiple PDFs).
+        # Shared between PdfProcessingService (which feeds and advances it) and
+        # RevisionService (which appends a result each time an AC is generated).
         self.fila_processamento = []
         self.indice_fila = 0
         self.resultados_lote = []
         self.eventos_lote = []
 
-        # Fase 6: revisão agregada em lote — um item por certificado lido
-        # com sucesso (dados/registro/divergências), preenchido por
-        # RevisionService.coletar_revisao_lote enquanto a fila é lida sem
-        # pausar, e consumido pela tela de divergências agregada/gerar_lote
-        # só depois que todos os itens da fila terminam de ser lidos.
+        # Phase 6: aggregated batch review — one item per certificate read
+        # successfully (data/record/divergences), filled in by
+        # RevisionService.coletar_revisao_lote while the queue is read without
+        # pausing, and consumed by the aggregated divergences screen/gerar_lote
+        # only after all queue items have finished being read.
         self.instrumentos_lote = []
 
         self._dialogs = DialogBridge(self)
@@ -101,7 +100,7 @@ class Api:
         """Registers the created pywebview window, used by DialogBridge to call evaluate_js."""
         self._window = window
 
-    # ---------- Bridge de diálogos / navegação (usado pela UI e pelos processors) ----------
+    # ---------- Dialog bridge / navigation (used by the UI and by the processors) ----------
 
     def _js(self, expr):
         """Delegates to `DialogBridge.js`."""
@@ -147,7 +146,7 @@ class Api:
         """Delegates to `PdfProcessingService.dados_origem_automaticos`."""
         return self._pdf_service.dados_origem_automaticos(tag)
 
-    # ---------- Tela 1 → 2: seleção, leitura e classificação do PDF/XML ----------
+    # ---------- Screen 1 → 2: PDF/XML selection, reading and classification ----------
 
     def escolher_arquivos_pdf(self):
         """Delegates to `PdfProcessingService.escolher_arquivos_pdf`."""
@@ -165,7 +164,7 @@ class Api:
         """Delegates to `PdfProcessingService.cancelar_leitura`."""
         return self._pdf_service.cancelar_leitura()
 
-    # ---------- Tela 3: revisar divergências / gerar AC ----------
+    # ---------- Screen 3: review divergences / generate AC ----------
 
     def iniciar_revisao(self, dados_pdf):
         """Delegates to `RevisionService.iniciar_revisao`."""
@@ -191,7 +190,7 @@ class Api:
         """Delegates to `RevisionService.abrir_arquivo`."""
         return self._revision_service.abrir_arquivo(caminho)
 
-    # ---------- Tela 3 (Fase 6): revisão agregada em lote ----------
+    # ---------- Screen 3 (Phase 6): aggregated batch review ----------
 
     def resolver_divergencia_lote(self, tag, key, aplicar):
         """Delegates to `RevisionService.resolver_divergencia_lote`."""
@@ -209,7 +208,7 @@ class Api:
         """Delegates to `RevisionService.confirmar_geracao_lote`."""
         return self._revision_service.confirmar_geracao_lote()
 
-    # ---------- Tela 5: editar / consultar instrumento ----------
+    # ---------- Screen 5: edit / look up instrument ----------
 
     def buscar_instrumento(self, tag):
         """Delegates to `InstrumentService.buscar_instrumento`."""
@@ -219,7 +218,7 @@ class Api:
         """Delegates to `InstrumentService.salvar_instrumento`."""
         return self._instrument_service.salvar_instrumento(payload)
 
-    # ---------- Importação / exportação XLSX ----------
+    # ---------- XLSX import / export ----------
 
     def importar_xlsx(self):
         """Delegates to `ImportExportService.importar_xlsx`."""

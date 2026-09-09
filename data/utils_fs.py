@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Resolves the user's Documents folder via the Windows registry (respecting OneDrive redirection) and ensures a subfolder exists.
-#                 Resolve a pasta Documentos do usuário via registro do Windows (respeitando o redirecionamento do OneDrive) e garante que uma subpasta exista.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

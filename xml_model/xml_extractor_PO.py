@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Extracts the measured dimensional values (bore diameter, thickness, flatness, roughness, angles) of an orifice plate inspection PDF.
-#                 Extrai os valores dimensionais medidos (diâmetro do furo, espessura, planeza, rugosidade, ângulos) do PDF de inspeção da placa de orifício.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

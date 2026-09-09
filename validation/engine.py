@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Runs the applicable set of validation rules against a context and collects the resulting divergence issues, choosing the rule set based on instrument type.
-#                 Executa o conjunto de regras de validação aplicável a um contexto e reúne as divergências encontradas, escolhendo o conjunto de regras conforme o tipo de instrumento.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -66,11 +65,11 @@ class ValidationEngine:
         ]
 
         self.trecho_rules = [
-            # regras para Gas Meter Run serão adicionadas aqui futuramente
+            # rules for Gas Meter Run will be added here in the future
         ]
 
-        # secundario_rules é o conjunto padrão: cobre "instrumento" ausente ou
-        # qualquer valor que não seja um dos tipos com regras próprias abaixo.
+        # secundario_rules is the default set: covers a missing "instrumento" or
+        # any value that isn't one of the types with their own rules below.
         self._regras_por_instrumento = {
             "Gas Meter Run": self.trecho_rules,
             "Placa de Orificio": self.placa_rules,

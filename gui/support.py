@@ -5,12 +5,11 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Provides small shared constants and helpers used across the gui/ services.
-#                 Fornece constantes e helpers pequenos compartilhados entre os serviços de gui/.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
 
-"""Constantes e helpers pequenos compartilhados pelos serviços de gui/."""
+"""Small constants and helpers shared by the gui/ services."""
 
 from pathlib import Path
 
@@ -18,10 +17,10 @@ from data.utils_fs import pasta_documentos
 
 CHECKLIST_ALL = ["extract", "compare", "validate", "build"]
 
-# Pasta onde certificados recebidos por arrastar-e-soltar são salvos
-# temporariamente pra viabilizar a geração (ver
-# gui.pdf_service.PdfProcessingService.receber_arquivos_soltos). O usuário
-# pediu pra não manter o certificado de origem lá — só os PDFs/XMLs gerados.
+# Folder where certificates received via drag-and-drop are saved
+# temporarily to make generation possible (see
+# gui.pdf_service.PdfProcessingService.receber_arquivos_soltos). The user
+# asked not to keep the source certificate there — only the generated PDFs/XMLs.
 PASTA_CERTIFICADOS_SOLTOS = "AC's Generator/Certificados Recebidos"
 
 

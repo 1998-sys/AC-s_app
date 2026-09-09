@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Builds the reduced chromatography certificate XML with only the properties used in the flow calculation.
-#                 Monta o XML reduzido do certificado de cromatografia com apenas as propriedades usadas no cálculo de vazão.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -103,9 +102,9 @@ def xml_cromatografia(pdf_path: str, dados: dict, caminho_saida_xml: str | None 
     padrao = (dados.get("propriedades_pad") or {}).get("propriedades_padrao", []) or []
     amostragem = (dados.get("propriedades_amost") or {}).get("propriedades_amostragem", []) or []
 
-    # A viscosidade (nota (2) do relatório SGS) vem de uma correlação de
-    # referência, não de uma medição direta — por isso o XML reduzido não
-    # tem campo de incerteza pra ela, só valor (ver exemplo aprovado).
+    # Viscosity (note (2) of the SGS report) comes from a reference
+    # correlation, not a direct measurement — that's why the reduced XML
+    # has no uncertainty field for it, only value (see approved example).
     campos = [
         ("MASSA_MOLAR", padrao, {"incluir_algum": ("MOLECULAR", "MOLAR")}, True),
         ("DENSIDADE_ABSOLUTA", padrao, {"incluir_todos": ("DENSIDADE",), "excluir": ("RELATIVA",)}, True),

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Generates the Petrobras-schema straight run (gas meter run) inspection certificate XML from the DIM report dimensional data.
-#                 Gera o XML de certificado de inspeção do trecho reto (gas meter run) no padrão Petrobras a partir dos dados dimensionais do relatório DIM.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

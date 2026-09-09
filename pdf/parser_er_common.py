@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Shared helpers for the Evaluation Report (ER) parsers, extracting the report number and normalizing whitespace.
-#                 Funções auxiliares compartilhadas pelos parsers de Relatório de Avaliação (ER), extraindo o número do relatório e normalizando espaços.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

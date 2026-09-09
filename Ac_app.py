@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Application entry point: prepares safe console/output encoding, initializes the database and launches the pywebview desktop window.
-#                 Ponto de entrada da aplicação: prepara a codificação segura do console/saída, inicializa o banco de dados e inicia a janela desktop do pywebview.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -20,9 +19,9 @@ from data.conexao import criar_tabela, migrar
 if getattr(sys, 'frozen', False):
     os.chdir(os.path.dirname(sys.executable))
 
-# Build empacotado roda com console=False (sys.stdout/stderr = None); e mesmo em modo
-# console, o codepage padrão do Windows não é UTF-8 e pode derrubar um print() com
-# caracteres fora do cp1252 (ex.: "∞" em tabelas de certificado). Torna ambos os casos seguros.
+# The packaged build runs with console=False (sys.stdout/stderr = None); and even in
+# console mode, Windows' default codepage is not UTF-8 and can crash a print() with
+# characters outside cp1252 (e.g., "∞" in certificate tables). Make both cases safe.
 if sys.stdout is None or sys.stderr is None:
     sys.stdout = sys.stderr = open(os.devnull, "w")
 else:
@@ -45,7 +44,7 @@ def _resource(relative_path: str) -> str:
 
 LARGURA_PADRAO = 560
 ALTURA_PADRAO = 940
-MARGEM_TASKBAR = 80  # reserva espaço pra barra de tarefas/título não cobrir a janela
+MARGEM_TASKBAR = 80  # reserve space so the taskbar/title bar doesn't cover the window
 
 
 def _tamanho_janela():

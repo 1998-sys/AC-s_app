@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Handles the Gas Meter Run (straight length/Trecho Reto) instrument flow, requesting the Evaluation Report and extracting its dimensional data.
-#                 Trata o fluxo do instrumento Gas Meter Run (trecho reto), solicitando o Evaluation Report e extraindo seus dados dimensionais.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Defines the ValidationIssue class that represents a divergence detected during validation, along with its optional correction action.
-#                 Define a classe ValidationIssue, que representa uma divergência detectada durante a validação, junto com sua ação de correção opcional.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -39,11 +38,11 @@ class ValidationIssue:
         self.message = message
         self.action = action
         self.blocking = blocking
-        # Opcional: para divergências "PDF diz X, cadastro diz Y" — permite a
-        # UI mostrar as duas opções lado a lado em vez de um botão genérico
-        # "Aplicar correção". Formato: [{"label", "valor", "recomendado"?}, ...].
-        # A 1ª opção corresponde a aplicar `action` (resolver_divergencia com
-        # aplicar=True); a 2ª ("Pular certificado") não corrige o cadastro —
-        # em lote, escolher essa opção pula o certificado inteiro em vez de
-        # gerar a AC com um dado que ficaria divergente do cadastro.
+        # Optional: for divergences "PDF says X, registry says Y" — lets the
+        # UI show both options side by side instead of a generic
+        # "Apply correction" button. Format: [{"label", "valor", "recomendado"?}, ...].
+        # The 1st option corresponds to applying `action` (resolver_divergencia with
+        # aplicar=True); the 2nd ("Skip certificate") does not fix the registry —
+        # in batch mode, choosing this option skips the whole certificate instead of
+        # generating the AC with data that would remain divergent from the registry.
         self.opcoes = opcoes

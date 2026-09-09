@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Fills the flow meter linearization Excel template with the calibration points and exports both XLSX and PDF.
-#                 Preenche o template Excel de linearização de medidor de vazão com os pontos de calibração e exporta o XLSX e o PDF.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -19,22 +18,23 @@ import os
 from datetime import datetime
 
 
-# ── MAPA DE CÉLULAS ─────────────────────────────────────────────────────────
-# Endereços confirmados abrindo Template_Linearizacao.xlsx (aba "Linearização").
-# Frequência (E), Status (S), a 2ª tabela "Dados a Serem Configurados" (linhas
-# 56-75), KF médio (L76) e os limites de alarme (J79/M79) já são FÓRMULAS no
-# próprio template — todas derivadas das colunas que preenchemos aqui
-# (C/G/I/K/M/Q). Não escrever nelas: o Excel recalcula sozinho ao abrir/
-# exportar (inclusive a cor aprovado/reprovado, que é formatação condicional
-# nativa em S22:T41 — não precisa de PatternFill).
-# K-factor corrigido (O) também é fórmula do template, mas o ROUND()/formato
-# fixos em 5 casas do template só fecham 7 dígitos significativos quando o
-# valor cai entre 10 e 100 — pra um K-Factor típico (perto de 1) isso rende
-# só 6 dígitos. Por isso essa fórmula é reescrita por linha em
-# gerar_linearizacao (casa decimal calculada a partir da ordem de grandeza,
-# mesma regra do K-Factor nominal) em vez de deixada intacta como as demais.
+# ── CELL MAP ─────────────────────────────────────────────────────────
+# Addresses confirmed by opening Template_Linearizacao.xlsx (sheet "Linearização").
+# Frequência (E), Status (S), the 2nd table "Dados a Serem Configurados" (rows
+# 56-75), KF médio (L76) and the alarm limits (J79/M79) are already FORMULAS in
+# the template itself — all derived from the columns we fill here
+# (C/G/I/K/M/Q). Do not write to them: Excel recalculates them on its own
+# when opening/exporting (including the pass/fail color, which is native
+# conditional formatting in S22:T41 — no PatternFill needed).
+# K-factor corrigido (O) is also a template formula, but the fixed
+# ROUND()/format at 5 decimal places in the template only reaches 7
+# significant figures when the value falls between 10 and 100 — for a
+# typical K-Factor (close to 1), that only yields 6 digits. That's why this
+# formula is rewritten per row in gerar_linearizacao (decimal places
+# computed from the order of magnitude, same rule as the nominal K-Factor)
+# instead of being left untouched like the others.
 CELLS = {
-    # Cabeçalho esquerda
+    # Left header
     "cliente":         "D9",
     "instalacao":      "D10",
     "tag_sistema":     "D11",
@@ -42,18 +42,18 @@ CELLS = {
     "sistema":         "D13",
     "data_calibracao": "D14",
     "tipo_medidor":    "D15",
-    # Cabeçalho direita ("TAG" em M12 é fórmula "=D11", não escrever)
+    # Right header ("TAG" in M12 is formula "=D11", do not write)
     "num_certificado": "M9",
     "modelo":          "M10",
     "fabricante":      "M11",
     "num_serie":       "M13",
     "diametro":        "M14",
     "faixa_calibrada": "M15",
-    # K-Factor nominal
+    # Nominal K-Factor
     "fator_k":         "D19",
-    # KF médio (fórmula "=AVERAGE(...)" do template, na 2ª tabela)
+    # KF médio (template formula "=AVERAGE(...)", in the 2nd table)
     "kf_medio":        "L76",
-    # Tabela de calibração (linhas 22 a 41 — até 20 pontos)
+    # Calibration table (rows 22 to 41 — up to 20 points)
     "tabela_linha_ini": 22,
     "tabela_linha_fim": 41,
     "col_vazao":       "C",
@@ -63,36 +63,36 @@ CELLS = {
     "col_kfc":         "O",
     "col_erro":        "M",
     "col_incerteza":   "Q",
-    # Títulos de coluna (unidade escrita entre parênteses é sobrescrita
-    # dinamicamente com a unidade real do certificado — ver gerar_linearizacao).
+    # Column titles (the unit written in parentheses is dynamically
+    # overwritten with the certificate's actual unit — see gerar_linearizacao).
     "titulo_vazao":     "C21",
     "titulo_vol_ref":   "G21",
     "titulo_vol_med":   "I21",
-    # Bloco de assinatura (nomes padrão já vêm preenchidos no template; só
-    # são sobrescritos se o usuário optar por alterar no prompt).
+    # Signature block (default names already come filled in the template;
+    # only overwritten if the user chooses to change them in the prompt).
     "elaborado_nome": "F96",
     "elaborado_data": "F98",
     "verificado_nome": "N96",
-    # verificado_data (N98) é fórmula "=F98" no template — não sobrescrever.
+    # verificado_data (N98) is formula "=F98" in the template — do not overwrite.
 }
 
-# Colunas com borda na tabela de calibração (B = borda externa esquerda até
-# T = borda externa direita). Linha 30 é usada como referência de borda
-# "normal" (fina) do meio da tabela — ver _ajustar_bordas_tabela.
+# Columns with a border in the calibration table (B = outer left border to
+# T = outer right border). Row 30 is used as the reference for the "normal"
+# (thin) border in the middle of the table — see _ajustar_bordas_tabela.
 _BORDA_COLS = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"]
 _LINHA_BORDA_REF = 30
 
-# A tabela "Dados a Serem Configurados" (linha + TABELA2_OFFSET) é mais
-# estreita que a de cima — só usa H a M (N°/Vazão/Frequência/K-factor
-# corrigido); C a G e N a T ficam sempre sem borda ali. Aplicar o range de
-# colunas da tabela 1 (B a T) nela sobra borda grossa nas colunas N a T da
-# linha de fechamento, "vazando" pra fora da caixa real da tabela 2.
+# The "Dados a Serem Configurados" table (row + TABELA2_OFFSET) is narrower
+# than the one above — it only uses H to M (N°/Vazão/Frequência/K-factor
+# corrigido); C to G and N to T are always left without a border there.
+# Applying table 1's column range (B to T) to it leaves a thick border on
+# columns N to T of the closing row, "leaking" outside table 2's actual box.
 _BORDA_COLS_TABELA2 = ["H", "I", "J", "K", "L", "M"]
 
-# Deslocamento de linha da tabela 1 (calibração) para a 2ª tabela ("Dados a
-# Serem Configurados") — ex.: linha 22 da tabela 1 espelha na linha 56 da
-# tabela 2. Usado tanto pra ocultar/mostrar linhas quanto pro formato do
-# K-Factor Corrigido (col. L na tabela 2, que espelha a col. O da tabela 1).
+# Row offset from table 1 (calibration) to the 2nd table ("Dados a Serem
+# Configurados") — e.g. row 22 of table 1 mirrors row 56 of table 2. Used
+# both for hiding/showing rows and for the K-Factor Corrigido format
+# (col. L in table 2, which mirrors col. O in table 1).
 TABELA2_OFFSET = 34
 
 
@@ -281,13 +281,13 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
         ws[f"K{row + TABELA2_OFFSET}"].number_format = ws[f"E{row}"].number_format
 
         if not usada or row == linha_ini:
-            continue  # linha de cabeçalho da tabela: mantém a borda original
+            continue  # table header row: keeps the original border
 
-        # A altura das linhas do template original também é inconsistente
-        # entre blocos (algumas ficam com altura padrão/None, outras com um
-        # valor fixo tipo 15.0/15.75/14.45) — sem normalizar isso, uma linha
-        # reexibida ou a última linha usada saem com altura diferente das
-        # demais, mesmo com a borda já uniformizada.
+        # The original template's row height is also inconsistent between
+        # blocks (some end up with default/None height, others with a fixed
+        # value like 15.0/15.75/14.45) — without normalizing this, a
+        # re-shown row or the last used row would come out with a different
+        # height than the rest, even with the border already normalized.
         ws.row_dimensions[row].height = ws.row_dimensions[_LINHA_BORDA_REF].height
         ws.row_dimensions[row + TABELA2_OFFSET].height = ws.row_dimensions[
             _LINHA_BORDA_REF + TABELA2_OFFSET
@@ -343,12 +343,12 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     wb = openpyxl.load_workbook(caminho_template)
     ws = wb["Linearização"]
 
-    C = CELLS  # atalho
+    C = CELLS  # shortcut
 
-    # ── Cabeçalho esquerda ────────────────────────────────────────────────
-    # aplicacao/sistema vêm do prompt pedido ao usuário ao soltar o XML
-    # (PdfProcessingService._processar_xml_ft) — não existem no cadastro de
-    # instrumentos pra medidor de vazão.
+    # ── Left header ────────────────────────────────────────────────
+    # aplicacao/sistema come from the prompt asked to the user when dropping
+    # the XML (PdfProcessingService._processar_xml_ft) — they don't exist in
+    # the instrument registry for a flow meter.
     cliente = _cliente_do_caminho(caminho_xml)
 
     ws[C["cliente"]]         = cliente
@@ -359,7 +359,7 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     ws[C["data_calibracao"]] = _data_br(dados.get("data_calibracao", ""))
     ws[C["tipo_medidor"]]    = dados.get("tipo", "")
 
-    # ── Cabeçalho direita ─────────────────────────────────────────────────
+    # ── Right header ─────────────────────────────────────────────────
     ws[C["num_certificado"]] = dados.get("numero_certificado", "")
     ws[C["modelo"]]          = dados.get("modelo", "")
     ws[C["fabricante"]]      = dados.get("fabricante", "")
@@ -367,24 +367,24 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     ws[C["diametro"]]        = dados.get("diametro", "")
     ws[C["faixa_calibrada"]] = dados.get("faixa_calibrada", "")
 
-    # ── K-Factor nominal ──────────────────────────────────────────────────
-    # Sempre 7 dígitos significativos (completa com zeros se o certificado
-    # tiver menos) — K-Factor não tem uma casa decimal fixa como os demais
-    # campos, é significância que importa, não posição decimal.
+    # ── Nominal K-Factor ──────────────────────────────────────────────────
+    # Always 7 significant figures (padded with zeros if the certificate has
+    # fewer) — K-Factor doesn't have a fixed decimal place like the other
+    # fields, what matters is significance, not decimal position.
     fator_k = dados.get("fator_k", 0.0)
     ws[C["fator_k"]] = fator_k
     ws[C["fator_k"]].number_format = _formato_significativos(fator_k)
 
-    # ── Títulos de coluna (unidade real do certificado, sem conversão) ────
+    # ── Column titles (certificate's actual unit, no conversion) ────
     ws[C["titulo_vazao"]]   = f"Vazão da Calibração ({dados.get('vazao_unidade') or 'm³/h'})"
     ws[C["titulo_vol_ref"]] = f"Volume de Referência ({dados.get('vol_referencia_unidade') or 'L'})"
     ws[C["titulo_vol_med"]] = f"Volume do Medidor ({dados.get('vol_medidor_unidade') or 'L'})"
 
-    # ── Tabela de calibração ────────────────────────────────────────────
-    # Frequência (E) e Status (S) são fórmulas do template — calculadas a
-    # partir do que escrevemos aqui, não tocar. K-Factor Corrigido (O) também
-    # é fórmula, mas tem o ROUND()/formato reescritos por linha logo abaixo
-    # (ver comentário junto à escrita da coluna O).
+    # ── Calibration table ────────────────────────────────────────────
+    # Frequência (E) and Status (S) are template formulas — calculated from
+    # what we write here, do not touch. K-Factor Corrigido (O) is also a
+    # formula, but has its ROUND()/format rewritten per row further below
+    # (see the comment next to where column O is written).
     pontos = dados.get("pontos", [])
     linha_ini = C["tabela_linha_ini"]
     max_pontos = C["tabela_linha_fim"] - linha_ini + 1
@@ -414,11 +414,11 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
         ws[_celula(C["col_erro"],      row)] = p["erro_pct"]
         ws[_celula(C["col_incerteza"], row)] = p["incerteza"]
 
-        # K-Factor Corrigido (O) = fator_k / meter_factor — mesmos operandos
-        # da fórmula do template, só recalculados aqui pra saber com quantas
-        # casas arredondar (regra dos 7 dígitos significativos). Mantém como
-        # fórmula (não como valor estático) pra continuar recalculando sozinho
-        # se o usuário editar D19/K{row} manualmente no Excel depois.
+        # K-Factor Corrigido (O) = fator_k / meter_factor — the same operands
+        # as the template formula, just recalculated here to know how many
+        # decimal places to round to (the 7-significant-figure rule). Kept as
+        # a formula (not a static value) so it keeps recalculating on its own
+        # if the user manually edits D19/K{row} in Excel afterward.
         meter_factor = p["meter_factor"]
         try:
             kfc_estimado = fator_k / meter_factor
@@ -433,42 +433,43 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
         cel_kfc.number_format = _formato_decimal(casas_kfc)
         kfc_estimados.append(round(kfc_estimado, casas_kfc))
 
-        # Espelho na tabela "Dados a Serem Configurados" (col. L = "=IF(O.."):
-        # mesma fórmula/valor, só precisa do formato acompanhando o de cima.
+        # Mirror in the "Dados a Serem Configurados" table (col. L = "=IF(O.."):
+        # same formula/value, just needs the format to match the one above.
         ws[f"L{row + TABELA2_OFFSET}"].number_format = _formato_decimal(casas_kfc)
 
-    # KF médio (L76, "=AVERAGE(...)" do template) tinha formato fixo em 5
-    # casas — pra um K-Factor de ordem de grandeza maior (ex.: Coriolis
-    # ~20000 pulsos/m³) isso estourava bem além de 7 dígitos (ex.:
-    # "19970,57000"). Só o formato é ajustado aqui (valor continua a fórmula
-    # do template) — a média em Python usa os mesmos K-Factor Corrigidos já
-    # escritos na coluna O, então tem a mesma ordem de grandeza do resultado real.
+    # KF médio (L76, template formula "=AVERAGE(...)") had a fixed format
+    # with 5 decimal places — for a K-Factor of larger order of magnitude
+    # (e.g. Coriolis ~20000 pulses/m³) this blew way past 7 digits (e.g.
+    # "19970,57000"). Only the format is adjusted here (the value keeps the
+    # template formula) — the Python average uses the same K-Factor Corrigido
+    # values already written in column O, so it has the same order of
+    # magnitude as the real result.
     if kfc_estimados:
         media_kfc = sum(kfc_estimados) / len(kfc_estimados)
         ws[C["kf_medio"]].number_format = _formato_significativos(media_kfc)
 
-    # O template só vem com as 10 primeiras linhas de cada tabela visíveis e
-    # com borda "normal" (linhas 22-31 e seu espelho 56-65 em "Dados a Serem
-    # Configurados"); as próximas 10 (32-41 / 66-75) ficam ocultas por
-    # padrão — reexibe/oculta conforme o nº de pontos deste certificado e
-    # uniformiza a borda (senão as linhas reexibidas saem com um contorno
-    # mais grosso, herdado do estilo delas quando ocultas).
+    # The template only ships with the first 10 rows of each table visible
+    # and with a "normal" border (rows 22-31 and their mirror 56-65 in
+    # "Dados a Serem Configurados"); the next 10 (32-41 / 66-75) are hidden
+    # by default — shows/hides them according to this certificate's number
+    # of points and normalizes the border (otherwise the re-shown rows come
+    # out with a thicker outline, inherited from their style while hidden).
     _ajustar_linhas_tabela(ws, C["tabela_linha_ini"], C["tabela_linha_fim"], len(pontos))
 
-    # ── Assinaturas (Elaborado por / Verificado por) ───────────────────────
-    # Data sempre atualizada para hoje (o template vem com uma data de
-    # exemplo fixa); a data de "Verificado por" (N98) já é a fórmula "=F98"
-    # no próprio template, então acompanha sozinha — não escrever nela.
-    # Os nomes só são sobrescritos se o usuário optou por alterar no prompt
-    # (PdfProcessingService._processar_xml_ft); senão ficam com o padrão já
-    # preenchido no template (ver ler_nomes_assinatura).
+    # ── Signatures (Elaborado por / Verificado por) ───────────────────────
+    # Date always updated to today (the template ships with a fixed sample
+    # date); the "Verificado por" date (N98) is already the formula "=F98"
+    # in the template itself, so it follows on its own — do not write to it.
+    # The names are only overwritten if the user chose to change them in the
+    # prompt (PdfProcessingService._processar_xml_ft); otherwise they keep
+    # the default already filled in the template (see ler_nomes_assinatura).
     ws[C["elaborado_data"]] = datetime.now()
     if dados.get("elaborado_por"):
         ws[C["elaborado_nome"]] = dados["elaborado_por"]
     if dados.get("verificado_por"):
         ws[C["verificado_nome"]] = dados["verificado_por"]
 
-    # ── Salvar XLSX de saída ──────────────────────────────────────────────
+    # ── Save output XLSX ──────────────────────────────────────────────
     pasta_saida   = os.path.dirname(os.path.abspath(caminho_xml))
     cert_limpo    = dados.get("numero_certificado", "").replace(" ", "")
     tag_limpa     = dados.get("tag", "").replace(" ", "")
@@ -477,7 +478,7 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
 
     wb.save(caminho_xlsx)
 
-    # ── Exportar PDF via Excel COM ────────────────────────────────────────
+    # ── Export PDF via Excel COM ────────────────────────────────────────
     nome_pdf    = f"{cert_limpo}_{tag_limpa}_LINEARIZACAO.pdf"
     caminho_pdf = os.path.join(pasta_saida, nome_pdf)
 
@@ -497,12 +498,13 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
 
     try:
         wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_xlsx))
-        # Frequência/KFc/Status/2ª tabela/KF médio/alarmes são fórmulas —
-        # força o recálculo antes de exportar pra não sair em branco no PDF.
+        # Frequência/KFc/Status/2nd table/KF médio/alarms are formulas —
+        # forces a recalculation before exporting so they don't come out
+        # blank in the PDF.
         excel.Calculate()
-        # Exporta só a aba "Linearização" — ExportAsFixedFormat no Workbook
-        # (em vez da Worksheet) incluiria também "Falha Presumida" (ainda
-        # não implementada) com os dados de exemplo do template.
+        # Exports only the "Linearização" sheet — ExportAsFixedFormat on the
+        # Workbook (instead of the Worksheet) would also include "Falha
+        # Presumida" (not yet implemented) with the template's sample data.
         ws_excel = wb_excel.Worksheets("Linearização")
         ws_excel.ExportAsFixedFormat(0, caminho_pdf)
         wb_excel.Close(SaveChanges=False)

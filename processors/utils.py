@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Implements the ORIGEM-specific flow that fills in AC number and location automatically or prompts the user when they are missing.
-#                 Implementa o fluxo específico do cliente ORIGEM que preenche o número da AC e a localização automaticamente ou solicita ao usuário quando estiverem ausentes.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -34,10 +33,10 @@ def fluxo_origem(app, dados_certificado, callback):
         callback(dados_certificado)
         return
 
-    # Localização/Nº AC podem vir de um documento "Itens Relacionados"
-    # separado (ex.: LDN-030.pdf) que o usuário escolhe incluir — ver
-    # Api.dados_origem_automaticos. Só pede preenchimento manual quando
-    # não encontrar a TAG nesse documento (ou o usuário não incluir um).
+    # Location/AC No. can come from a separate "Related Items" document
+    # (e.g., LDN-030.pdf) that the user chooses to include — see
+    # Api.dados_origem_automaticos. Only asks for manual input when the
+    # TAG is not found in that document (or the user doesn't include one).
     n_ac, localizacao = app.dados_origem_automaticos(dados_certificado.get("tag"))
     if n_ac and localizacao:
         dados_certificado["n_ac"] = n_ac

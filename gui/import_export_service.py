@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Handles bulk import/export of the instrument database through XLSX spreadsheets.
-#                 Cuida da importação/exportação em massa da base de instrumentos via planilhas XLSX.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -18,7 +17,7 @@ from importer.exportador import exportar as exportar_xlsx_db
 
 
 class ImportExportService:
-    """Importação/exportação da base de instrumentos via planilha XLSX."""
+    """Bulk import/export of the instrument database via XLSX spreadsheet."""
 
     def __init__(self, api):
         """Stores the Api reference for dialogs and access to other services."""

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Defines the base processor class and the shared "certificate then Evaluation Report" flow reused by the concrete instrument processors.
-#                 Define a classe base dos processors e o fluxo compartilhado "certificado depois Evaluation Report" reutilizado pelos processors concretos de instrumento.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -42,12 +41,12 @@ class BaseProcessor:
             "Cada processor deve implementar o método processar()"
         )
 
-    # ---- Template method: fluxo "certificado -> pedir Evaluation Report -> revisão" ----
-    # Usado por processors cujo certificado sozinho não basta para a revisão:
-    # o usuário precisa selecionar um segundo PDF (Evaluation Report/Report
-    # Valuation) antes de comparar e abrir a tela de revisão. TrechoProcessor
-    # e PlacaProcessor configuram esse fluxo via os hooks abaixo em vez de
-    # reimplementar o confirm -> file dialog -> thread -> try/except inteiro.
+    # ---- Template method: "certificate -> request Evaluation Report -> review" flow ----
+    # Used by processors whose certificate alone is not enough for the review:
+    # the user needs to select a second PDF (Evaluation Report/Report
+    # Valuation) before comparing and opening the review screen. TrechoProcessor
+    # and PlacaProcessor configure this flow via the hooks below instead of
+    # reimplementing the whole confirm -> file dialog -> thread -> try/except.
 
     def _iniciar_fluxo_com_report(self, caminho_certificado, dados_pdf, msg_dados_ausentes):
         """Starts the shared flow of requesting a second document (Evaluation
@@ -164,7 +163,7 @@ class BaseProcessor:
 
             self.app.after(0, mostrar_erro)
 
-    # Hooks que cada subclasse que usar _iniciar_fluxo_com_report deve implementar.
+    # Hooks that each subclass using _iniciar_fluxo_com_report must implement.
 
     def _reset_extra(self):
         """Optional hook to reset subtype-specific extra fields before

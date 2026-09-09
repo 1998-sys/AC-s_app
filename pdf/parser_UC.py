@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses Uncertainty Calculation Report (CI) PDFs, extracting instrument, certificate, and DP flow/pressure data.
-#                 Analisa PDFs de Relatório de Cálculo de Incerteza (CI), extraindo dados de instrumentos, certificados e vazão/pressão de DP.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -250,16 +249,16 @@ def extrair_fluxos_dp(texto: str) -> dict:
 
     secao = texto[match.start():]
     tem_dp_low = bool(re.search(r'DP\s+Low', secao, re.IGNORECASE))
-    # "Qv" só aparece no cabeçalho da revisão mais nova ("Qv | DP | U (%)"),
-    # onde a pressão vem antes da incerteza — a revisão antiga usa
-    # "Vazão | Incerteza | Pressão", então esse marcador distingue as duas
-    # sem precisar de uma amostra real de cada revisão pra comparar.
+    # "Qv" only appears in the newer revision's header ("Qv | DP | U (%)"),
+    # where pressure comes before uncertainty — the older revision uses
+    # "Vazão | Incerteza | Pressão", so this marker distinguishes the two
+    # without needing an actual sample of each revision to compare.
     pressao_antes_incerteza = bool(re.search(r'\bQv\b', secao[:600], re.IGNORECASE))
 
     num = r'\d[\d.]*(?:,\d+)?'
 
-    # Captura 3 (ou 6, com DP Low) números por linha — o significado de cada
-    # coluna depende de pressao_antes_incerteza (ver _extrair_grupo_dp).
+    # Captures 3 (or 6, with DP Low) numbers per line — the meaning of each
+    # column depends on pressao_antes_incerteza (see _extrair_grupo_dp).
     if tem_dp_low:
         padrao = re.compile(
             rf'^({num})\s+({num})\s+({num})\s+({num})\s+({num})\s+({num})$',
@@ -286,7 +285,7 @@ def extrair_fluxos_dp(texto: str) -> dict:
 
     def min_max(vazoes: list, incertezas: list, pressoes: list) -> dict:
         """Sorts the (flow, uncertainty, pressure) triples by flow and returns the lowest/highest-flow pairs."""
-        # Ordena pelo valor da vazão para manter o par vazão↔pressão coerente
+        # Sorts by flow rate value to keep the flow↔pressure pair consistent
         pares = sorted(zip(vazoes, incertezas, pressoes), key=lambda x: br_float(x[0]))
         return {
             "vazao_min":      pares[0][0],
@@ -415,14 +414,14 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None, cabe
                 chave = k
                 break
         if chave is None:
-            continue  # linha não reconhecida pelo mapa, ignora
+            continue  # row not recognized by the map, skip
 
         if colunas:
             dados_instrumento = {
                 "tag":         linha[colunas["tag"]].strip(),
                 "certificado": normalizar_certificado(linha[colunas["certificado"]].strip()),
                 "u":           linha[colunas["u"]].strip(),
-                "fator_k":     "",  # este layout não tem coluna de fator de cobertura separada
+                "fator_k":     "",  # this layout has no separate coverage-factor column
                 "erro":        linha[colunas["erro"]].strip(),
             }
             idx_diametro = colunas.get("diametro")
@@ -439,7 +438,7 @@ def organizar_dados_uc(documentos: list | None, fluxos: dict | None = None, cabe
             if linha[-2].strip() == "mm":
                 dados_instrumento["diametro"] = linha[-3].strip()
 
-        # Injeta vazão e pressão para transmissores de pressão diferencial
+        # Injects flow rate and pressure for differential pressure transmitters
         if fluxos and chave in ("dp_high", "dp_low"):
             fluxo_dp = fluxos.get(chave)
             if fluxo_dp:

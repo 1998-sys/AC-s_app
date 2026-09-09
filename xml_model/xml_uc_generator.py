@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Generates the uncertainty calculation report XML (UncertaintyReport) with the measurement chain components and their metrological limits.
-#                 Gera o XML do relatório de cálculo de incerteza (UncertaintyReport) com os componentes da cadeia de medição e seus limites metrológicos.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -16,7 +15,7 @@ import xml.etree.ElementTree as ET
 from xml_model.xml_common import salvar_xml_bonito
 
 _NUM_RE = re.compile(r'^\d[\d.,]*$')
-# Caracteres inválidos em XML 1.0 (exceto tab \x09, newline \x0A e CR \x0D)
+# Characters invalid in XML 1.0 (except tab \x09, newline \x0A and CR \x0D)
 _INVALID_XML = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]')
 
 

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Extracts raw text from calibration certificate PDFs using pdfplumber.
-#                 Extrai o texto bruto de PDFs de certificados de calibração usando pdfplumber.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -33,7 +32,7 @@ def extrair_texto(caminho_pdf: str) -> str:
                     texto_final += texto + "\n"
                     
 
-        # Normalização 
+        # Normalization
         texto_final = texto_final.replace("\xa0", " ").strip()
         return texto_final
 

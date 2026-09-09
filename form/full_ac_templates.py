@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Fills the full AC Excel templates for PRIO, YINSON and YINSON ATLANTA and exports them to PDF via Excel COM automation.
-#                 Preenche os templates Excel de AC completa para PRIO, YINSON e YINSON ATLANTA e os exporta para PDF via automação COM do Excel.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -33,16 +32,17 @@ def _adicionar_dia_util(data):
         falls on a Saturday or Sunday (guaranteeing a business-day return).
     """
     data += timedelta(days=1)
-    if data.weekday() == 5:  # sábado
+    if data.weekday() == 5:  # Saturday
         data += timedelta(days=2)
-    elif data.weekday() == 6:  # domingo
+    elif data.weekday() == 6:  # Sunday
         data += timedelta(days=1)
     return data
 
 
-# Cada grupo de categorias mapeia para o mesmo título em todos os clientes desta
-# família — exceto o caso "pressao" quando `permitir_split_pt_pdt` está ativo
-# (hoje, só PRIO), que distingue PT de PDT pela faixa máxima calibrada.
+# Each category group maps to the same title across all clients in this
+# family — except the "pressao" case when `permitir_split_pt_pdt` is
+# enabled (currently only PRIO), which distinguishes PT from PDT by the
+# maximum calibrated range.
 _GRUPOS_CATEGORIA = [
     (("TERMORRESISTÊNCIA PT-100 - 2 FIOS",
       "TERMORRESISTÊNCIA PT-100 - 3 FIOS",
@@ -147,7 +147,7 @@ def gerar_ac_completo(config, dados, caminho_pdf_original, excel=None):
     if config["sistema_cell"]:
         ws[config["sistema_cell"]] = dados.get("sistema")
 
-    # Tratamento do campo Local
+    # Handling of the Local field
     local = (dados.get("local") or "").strip()
 
     if len(local) > 28:
@@ -166,7 +166,7 @@ def gerar_ac_completo(config, dados, caminho_pdf_original, excel=None):
     if titulo:
         ws[config["titulo_cell"]] = titulo
 
-    # Report Date (+1 dia) - útil
+    # Report Date (+1 day) - business day
     if dados.get("report_date"):
         dt = datetime.strptime(dados["report_date"], "%d/%m/%Y")
         dt_util = _adicionar_dia_util(dt)

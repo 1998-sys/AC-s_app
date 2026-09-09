@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses orifice plate calibration certificates, extracting item, material, thermal coefficient, pipe diameter and TAG.
-#                 Analisa certificados de calibração de placa de orifício, extraindo item, material, coeficiente de dilatação, diâmetro do tubo e TAG.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

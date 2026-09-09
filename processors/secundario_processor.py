@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Handles the flow for secondary instruments, extracting calibration points directly from the certificate before starting the review.
-#                 Trata o fluxo dos instrumentos secundários, extraindo os pontos de calibração direto do certificado antes de iniciar a revisão.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

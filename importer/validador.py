@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Validates a single spreadsheet row against the instrument registry, classifying it for insertion, conflict or skip.
-#                 Valida uma única linha da planilha em relação ao cadastro de instrumentos, classificando-a para inserção, conflito ou descarte.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -57,17 +56,17 @@ def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
         - "mvs_candidato": SN already belongs to another TAG; may be an MVS pending confirmation.
         - "inserir": new valid record, ready for insertion.
     """
-    # TAG ou SN vazio
+    # Empty TAG or SN
     if not tag or not sn:
         return "aviso", {"linha": n, "tag": tag or "—", "sn": sn or "—",
                          "motivo": "TAG ou SN vazio"}
 
-    # Tipo inválido
+    # Invalid type
     if tipo not in TIPOS_VALIDOS:
         return "aviso", {"linha": n, "tag": tag, "sn": sn,
                          "motivo": f"Tipo inválido: '{tipo}' (use SEC ou PO)"}
 
-    # Validações de range exclusivas para SEC
+    # Range validations exclusive to SEC
     min_range = max_range = None
     if tipo == "SEC":
         min_range, err = _to_float(min_raw)
@@ -84,22 +83,22 @@ def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
             return "aviso", {"linha": n, "tag": tag, "sn": sn,
                              "motivo": f"min_range >= max_range ({min_range} >= {max_range})"}
 
-    # Consultas ao banco
+    # Database lookups
     reg_tag = buscar_instrumento_por_tag(tag)
     reg_sn  = buscar_por_sn_instrumento(sn)
 
-    # TAG já existe no banco — resolve pelo registro da TAG (ignorando NS de outros)
+    # TAG already exists in the database — resolve using the TAG's record (ignoring other SNs)
     if reg_tag:
-        # Conflito de tipo
+        # Type conflict
         if reg_tag["tipo"] != tipo and reg_tag["tipo"] != "MVS":
             return "bloqueado", {"linha": n, "tag": tag, "sn": sn,
                                  "motivo": f"TAG já existe como {reg_tag['tipo']} — conflito com {tipo}"}
 
-        # Mesmo NS → já correto
+        # Same SN → already correct
         if reg_tag["sn_instrumento"] == sn:
             return "mantido", {"linha": n, "tag": tag, "sn": sn}
 
-        # NS diferente → aguarda decisão do usuário
+        # Different SN → awaits user decision
         return "divergente", {
             "linha": n, "tag": tag, "sn": sn,
             "sn_banco": reg_tag["sn_instrumento"],
@@ -108,7 +107,7 @@ def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
             "sistema": sistema, "aplicacao": aplicacao, "ativo": ativo,
         }
 
-    # TAG nova: verifica se NS já pertence a outra TAG → candidato a MVS
+    # New TAG: check whether the SN already belongs to another TAG → MVS candidate
     if reg_sn and reg_sn["tag"] != tag:
         return "mvs_candidato", {
             "linha": n, "tag": tag, "sn": sn, "tipo": tipo,
@@ -117,7 +116,7 @@ def validar_linha(n, tag, sn, tipo, sn_sensor, min_raw, max_raw,
             "tag_existente": reg_sn["tag"],
         }
 
-    # Novo registro
+    # New record
     return "inserir", {
         "linha": n, "tag": tag, "sn": sn, "tipo": tipo,
         "sn_sensor": sn_sensor, "min_range": min_range, "max_range": max_range,

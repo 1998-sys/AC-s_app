@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Generates the Petrobras-schema calibration certificate XML (temperature/pressure) from the extracted PDF data and calibration points.
-#                 Gera o XML de certificado de calibração no padrão Petrobras (temperatura/pressão) a partir dos dados e pontos de calibração extraídos do PDF.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -204,7 +203,7 @@ def sig_ex(root, dados=None):
     el = ET.SubElement(root, "TECNICO_EXECUTANTE")
     el.text = dados.get("exec_sig", {}).get("executante", "") if dados else ""
 
-# Informações Laboratório
+# Laboratory information
 def criar_laboratorio():
     """Creates the LABORATORIO block with ODS's fixed laboratory data (name, address and CAL 0746 accreditation).
 
@@ -217,7 +216,7 @@ def criar_laboratorio():
     ET.SubElement(bloco, "ACREDITACAO").text = "CAL 0746"
     return bloco
 
-# Informações cliente
+# Client information
 def criar_cliente(dados=None):
     """Creates the CLIENTE block with name, address and operating unit.
 
@@ -234,7 +233,7 @@ def criar_cliente(dados=None):
     ET.SubElement(bloco, "UNIDADE_OPERACIONAL").text = dados.get("local", "") if dados else ""
     return bloco
 
-# Condições ambientais
+# Environmental conditions
 def criar_condicoes_ambientais(dados=None):
     """Creates the CONDICOES_AMBIENTAIS block with temperature and relative humidity.
 
@@ -381,7 +380,7 @@ def criar_identificacao_instrumento(dados, pontos ,root):
         criar_data_calibracao(bloco, informações)
         escrever_pontos_calibracao(informações, pontos, bloco, obter_unidade_eng(dados))
         
-# Data calibração
+# Calibration date
 def criar_data_calibracao(root, dados):
     """Creates in `root` the DATA_CALIBRACAO element, converted to xs:date format.
 
@@ -393,7 +392,7 @@ def criar_data_calibracao(root, dados):
     el = ET.SubElement(root, "DATA_CALIBRACAO")
     el.text = data_xs_date(dados.get("data", "")) if dados else ""
 
-# tipo transmissor de pressão
+# Pressure transmitter type
 def tipo_transmissor_pressao(dados):
     """Determines the instrument's pressure measurement type (differential or static), for the optional TIPO_TRANSMISSOR_PRESSAO element.
 
@@ -423,7 +422,7 @@ def tipo_transmissor_pressao(dados):
         el.text = "estática" if categoria else ""
     return el
 
-# padrões
+# Standards
 def criar_identificacao_padroes(dados=None):
     """Creates the PADROES block with one PADRAO for each reference standard used in the calibration.
 
@@ -456,7 +455,7 @@ def criar_identificacao_padroes(dados=None):
         ET.SubElement(cert, "VALIDADE").text = data_xs_date(completar_data(p.get("validade", ""))) 
     return bloco
 
-# Faixa calibrada
+# Calibrated range
 def criar_faixa_calibrada(dados, unidade_eng=None):
     """Creates the FAIXA_CALIBRADA element with the minimum and maximum limits of the calibrated range.
 
@@ -483,7 +482,7 @@ def criar_faixa_calibrada(dados, unidade_eng=None):
 
     return faixa
 
-# gerar pontos calibração pressão
+# Generate pressure calibration points
 def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
     """Builds the PONTOS_DE_CALIBRACAO block of a pressure instrument, combining raw cycle readings with the calculated results.
 
@@ -519,14 +518,14 @@ def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
     for bruto, resultado in zip(results1, results2):
         ponto = ET.SubElement(pontos, "PONTO_DE_CALIBRACAO")
 
-        # Valor de referência
+        # Reference value
         ET.SubElement(
             ponto,
             "VALOR_REFERENCIA",
             UNIDADE_ENG=unidade_ref
         ).text = str(bruto.get("kPa_ref", "NI"))
 
-        # Ciclos
+        # Cycles
         ciclos = [
             ("p_cic_cresc", "p_cic_decres"),
             ("s_cic_cres", "s_cic_decrs"),
@@ -547,7 +546,7 @@ def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
                 UNIDADE_ENG=unidade_indicado
             ).text = str(bruto.get(desc, "NI"))
 
-        # INCERTEZA (vem do results2)
+        # UNCERTAINTY (comes from results2)
         valor_incerteza = (
             resultado.get("incerteza_ma")
             if resultado.get("incerteza_ma") is not None
@@ -563,7 +562,7 @@ def gerar_pontos_calibracao_pressao(results1, results2, unidade_eng):
         )
         inc.text = str(valor_incerteza)
 
-        # ERRO (vem do results2)
+        # ERROR (comes from results2)
         valor_tendencia = (
             resultado.get("tendencia_ma")
             if resultado.get("tendencia_ma") is not None
@@ -784,7 +783,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
 
     elif instrumento == "TERMORRESISTÊNCIA PT-100 - 2 FIOS" or instrumento ==  "TERMORRESISTÊNCIA PT-100 - 3 FIOS" or instrumento == "TERMORRESISTÊNCIA PT-100 - 4 FIOS": 
         
-        # --- CASO 1: só RESULTADOS → AS FOUND ---
+        # --- CASE 1: only RESULTADOS → AS FOUND ---
         if pontos.get("tabela1") == "RESULTADOS" and not pontos.get("tabela2"):
             cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")
             cal_as_found.append(criar_faixa_calibrada(dados, unidade_eng))
@@ -800,7 +799,7 @@ def escrever_pontos_calibracao(dados, pontos, root, unidade_eng):
                 unidade_eng
             )
 
-        # --- CASO 2: AS FOUND + RESULTADOS (AS LEFT) ---
+        # --- CASE 2: AS FOUND + RESULTADOS (AS LEFT) ---
         else:
             if pontos.get("tabela1") == "AS FOUND":
                 cal_as_found = ET.SubElement(root, "CALIBRACAO_AS_FOUND")

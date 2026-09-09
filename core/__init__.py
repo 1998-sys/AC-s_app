@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Marks this directory as a Python package; no package-level logic.
-#                 Marca este diretório como um pacote Python; sem lógica própria do pacote.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------

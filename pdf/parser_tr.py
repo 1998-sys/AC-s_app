@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Parses Gas Meter Run (trecho reto) calibration certificates, extracting standard, components, dimensions and environmental conditions.
-#                 Analisa certificados de calibração de Trecho Reto (Gas Meter Run), extraindo norma, componentes, dimensões e condições ambientais.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -51,7 +50,7 @@ def extrair_norma_tr(texto):
         ano   = m.group(2) or "2010"
         return f"ISO 17089{parte}:{ano}"
 
-    # ISO 5167 → "ISO 5167-2:YEAR" ou "ABNT NBR ISO 5167-2:YEAR"
+    # ISO 5167 → "ISO 5167-2:YEAR" or "ABNT NBR ISO 5167-2:YEAR"
     m = re.search(r"(ABNT\s+NBR\s+)?ISO\s*5167(-\d+)?(?::(\d{4}))?", texto_norm, re.IGNORECASE)
     if m:
         abnt  = bool(m.group(1))
@@ -199,11 +198,11 @@ def extrair_diametro_nominal_tr(texto):
         dict: {"valor": str, "unidade": str} with the raw value (not converted
         to float) and the unit found, or None if no format matches.
     """
-    # Formato 1: 'Nominal Diameter / Diâmetro Nominal: 2"'
+    # Format 1: 'Nominal Diameter / Diâmetro Nominal: 2"'
     m = re.search(r'Nominal Diameter.*?:\s*([\d,\.]+)\s*"', texto, re.IGNORECASE)
     if m:
         return {"valor": m.group(1).strip(), "unidade": '"'}
-    # Formato 2: 'Diameter / Diâmetro:  742,2 mm'
+    # Format 2: 'Diameter / Diâmetro:  742,2 mm'
     m = re.search(r'Diameter\s*/\s*Di[aâ]metro.*?:\s*([\d,\.]+)\s*(mm)', texto, re.IGNORECASE)
     if m:
         return {"valor": m.group(1).strip(), "unidade": m.group(2).strip()}
@@ -265,18 +264,18 @@ def extrair_componentes_tr(texto):
         (r"Zanker", "CONDICIONADOR DE FLUXO"),
     ]
 
-    # TAG: valor compacto (alfanum + /-.) antes do separador " /"
-    # SN:  mesmo padrão + sufixo opcional de exatamente [A-Z][0-9] (ex: M1, J1)
+    # TAG: compact value (alphanumeric + /-.) before the " /" separator
+    # SN:  same pattern + optional suffix of exactly [A-Z][0-9] (e.g.: M1, J1)
     _tag = r"[A-Z0-9][A-Z0-9/\-\.]*"
     _sn  = r"[A-Z0-9][A-Z0-9/\-\.]*(?:\s+[A-Z][0-9])?"
-    # Ausente completo: N/A (ou similar) sem SN válido a seguir
+    # Fully absent: N/A (or similar) with no valid SN following
     _ausente = r"(?:N/A|N[aã]o\s+consta|Not\s+present|N/C)(?!\s*/\s*[A-Z0-9])"
-    # Valores de TAG que indicam ausência (mas pode existir SN)
+    # TAG values that indicate absence (but an SN may still exist)
     _tag_ausente = {"N/A", "N/C"}
 
     componentes = []
     for padrao_nome, tipo in padroes:
-        # Toda a identificação ausente → componente presente mas sem TAG nem SN
+        # Entire identification absent → component present but without TAG or SN
         if re.search(
             padrao_nome + r"[^\n]*?TAG\s*/\s*SN\s*:\s*" + _ausente,
             texto,
@@ -288,8 +287,8 @@ def extrair_componentes_tr(texto):
         m = re.search(
             padrao_nome
             + r"[^\n]*?TAG\s*/\s*SN\s*:\s*"
-            + rf"(?:({_tag})\s+/\s*)?"  # TAG opcional: valor antes do primeiro " /"
-            + rf"({_sn})",              # SN: valor compacto + sufixo posicional
+            + rf"(?:({_tag})\s+/\s*)?"  # Optional TAG: value before the first " /"
+            + rf"({_sn})",              # SN: compact value + positional suffix
             texto,
             flags=re.IGNORECASE,
         )

@@ -5,7 +5,6 @@
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
 # Remarks       : Shared helper that pretty-prints an XML Element and writes it to disk, used by all certificate XML generators.
-#                 Helper compartilhado que formata um Element XML e grava em disco, usado por todos os geradores de XML de certificado.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
