@@ -41,9 +41,16 @@ Windows window) — no longer the old Tkinter GUI from previous versions.
   via openpyxl, exported to PDF via Excel COM automation — reuses a
   single Excel instance for the whole batch).
 - 🧾 Generation of the **XML** in the corresponding ANP/client standard.
-- 🧪 **Chromatography** reports (SGS or Origem Energia Alagoas's
-  in-house lab) and **uncertainty calculation (CI)** reports: generate
-  the XML directly, without going through the review screen.
+- 🧪 **Chromatography** reports (SGS, Origem Energia Alagoas's in-house
+  lab, GT Química or GT Technology) and **uncertainty calculation
+  (CI)** reports: generate the XML directly, without going through the
+  review screen.
+- 🌀 **Flow meter Linearization and Presumed Failure** reports: reads
+  the meter's external calibration XML and fills the linearization
+  Excel template (K-Factor Corrected, average KF, alarm limits),
+  exporting XLSX + PDF; optionally, comparing this calibration's meter
+  factor against the previous one (paired by closest flow point)
+  generates the Presumed Failure report in the same workbook.
 - 🖊️ Manual instrument registration/editing through the interface.
 - 📤📥 Bulk registry import/export via `.xlsx`.
 - 🖱️ Drag and drop files straight onto the screen (stored in a permanent
@@ -65,7 +72,10 @@ plates, its own variant (PO).
 - Orifice plate
 - Straight run / Gas Meter Run (generates the dimensional XML; AC in
   PDF not yet implemented for this type)
-- Chromatography report (SGS or Origem Energia Alagoas)
+- Flow meter (external calibration XML → Linearization + Presumed
+  Failure reports)
+- Chromatography report (SGS, Origem Energia Alagoas, GT Química or
+  GT Technology)
 - Uncertainty calculation (CI) report
 
 ---
@@ -144,10 +154,6 @@ To generate the executable (`.exe`), the project already has an
 
 ## 🗺️ Roadmap
 
-- 🩺 **Presumed Failure ("Falha Presumida")**: export/fill the second
-  sheet already present in the linearization Excel template
-  (`Template_Linearizacao.xlsx`), following the same approach used for
-  the Linearization report.
 - 🧮 **Primary meter ACs**: generate the Critical Analysis (AC) for
   primary flow meters as well, one template per client, building on
   the existing external-certificate flow (`pdf_primario_terc/`) — scope
