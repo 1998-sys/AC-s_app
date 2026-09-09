@@ -139,3 +139,18 @@ To generate the executable (`.exe`), the project already has an
 > together (same batch or in sequence) — the system automatically
 > links the TE certificate to the corresponding TT/TIT by TAG pair,
 > regardless of the reading order.
+
+---
+
+## 🗺️ Roadmap
+
+- 🩺 **Presumed Failure ("Falha Presumida")**: export/fill the second
+  sheet already present in the linearization Excel template
+  (`Template_Linearizacao.xlsx`), following the same approach used for
+  the Linearization report.
+- 🧮 **Primary meter ACs**: generate the Critical Analysis (AC) for
+  primary flow meters as well, one template per client, building on
+  the existing external-certificate flow (`pdf_primario_terc/`) — scope
+  still being detailed.
+- 📊 **ANP daily production XML analysis**: a new feature, not started
+  yet — analyze/validate ANP daily production report XMLs.
