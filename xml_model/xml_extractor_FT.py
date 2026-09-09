@@ -124,14 +124,18 @@ def extrair_dados_ft(caminho_xml):
 
     Returns:
         dict: header fields (certificate number, laboratory, tag,
-        manufacturer, calibrated range, K factor etc.), the unit of each
-        numeric column ("vazao_unidade", "vol_referencia_unidade",
-        "vol_medidor_unidade" — read from each point's own UNIDADE_ENG
-        attribute, not assumed) and the "pontos" key with the list of
-        calibration points (flow rate, reference/meter volumes — kept in
-        the certificate's own unit, no forced conversion — meter factor,
-        percentage error, uncertainty, plus a "*_casas" decimal-place count
-        per value so the output cell can mirror the certificate's precision).
+        manufacturer, calibrated range, K factor etc.), including
+        "cliente_xml" (raw CLIENTE/NOME text, used by
+        form.utils_print_linearizacao.identificar_cliente to resolve the
+        report's "Cliente" field without depending on the file's path),
+        the unit of each numeric column ("vazao_unidade",
+        "vol_referencia_unidade", "vol_medidor_unidade" — read from each
+        point's own UNIDADE_ENG attribute, not assumed) and the "pontos"
+        key with the list of calibration points (flow rate, reference/meter
+        volumes — kept in the certificate's own unit, no forced conversion
+        — meter factor, percentage error, uncertainty, plus a "*_casas"
+        decimal-place count per value so the output cell can mirror the
+        certificate's precision).
 
     Notes:
         Frequency, corrected K-factor, Status, average KF and the alarm
@@ -151,6 +155,7 @@ def extrair_dados_ft(caminho_xml):
         "numero_certificado": _texto(root, "NUMERO_CERTIFICADO"),
         "data_emissao":       _texto(root, "DATA_EMISSAO"),
         "laboratorio":        _texto(root, "LABORATORIO/NOME"),
+        "cliente_xml":        _texto(root, "CLIENTE/NOME"),
         "unidade_operacional": _texto(root, "CLIENTE/UNIDADE_OPERACIONAL"),
         "tag":                _texto(root, "MEDIDOR_VAZAO/TAG"),
         "num_serie":          _texto(root, "MEDIDOR_VAZAO/NUM_SERIE"),

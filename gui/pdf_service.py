@@ -505,7 +505,7 @@ class PdfProcessingService:
         self.api._voltar_para_selecao()
 
     def _processar_xml_ft(self, caminho):
-        """Validates a flow meter external calibration certificate XML, asks the user for Application/System (and optionally Elaborado/Verificado por), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
+        """Validates a flow meter external calibration certificate XML, asks the user for Application/System (and Client, when not auto-detected; optionally Elaborado/Verificado por too), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
 
         Args:
             caminho: path of the XML file (CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO).
@@ -516,10 +516,14 @@ class PdfProcessingService:
             Application feeds the template's Status formula (±0.2%
             tolerance for Fiscal/Custody Transfer, ±0.6% for the rest), so
             they need to be asked from the user instead of left blank.
+            Client is usually resolved on its own (see identificar_cliente)
+            and only added to this same prompt when detection fails.
         """
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
-            from form.utils_print_linearizacao import gerar_linearizacao, contexto_db, ler_nomes_assinatura
+            from form.utils_print_linearizacao import (
+                gerar_linearizacao, contexto_db, ler_nomes_assinatura, identificar_cliente,
+            )
 
             self.api._progress(30, "extract", [])
             if not is_certificado_ft(caminho):
@@ -543,31 +547,54 @@ class PdfProcessingService:
             # ±0.2% for Fiscal/Custody Transfer, ±0.6% for the rest),
             # so it needs to be asked from the user instead of left blank.
             aplicacao_padrao, sistema_padrao = contexto_db(dados.get("tag", ""))
+            campos = [
+                {
+                    "name": "aplicacao",
+                    "label": "Aplicação",
+                    "required": True,
+                    "type": "select",
+                    "options": ["Fiscal", "Apropriação", "Transferência de Custódia"],
+                    "value": aplicacao_padrao,
+                },
+                {
+                    "name": "sistema",
+                    "label": "Sistema",
+                    "required": False,
+                    "value": sistema_padrao,
+                },
+            ]
+
+            # Cliente is always an open, editable text field — the client
+            # isn't always one of the handful of known oil companies
+            # (PRIO/YINSON/...); ODS itself can legitimately be the client
+            # on some certificates (e.g. CLIENTE/NOME "ODS do Brasil
+            # Sistemas de Medição LTDA"). identificar_cliente only supplies
+            # a best-guess default (from the XML's own CLIENTE/NOME or the
+            # file path) that the user can accept or overwrite — never
+            # applied silently.
+            cliente_detectado = identificar_cliente(dados.get("cliente_xml", ""), caminho)
+            campos.insert(0, {
+                "name": "cliente",
+                "label": "Cliente",
+                "required": True,
+                "value": cliente_detectado,
+            })
+            mensagem_prompt = "Preencha os dados abaixo para gerar a Linearização."
+            instalacao = dados.get("unidade_operacional")
+            if instalacao:
+                mensagem_prompt += f"\n\nInstalação no certificado: {instalacao}."
+
             valores = self.api.prompt(
                 "Aplicação e sistema",
-                "Preencha os dados abaixo para gerar a Linearização.",
-                [
-                    {
-                        "name": "aplicacao",
-                        "label": "Aplicação",
-                        "required": True,
-                        "type": "select",
-                        "options": ["Fiscal", "Apropriação", "Transferência de Custódia"],
-                        "value": aplicacao_padrao,
-                    },
-                    {
-                        "name": "sistema",
-                        "label": "Sistema",
-                        "required": False,
-                        "value": sistema_padrao,
-                    },
-                ],
+                mensagem_prompt,
+                campos,
             )
             if not valores:
                 self.api._voltar_para_selecao()
                 return
             dados["aplicacao"] = valores.get("aplicacao", "")
             dados["sistema"] = valores.get("sistema", "")
+            dados["cliente"] = valores.get("cliente", "")
 
             # The template already comes with a default pair of "Elaborado
             # por"/"Verificado por" names — it only asks if the user wants to change
@@ -614,25 +641,38 @@ class PdfProcessingService:
             self.api._progress(100, "build", CHECKLIST_ALL)
 
             titulo = dados.get("tag") or dados.get("numero_certificado") or "Linearização"
+            arquivos = [
+                {
+                    "kind": "XLSX",
+                    "name": os.path.basename(caminho_xlsx),
+                    "meta": f"{os.path.getsize(caminho_xlsx) // 1024} KB",
+                    "path": caminho_xlsx,
+                },
+                {
+                    "kind": "PDF",
+                    "name": os.path.basename(caminho_pdf),
+                    "meta": f"{os.path.getsize(caminho_pdf) // 1024} KB",
+                    "path": caminho_pdf,
+                },
+            ]
+            sub_extra = ""
+
+            caminho_pdf_falha = self._processar_falha_presumida(dados, caminho_xlsx)
+            if caminho_pdf_falha:
+                arquivos.append({
+                    "kind": "PDF",
+                    "name": os.path.basename(caminho_pdf_falha),
+                    "meta": f"{os.path.getsize(caminho_pdf_falha) // 1024} KB",
+                    "path": caminho_pdf_falha,
+                })
+                sub_extra = " + Falha Presumida"
+
             resultado = {
                 "tag": titulo,
                 "badge": "XLSX",
-                "sub": f"{titulo} · Linearização",
+                "sub": f"{titulo} · Linearização{sub_extra}",
                 "avisos": 0,
-                "files": [
-                    {
-                        "kind": "XLSX",
-                        "name": os.path.basename(caminho_xlsx),
-                        "meta": f"{os.path.getsize(caminho_xlsx) // 1024} KB",
-                        "path": caminho_xlsx,
-                    },
-                    {
-                        "kind": "PDF",
-                        "name": os.path.basename(caminho_pdf),
-                        "meta": f"{os.path.getsize(caminho_pdf) // 1024} KB",
-                        "path": caminho_pdf,
-                    },
-                ],
+                "files": arquivos,
             }
 
             if self.em_lote_ativo():
@@ -646,3 +686,59 @@ class PdfProcessingService:
             traceback.print_exc()
             self.api.alert("Erro no XML", str(e), "error")
             self.api._voltar_para_selecao()
+
+    def _processar_falha_presumida(self, dados_atual, caminho_xlsx):
+        """Asks whether to also generate the Presumed Failure report and, if so, requests the previous calibration's XML and generates it.
+
+        Args:
+            dados_atual: current certificate's data (same dict passed to
+                `gerar_linearizacao` for this XML, already with "aplicacao"
+                filled in from the earlier prompt).
+            caminho_xlsx: path of the workbook already generated by
+                `gerar_linearizacao` for the current certificate — both
+                sheets ("Linearização" and "Falha Presumida") live in this
+                same file, so it's reopened and updated in place.
+
+        Returns:
+            str: path of the generated "Falha Presumida" PDF, or None if
+            the user declines, cancels the file picker, or an error occurs.
+            A None here does not fail the overall flow — the Linearização
+            result already generated stays valid either way.
+        """
+        if not self.api.confirm(
+            "Falha Presumida",
+            "Deseja também emitir o relatório de Falha Presumida deste medidor?",
+        ):
+            return None
+
+        caminho_anterior = self.api.escolher_arquivo(
+            "Selecione o XML da calibração anterior deste medidor",
+            ("XML (*.xml)",),
+        )
+        if not caminho_anterior:
+            return None
+
+        try:
+            from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
+            from form.utils_print_linearizacao import gerar_falha_presumida
+
+            if not is_certificado_ft(caminho_anterior):
+                self.api.alert(
+                    "XML não suportado",
+                    "O arquivo selecionado não é um certificado de calibração "
+                    "de medidor de vazão.\nTipo esperado: "
+                    "CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO",
+                    "error",
+                )
+                return None
+
+            # AS_LEFT-with-AS_FOUND-fallback extraction (extrair_dados_ft's
+            # default behavior) already matches the confirmed rule for the
+            # "previous" side of the comparison — no extra parameter needed.
+            dados_anterior = extrair_dados_ft(caminho_anterior)
+            return gerar_falha_presumida(caminho_xlsx, dados_atual, dados_anterior)
+
+        except Exception as e:
+            traceback.print_exc()
+            self.api.alert("Erro na Falha Presumida", str(e), "error")
+            return None

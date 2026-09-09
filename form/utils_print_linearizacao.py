@@ -95,6 +95,29 @@ _BORDA_COLS_TABELA2 = ["H", "I", "J", "K", "L", "M"]
 # (col. L in table 2, which mirrors col. O in table 1).
 TABELA2_OFFSET = 34
 
+# ── "Falha Presumida" sheet ──────────────────────────────────────────────
+# Compares this certificate's meter factor against the previous calibration
+# of the same meter (see gerar_falha_presumida). The sheet mirrors almost
+# everything from "Linearização" via formula (header, calibration table,
+# Diff MF / Fator de Correção / Status) — the only cells this module writes
+# are the previous certificate's number and its meter factor per point.
+SHEET_FALHA_PRESUMIDA = "Falha Presumida"
+FP_CERT_ANTERIOR = "G85"          # previous certificate's number
+FP_COL_MF_ANTERIOR = "G"          # previous certificate's meter factor, per row
+FP_LINHA_INI = 87                 # mirrors Linearização's row 22 (offset 65)
+FP_LINHA_FIM_MAX = 106            # mirrors Linearização's row 41 (up to 20 points)
+FP_OFFSET_CALCULO = FP_LINHA_INI - CELLS["tabela_linha_ini"]  # 87 - 22 = 65
+FP_LINHA_BORDA_REF_CALCULO = 90   # a "middle" row of the Cálculo Falha Presumida table
+FP_BORDA_COLS_CALCULO = ["E", "G", "I", "K", "L", "N"]
+
+# The calibration-table mirror (rows 22-41) has its own row visibility/border
+# state on this sheet (Excel doesn't share hidden-row state between sheets),
+# even though its cell values are 100% formula-mirrored from Linearização.
+FP_MIRROR_LINHA_INI = 22
+FP_MIRROR_LINHA_FIM_MAX = 41
+FP_MIRROR_LINHA_BORDA_REF = 30
+FP_MIRROR_BORDA_COLS = ["B", "C", "E", "G", "I", "K", "M", "O", "Q", "S", "T"]
+
 
 def _data_br(data_iso: str) -> str:
     """Converts a date from ISO format (YYYY-MM-DD) to BR format (DD/MM/YYYY).
@@ -112,21 +135,42 @@ def _data_br(data_iso: str) -> str:
         return data_iso
 
 
-def _cliente_do_caminho(caminho: str) -> str:
-    """Extracts the client name from the file path.
+# Known clients recognized in the Linearização/Falha Presumida "Cliente"
+# field — matched as a case-insensitive substring, so a raw XML value like
+# "Prio Forte S/A" or a folder segment like ".../PRIO/..." both resolve to
+# the same normalized "PRIO". Includes "ODS" itself: on some certificates
+# CLIENTE/NOME names ODS as the calibration lab's own contracting client
+# (e.g. "ODS do Brasil Sistemas de Medição LTDA") rather than the end oil
+# company — a legitimate value for this field, not a detection error.
+CLIENTES_CONHECIDOS = ("PRIO", "YINSON", "ORIGEM", "SBM", "PETROBRAS", "ODS")
+
+
+def identificar_cliente(nome_cliente_xml: str, caminho_xml: str) -> str:
+    """Suggests a default "Cliente" value from the certificate's own CLIENTE/NOME text, falling back to the file path.
+
+    The result is only a pre-filled suggestion for the (always editable)
+    "Cliente" prompt field in `gui.pdf_service` — the client isn't always
+    one of `CLIENTES_CONHECIDOS`, so this never blocks or silently decides
+    the field; the user reviews/overwrites it before generating the report.
 
     Args:
-        caminho: File path (e.g. ".../PRIO/...").
+        nome_cliente_xml: raw text of the XML's CLIENTE/NOME element (see
+            `xml_extractor_FT.extrair_dados_ft`'s "cliente_xml" key) —
+            checked first since it doesn't depend on where the file happens
+            to be saved on disk (a loose/dropped file saved to a generic
+            folder has no client name in its path at all).
+        caminho_xml: file path (e.g. ".../PRIO/..."), used as a fallback
+            when the XML's own name doesn't contain a recognized client.
 
     Returns:
-        str: Recognized client name (PRIO, YINSON, ORIGEM, SBM or
-        PETROBRAS) found in some segment of the path, or an empty string
-        if none is found.
+        str: recognized client name (one of `CLIENTES_CONHECIDOS`), or an
+        empty string if neither source has one — the "Cliente" prompt
+        field then just starts blank instead of pre-filled.
     """
-    partes = caminho.upper().replace("\\", "/").split("/")
-    for p in partes:
-        for cliente in ("PRIO", "YINSON", "ORIGEM", "SBM", "PETROBRAS"):
-            if cliente in p:
+    for fonte in (nome_cliente_xml or "", caminho_xml or ""):
+        fonte_norm = fonte.upper().replace("\\", "/")
+        for cliente in CLIENTES_CONHECIDOS:
+            if cliente in fonte_norm:
                 return cliente
     return ""
 
@@ -316,6 +360,174 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
             )
 
 
+def _normalizar_linhas_tabela_generico(ws, linha_ini, linha_fim_max, n_pontos, linha_borda_ref, colunas_borda):
+    """Same show/hide + border/height normalization as `_ajustar_linhas_tabela`, generalized to a single table (no 2nd-table mirroring).
+
+    Reused for the "Falha Presumida" sheet's two tables (the calibration
+    mirror, rows 22-41, and "Cálculo Falha Presumida", rows 87-106) — both
+    have the exact same template bug as Linearização's own tables: only the
+    first 10 rows come visible with a "normal" border, the next 10 come
+    hidden with a leftover thick left/right border. Row hidden-state and
+    borders are per-sheet in Excel, so hiding rows on "Linearização" doesn't
+    hide the mirrored rows here — each sheet needs its own pass.
+
+    Args:
+        ws: openpyxl worksheet ("Falha Presumida").
+        linha_ini: First row of the table.
+        linha_fim_max: Last possible row of the table (maximum capacity).
+        n_pontos: Number of calibration points for this certificate.
+        linha_borda_ref: A "middle" row of the table with a normal (thin) border.
+        colunas_borda: Columns to normalize the border on.
+    """
+    linha_fim_usada = linha_ini + n_pontos - 1 if n_pontos else linha_ini - 1
+
+    for row in range(linha_ini, linha_fim_max + 1):
+        usada = row <= linha_fim_usada
+        ws.row_dimensions[row].hidden = not usada
+
+        if not usada or row == linha_ini:
+            continue  # table header row: keeps the original border
+
+        ws.row_dimensions[row].height = ws.row_dimensions[linha_borda_ref].height
+        for col in colunas_borda:
+            ws[f"{col}{row}"].border = copy(ws[f"{col}{linha_borda_ref}"].border)
+
+    if n_pontos:
+        for col in colunas_borda:
+            atual = ws[f"{col}{linha_fim_usada}"].border
+            ws[f"{col}{linha_fim_usada}"].border = Border(
+                top=atual.top, left=atual.left, right=atual.right,
+                bottom=Side(style="medium"),
+            )
+
+
+def _parear_mf_anterior(pontos_atual: list, pontos_anterior: list) -> list:
+    """Pairs each current-certificate point with the previous certificate's meter factor at the nearest flow rate.
+
+    Confirmed business rule: presumed-failure compares meter factors of the
+    same meter across two calibration events, not by matching table
+    position/index — when the calibrated range differs between the two
+    certificates, the nearest flow point is used (no interpolation, and no
+    validation that the two certificates share the same meter serial
+    number — a spare/reserve meter with a different serial number can
+    legitimately be installed at the same measurement point).
+
+    Args:
+        pontos_atual: current certificate's points (`dados["pontos"]`), in
+            the same order they were written to the Linearização table.
+        pontos_anterior: previous certificate's points (`dados["pontos"]`
+            from `extrair_dados_ft` on the previous XML).
+
+    Returns:
+        list[float]: one meter factor per `pontos_atual` entry, from the
+        `pontos_anterior` entry with the closest "vazao" value.
+
+    Raises:
+        ValueError: if `pontos_anterior` is empty (nothing to pair against).
+    """
+    if not pontos_anterior:
+        raise ValueError(
+            "O certificado da calibração anterior não tem pontos de "
+            "calibração para comparar."
+        )
+
+    resultado = []
+    for p_atual in pontos_atual:
+        vazao_atual = p_atual["vazao"]
+        mais_proximo = min(
+            pontos_anterior,
+            key=lambda p: abs(p["vazao"] - vazao_atual),
+        )
+        resultado.append(mais_proximo["meter_factor"])
+    return resultado
+
+
+def gerar_falha_presumida(caminho_xlsx: str, dados_atual: dict, dados_anterior: dict) -> str:
+    """Fills the "Falha Presumida" sheet of an already-generated Linearização workbook and exports it to its own PDF.
+
+    Only two things are written here: the previous certificate's number
+    (`FP_CERT_ANTERIOR`) and its meter factor per point (`FP_COL_MF_ANTERIOR`,
+    paired by nearest flow rate — see `_parear_mf_anterior`). Everything else
+    on this sheet (header, calibration table, Diff MF, Fator de Correção,
+    Status, signatures) is already a template formula mirroring the
+    "Linearização" sheet of the same workbook, filled in by
+    `gerar_linearizacao` — see the CELLS map comment and the real cell
+    mapping in tasks/TAREFAS_linearizacao_falha_presumida.md.
+
+    Args:
+        caminho_xlsx: path of the workbook already produced by
+            `gerar_linearizacao` for the current certificate (same file is
+            reopened and updated in place, since both sheets live in it).
+        dados_atual: current certificate's data (same dict passed to
+            `gerar_linearizacao` — `dados_atual["pontos"]` gives the row
+            order/count already written to the Linearização table).
+        dados_anterior: previous certificate's data, from `extrair_dados_ft`
+            on the previous calibration's XML (its own AS_LEFT-with-
+            AS_FOUND-fallback extraction already matches the confirmed rule
+            for the "previous" side of this comparison).
+
+    Returns:
+        str: path of the generated "Falha Presumida" PDF (the XLSX is the
+        same file passed in `caminho_xlsx`, now updated with both sheets).
+
+    Raises:
+        ValueError: if the previous certificate has no calibration points.
+        PermissionError: if the output PDF already exists and is open.
+    """
+    wb = openpyxl.load_workbook(caminho_xlsx)
+    ws = wb[SHEET_FALHA_PRESUMIDA]
+
+    pontos_atual = dados_atual.get("pontos", [])
+    mf_anteriores = _parear_mf_anterior(pontos_atual, dados_anterior.get("pontos", []))
+
+    ws[FP_CERT_ANTERIOR] = dados_anterior.get("numero_certificado", "")
+    for i, mf in enumerate(mf_anteriores):
+        ws[f"{FP_COL_MF_ANTERIOR}{FP_LINHA_INI + i}"] = mf
+
+    _normalizar_linhas_tabela_generico(
+        ws, FP_MIRROR_LINHA_INI, FP_MIRROR_LINHA_FIM_MAX, len(pontos_atual),
+        FP_MIRROR_LINHA_BORDA_REF, FP_MIRROR_BORDA_COLS,
+    )
+    _normalizar_linhas_tabela_generico(
+        ws, FP_LINHA_INI, FP_LINHA_FIM_MAX, len(pontos_atual),
+        FP_LINHA_BORDA_REF_CALCULO, FP_BORDA_COLS_CALCULO,
+    )
+
+    wb.save(caminho_xlsx)
+
+    # ── Export PDF via Excel COM ────────────────────────────────────────
+    cert_limpo  = dados_atual.get("numero_certificado", "").replace(" ", "")
+    tag_limpa   = dados_atual.get("tag", "").replace(" ", "")
+    pasta_saida = os.path.dirname(os.path.abspath(caminho_xlsx))
+    nome_pdf    = f"{cert_limpo}_{tag_limpa}_FALHA_PRESUMIDA.pdf"
+    caminho_pdf = os.path.join(pasta_saida, nome_pdf)
+
+    if os.path.exists(caminho_pdf):
+        try:
+            os.remove(caminho_pdf)
+        except PermissionError:
+            raise PermissionError(
+                f"O arquivo PDF está aberto e não pode ser sobrescrito:\n{caminho_pdf}"
+            )
+
+    excel = win32.DispatchEx("Excel.Application")
+    excel.Visible        = False
+    excel.DisplayAlerts  = False
+    excel.ScreenUpdating = False
+    excel.Interactive    = False
+
+    try:
+        wb_excel = excel.Workbooks.Open(os.path.abspath(caminho_xlsx))
+        excel.Calculate()
+        ws_excel = wb_excel.Worksheets(SHEET_FALHA_PRESUMIDA)
+        ws_excel.ExportAsFixedFormat(0, caminho_pdf)
+        wb_excel.Close(SaveChanges=False)
+    finally:
+        excel.Quit()
+
+    return caminho_pdf
+
+
 def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     """Fills Template_Linearizacao.xlsx with the flow meter data and exports XLSX + PDF.
 
@@ -348,8 +560,14 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
     # ── Left header ────────────────────────────────────────────────
     # aplicacao/sistema come from the prompt asked to the user when dropping
     # the XML (PdfProcessingService._processar_xml_ft) — they don't exist in
-    # the instrument registry for a flow meter.
-    cliente = _cliente_do_caminho(caminho_xml)
+    # the instrument registry for a flow meter. cliente: prefers whatever
+    # PdfProcessingService already resolved (auto-detected or typed in by
+    # the user when detection failed — see identificar_cliente); falls back
+    # to detecting it here too, so gerar_linearizacao still works standalone
+    # (e.g. in tests) without going through that prompt flow.
+    cliente = dados.get("cliente") or identificar_cliente(
+        dados.get("cliente_xml", ""), caminho_xml
+    )
 
     ws[C["cliente"]]         = cliente
     ws[C["instalacao"]]      = dados.get("unidade_operacional", "")
@@ -504,7 +722,9 @@ def gerar_linearizacao(dados: dict, caminho_xml: str) -> str:
         excel.Calculate()
         # Exports only the "Linearização" sheet — ExportAsFixedFormat on the
         # Workbook (instead of the Worksheet) would also include "Falha
-        # Presumida" (not yet implemented) with the template's sample data.
+        # Presumida", which at this point is still unfilled (that sheet is
+        # only written by gerar_falha_presumida, called separately and
+        # later, if the user opts into that report).
         ws_excel = wb_excel.Worksheets("Linearização")
         ws_excel.ExportAsFixedFormat(0, caminho_pdf)
         wb_excel.Close(SaveChanges=False)
