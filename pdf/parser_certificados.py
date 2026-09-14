@@ -147,8 +147,19 @@ def extrair_sn(texto):
     Returns:
         tuple: (sn_inst, sn_sensor), each a str or None if not found.
     """
+    # The lookahead below stops the SN capture before the next FIELD LABEL on
+    # the same line, so it doesn't swallow it as extra words of the SN value
+    # (e.g. "SN: 1767380 Calibration Range: Min: 0°C..." -> SN must stop at
+    # "1767380", not "1767380 Calibration"). A label is recognized as one OR
+    # TWO words immediately followed by ":" — one word alone isn't enough,
+    # since some real certificates glue multi-word labels right after SN on
+    # the same line (e.g. "Calibration Range:", "Indication Range:"), and a
+    # single-word check would only catch the second word ("Range:"), letting
+    # the first ("Calibration") leak into the SN. "Nominal" is kept as a
+    # standalone exception for a layout where it appears without a trailing
+    # colon at all.
     encontrados = re.findall(
-        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+\s*:|Nominal\b)[\w./-]+)*)",
+        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+(?:\s+[\w./-]+)?\s*:|Nominal\b)[\w./-]+)*)",
         texto,
         flags=re.IGNORECASE
     )
