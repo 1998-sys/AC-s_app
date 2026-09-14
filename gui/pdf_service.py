@@ -505,7 +505,7 @@ class PdfProcessingService:
         self.api._voltar_para_selecao()
 
     def _processar_xml_ft(self, caminho):
-        """Validates a flow meter external calibration certificate XML, asks the user for Application/System (and Client, when not auto-detected; optionally Elaborado/Verificado por too), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
+        """Validates a flow meter external calibration certificate XML, asks the user for Client/Application/System (optionally Elaborado/Verificado por too), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
 
         Args:
             caminho: path of the XML file (CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO).
@@ -516,8 +516,9 @@ class PdfProcessingService:
             Application feeds the template's Status formula (±0.2%
             tolerance for Fiscal/Custody Transfer, ±0.6% for the rest), so
             they need to be asked from the user instead of left blank.
-            Client is usually resolved on its own (see identificar_cliente)
-            and only added to this same prompt when detection fails.
+            Client is a fixed selection (PRIO/YINSON/ORIGEM), pre-selected
+            when identificar_cliente recognizes it — see the field comment
+            below for why it isn't free text.
         """
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
@@ -564,19 +565,23 @@ class PdfProcessingService:
                 },
             ]
 
-            # Cliente is always an open, editable text field — the client
-            # isn't always one of the handful of known oil companies
-            # (PRIO/YINSON/...); ODS itself can legitimately be the client
-            # on some certificates (e.g. CLIENTE/NOME "ODS do Brasil
-            # Sistemas de Medição LTDA"). identificar_cliente only supplies
-            # a best-guess default (from the XML's own CLIENTE/NOME or the
-            # file path) that the user can accept or overwrite — never
-            # applied silently.
+            # Cliente is a fixed selection (not free text): this value will
+            # drive which AC template/routing is used for the primary meter
+            # AC (see the "Primary meter ACs" roadmap item), the same way
+            # form/utils_print.py routes secondary-instrument ACs by client
+            # today — free text wouldn't reliably match that routing later.
+            # identificar_cliente only supplies a best-guess pre-selection
+            # (from the XML's own CLIENTE/NOME or the file path); if it
+            # doesn't land on one of these 3 known clients (e.g. detects
+            # "ODS" or nothing), the field just starts unselected and the
+            # user picks explicitly.
             cliente_detectado = identificar_cliente(dados.get("cliente_xml", ""), caminho)
             campos.insert(0, {
                 "name": "cliente",
                 "label": "Cliente",
                 "required": True,
+                "type": "select",
+                "options": ["PRIO", "YINSON", "ORIGEM"],
                 "value": cliente_detectado,
             })
             mensagem_prompt = "Preencha os dados abaixo para gerar a Linearização."

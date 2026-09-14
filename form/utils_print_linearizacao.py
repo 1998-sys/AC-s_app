@@ -148,10 +148,17 @@ CLIENTES_CONHECIDOS = ("PRIO", "YINSON", "ORIGEM", "SBM", "PETROBRAS", "ODS")
 def identificar_cliente(nome_cliente_xml: str, caminho_xml: str) -> str:
     """Suggests a default "Cliente" value from the certificate's own CLIENTE/NOME text, falling back to the file path.
 
-    The result is only a pre-filled suggestion for the (always editable)
-    "Cliente" prompt field in `gui.pdf_service` — the client isn't always
-    one of `CLIENTES_CONHECIDOS`, so this never blocks or silently decides
-    the field; the user reviews/overwrites it before generating the report.
+    `gui.pdf_service` uses the result only as a pre-selected default for
+    its "Cliente" prompt field (a fixed PRIO/YINSON/ORIGEM selection, since
+    that value will drive AC template routing for primary meters — see the
+    "Primary meter ACs" roadmap item) — if this returns something outside
+    that set (e.g. "ODS", or a client only recognized via the broader
+    `CLIENTES_CONHECIDOS` list), the field just starts unselected and the
+    user picks one of the 3 explicitly. `gerar_linearizacao` also calls
+    this directly as its own fallback when `dados["cliente"]` isn't already
+    set (e.g. called standalone, outside that prompt flow) — there, any of
+    `CLIENTES_CONHECIDOS` is written into the sheet as-is (free text cell,
+    no routing implication yet).
 
     Args:
         nome_cliente_xml: raw text of the XML's CLIENTE/NOME element (see
@@ -164,8 +171,7 @@ def identificar_cliente(nome_cliente_xml: str, caminho_xml: str) -> str:
 
     Returns:
         str: recognized client name (one of `CLIENTES_CONHECIDOS`), or an
-        empty string if neither source has one — the "Cliente" prompt
-        field then just starts blank instead of pre-filled.
+        empty string if neither source has one.
     """
     for fonte in (nome_cliente_xml or "", caminho_xml or ""):
         fonte_norm = fonte.upper().replace("\\", "/")
