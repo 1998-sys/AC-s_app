@@ -662,7 +662,7 @@ class PdfProcessingService:
             ]
             sub_extra = ""
 
-            caminho_pdf_falha = self._processar_falha_presumida(dados, caminho_xlsx)
+            caminho_pdf_falha, dados_anterior = self._processar_falha_presumida(dados, caminho_xlsx)
             if caminho_pdf_falha:
                 arquivos.append({
                     "kind": "PDF",
@@ -670,7 +670,24 @@ class PdfProcessingService:
                     "meta": f"{os.path.getsize(caminho_pdf_falha) // 1024} KB",
                     "path": caminho_pdf_falha,
                 })
-                sub_extra = " + Falha Presumida"
+                sub_extra += " + Falha Presumida"
+
+            # The primary meter AC also compares against the previous
+            # certificate — reuses dados_anterior instead of asking for
+            # that XML a second time. Only offered when it was actually
+            # obtained (user confirmed Falha Presumida and picked a valid
+            # file), independent of whether gerar_falha_presumida itself
+            # succeeded.
+            if dados_anterior:
+                caminho_pdf_ac = self._processar_ac_primario(dados, dados_anterior, caminho)
+                if caminho_pdf_ac:
+                    arquivos.append({
+                        "kind": "PDF",
+                        "name": os.path.basename(caminho_pdf_ac),
+                        "meta": f"{os.path.getsize(caminho_pdf_ac) // 1024} KB",
+                        "path": caminho_pdf_ac,
+                    })
+                    sub_extra += " + AC Medidor Primário"
 
             resultado = {
                 "tag": titulo,
@@ -705,45 +722,106 @@ class PdfProcessingService:
                 same file, so it's reopened and updated in place.
 
         Returns:
-            str: path of the generated "Falha Presumida" PDF, or None if
-            the user declines, cancels the file picker, or an error occurs.
-            A None here does not fail the overall flow — the Linearização
-            result already generated stays valid either way.
+            tuple: (caminho_pdf_falha, dados_anterior). `caminho_pdf_falha`
+            is the path of the generated "Falha Presumida" PDF, or None if
+            the user declines, cancels the file picker, the file isn't a
+            valid certificate, or `gerar_falha_presumida` itself raises —
+            a None here does not fail the overall flow, the Linearização
+            result already generated stays valid either way. `dados_anterior`
+            is the previous certificate's extracted data whenever a valid
+            file was obtained (independent of whether the PDF generation
+            above succeeded), so the caller can reuse it for the primary
+            meter AC without asking for that XML a second time — None only
+            when the user declined or cancelled the file picker.
         """
         if not self.api.confirm(
             "Falha Presumida",
             "Deseja também emitir o relatório de Falha Presumida deste medidor?",
         ):
-            return None
+            return None, None
 
         caminho_anterior = self.api.escolher_arquivo(
             "Selecione o XML da calibração anterior deste medidor",
             ("XML (*.xml)",),
         )
         if not caminho_anterior:
-            return None
+            return None, None
+
+        from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
+
+        if not is_certificado_ft(caminho_anterior):
+            self.api.alert(
+                "XML não suportado",
+                "O arquivo selecionado não é um certificado de calibração "
+                "de medidor de vazão.\nTipo esperado: "
+                "CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO",
+                "error",
+            )
+            return None, None
 
         try:
-            from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
-            from form.utils_print_linearizacao import gerar_falha_presumida
-
-            if not is_certificado_ft(caminho_anterior):
-                self.api.alert(
-                    "XML não suportado",
-                    "O arquivo selecionado não é um certificado de calibração "
-                    "de medidor de vazão.\nTipo esperado: "
-                    "CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO",
-                    "error",
-                )
-                return None
-
             # AS_LEFT-with-AS_FOUND-fallback extraction (extrair_dados_ft's
             # default behavior) already matches the confirmed rule for the
             # "previous" side of the comparison — no extra parameter needed.
             dados_anterior = extrair_dados_ft(caminho_anterior)
-            return gerar_falha_presumida(caminho_xlsx, dados_atual, dados_anterior)
-
         except Exception as e:
             traceback.print_exc()
             self.api.alert("Erro na Falha Presumida", str(e), "error")
+            return None, None
+
+        try:
+            from form.utils_print_linearizacao import gerar_falha_presumida
+            caminho_pdf_falha = gerar_falha_presumida(caminho_xlsx, dados_atual, dados_anterior)
+        except Exception as e:
+            traceback.print_exc()
+            self.api.alert("Erro na Falha Presumida", str(e), "error")
+            caminho_pdf_falha = None
+
+        return caminho_pdf_falha, dados_anterior
+
+    def _processar_ac_primario(self, dados_atual, dados_anterior, caminho_xml):
+        """Asks whether to also generate the primary meter AC and, if so, asks for the Aplicação (drives its acceptance criteria) and generates it.
+
+        Args:
+            dados_atual: current certificate's data.
+            dados_anterior: previous certificate's data (already obtained
+                by `_processar_falha_presumida` — this AC reuses it instead
+                of asking for that XML again).
+            caminho_xml: path of the current XML; used only to determine
+                the output folder (same folder as the other reports).
+
+        Returns:
+            str: path of the generated PDF, or None if the user declines,
+            cancels the Aplicação prompt, or `gerar_ac_primario` raises (a
+            None here does not fail the overall flow — the other reports
+            already generated stay valid either way).
+        """
+        if not self.api.confirm(
+            "AC de Medidor Primário",
+            "Deseja também gerar a Análise Crítica (AC) deste medidor primário?",
+        ):
+            return None
+
+        valores = self.api.prompt(
+            "Aplicação do medidor",
+            "Selecione a aplicação do medidor — define os critérios de "
+            "aceitação (erro máximo, repetibilidade e validação do MF) "
+            "usados na AC.",
+            [{
+                "name": "aplicacao",
+                "label": "Aplicação",
+                "required": True,
+                "type": "select",
+                "options": ["Master Meter", "Fiscal", "Transferência de Custódia", "Apropriação", "Operacional"],
+            }],
+        )
+        if not valores:
+            return None
+
+        try:
+            from form.utils_print_ac_primario import gerar_ac_primario
+            return gerar_ac_primario(dados_atual, dados_anterior, valores["aplicacao"], caminho_xml)
+        except Exception as e:
+            traceback.print_exc()
+            self.api.alert("Erro na AC de Medidor Primário", str(e), "error")
             return None

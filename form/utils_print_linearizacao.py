@@ -407,16 +407,18 @@ def _normalizar_linhas_tabela_generico(ws, linha_ini, linha_fim_max, n_pontos, l
             )
 
 
-def _parear_mf_anterior(pontos_atual: list, pontos_anterior: list) -> list:
-    """Pairs each current-certificate point with the previous certificate's meter factor at the nearest flow rate.
+def parear_pontos_anterior(pontos_atual: list, pontos_anterior: list) -> list:
+    """Pairs each current-certificate point with the full previous-certificate point at the nearest flow rate.
 
-    Confirmed business rule: presumed-failure compares meter factors of the
-    same meter across two calibration events, not by matching table
-    position/index — when the calibrated range differs between the two
-    certificates, the nearest flow point is used (no interpolation, and no
-    validation that the two certificates share the same meter serial
-    number — a spare/reserve meter with a different serial number can
-    legitimately be installed at the same measurement point).
+    Confirmed business rule (originally for Falha Presumida, now reused by
+    the primary meter AC too — see form/utils_print_ac_primario.py): these
+    reports compare the same meter across two calibration events, not by
+    matching table position/index — when the calibrated range differs
+    between the two certificates, the nearest flow point is used (no
+    interpolation, and no validation that the two certificates share the
+    same meter serial number — a spare/reserve meter with a different
+    serial number can legitimately be installed at the same measurement
+    point).
 
     Args:
         pontos_atual: current certificate's points (`dados["pontos"]`), in
@@ -425,8 +427,11 @@ def _parear_mf_anterior(pontos_atual: list, pontos_anterior: list) -> list:
             from `extrair_dados_ft` on the previous XML).
 
     Returns:
-        list[float]: one meter factor per `pontos_atual` entry, from the
-        `pontos_anterior` entry with the closest "vazao" value.
+        list[dict]: one previous-certificate point per `pontos_atual`
+        entry (same shape as `extrair_dados_ft`'s "pontos" — vazao,
+        meter_factor, erro_pct, incerteza, repetibilidade — so callers can
+        read whichever fields they need), from the `pontos_anterior` entry
+        with the closest "vazao" value.
 
     Raises:
         ValueError: if `pontos_anterior` is empty (nothing to pair against).
@@ -444,8 +449,20 @@ def _parear_mf_anterior(pontos_atual: list, pontos_anterior: list) -> list:
             pontos_anterior,
             key=lambda p: abs(p["vazao"] - vazao_atual),
         )
-        resultado.append(mais_proximo["meter_factor"])
+        resultado.append(mais_proximo)
     return resultado
+
+
+def _parear_mf_anterior(pontos_atual: list, pontos_anterior: list) -> list:
+    """Thin wrapper over `parear_pontos_anterior` returning just the meter factor — kept for `gerar_falha_presumida`.
+
+    Returns:
+        list[float]: one meter factor per `pontos_atual` entry.
+
+    Raises:
+        ValueError: if `pontos_anterior` is empty (nothing to pair against).
+    """
+    return [p["meter_factor"] for p in parear_pontos_anterior(pontos_atual, pontos_anterior)]
 
 
 def gerar_falha_presumida(caminho_xlsx: str, dados_atual: dict, dados_anterior: dict) -> str:

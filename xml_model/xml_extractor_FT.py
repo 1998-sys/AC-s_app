@@ -128,14 +128,20 @@ def extrair_dados_ft(caminho_xml):
         "cliente_xml" (raw CLIENTE/NOME text, used by
         form.utils_print_linearizacao.identificar_cliente to resolve the
         report's "Cliente" field without depending on the file's path),
+        "pressao_calibracao" (FLUIDO_CALIBRACAO/PRESSAO — the calibration
+        fluid's pressure, a single value for the whole certificate, used by
+        the primary meter AC's "Pressão de Calibração" field) and
+        "padroes" (list of {"identificador", "validade"} from
+        PADROES/PADRAO — the reference standard(s) used, with their
+        certificate's validity date; also used by the primary meter AC),
         the unit of each numeric column ("vazao_unidade",
         "vol_referencia_unidade", "vol_medidor_unidade" — read from each
         point's own UNIDADE_ENG attribute, not assumed) and the "pontos"
         key with the list of calibration points (flow rate, reference/meter
         volumes — kept in the certificate's own unit, no forced conversion
-        — meter factor, percentage error, uncertainty, plus a "*_casas"
-        decimal-place count per value so the output cell can mirror the
-        certificate's precision).
+        — meter factor, percentage error, uncertainty, repeatability, plus
+        a "*_casas" decimal-place count per value so the output cell can
+        mirror the certificate's precision).
 
     Notes:
         Frequency, corrected K-factor, Status, average KF and the alarm
@@ -150,6 +156,19 @@ def extrair_dados_ft(caminho_xml):
 
     faixa_min = _texto(root, "MEDIDOR_VAZAO/FAIXA_NOMINAL/MIN")
     faixa_max = _texto(root, "MEDIDOR_VAZAO/FAIXA_NOMINAL/MAX")
+
+    pressao_valor, _, pressao_unidade = _valor_unidade(root, "FLUIDO_CALIBRACAO/PRESSAO")
+
+    # A certificate can list more than one reference standard (e.g. a
+    # thermometer AND a manometer, for a liquid meter with temperature/
+    # pressure correction) — one {"identificador", "validade"} entry per
+    # PADRAO, in document order.
+    padroes = []
+    for padrao_el in root.findall("PADROES/PADRAO"):
+        padroes.append({
+            "identificador": _texto(padrao_el, "IDENTIFICADOR") or _texto(padrao_el, "DESCRICAO"),
+            "validade":      _texto(padrao_el, "CERTIFICADO_PADRAO/VALIDADE"),
+        })
 
     dados = {
         "numero_certificado": _texto(root, "NUMERO_CERTIFICADO"),
@@ -168,6 +187,9 @@ def extrair_dados_ft(caminho_xml):
         "faixa_calibrada":    f"{faixa_min} m³/h a {faixa_max} m³/h",
         "data_calibracao":    _texto(root, "MEDIDOR_VAZAO/DATA_CALIBRACAO"),
         "fator_k":            fator_k,
+        "pressao_calibracao": pressao_valor,
+        "pressao_calibracao_unidade": pressao_unidade,
+        "padroes":            padroes,
         "pontos":             [],
     }
 
@@ -191,6 +213,7 @@ def extrair_dados_ft(caminho_xml):
         vol_med, vol_med_casas, vol_med_unidade = _valor_unidade(p, "VOLUME_MEDIDOR")
         meter_factor = _float(p, "FATOR_DO_MEDIDOR/VALOR", 1.0)
         desvio       = _float(p, "DESVIO_MEDIO")
+        repetibilidade = _float(p, "REPETIBILIDADE")
 
         incerteza_el = p.find("FATOR_DO_MEDIDOR/INCERTEZA_EXP")
         incerteza = (
@@ -209,6 +232,7 @@ def extrair_dados_ft(caminho_xml):
             "meter_factor":       meter_factor,
             "erro_pct":           desvio,
             "incerteza":          incerteza,
+            "repetibilidade":     repetibilidade,
         })
         # Unit comes from the meter's own schema, the same in every point of
         # the certificate — uses the first read point's unit for the column headers.
