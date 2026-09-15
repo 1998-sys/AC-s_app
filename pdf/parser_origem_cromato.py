@@ -110,11 +110,21 @@ def _linha_propriedade(texto, nome_exato):
         tuple: (valor, incerteza) as raw strings (not yet normalized by
         _normalizar_numero), or (None, None) if the row is not found.
     """
+    # The number of filler columns between "valor" and "incerteza" (unit, LQ,
+    # LD, and sometimes a repeated unit column) is NOT fixed — it varies by
+    # report/property: some rows have 2 filler tokens ("- -"), others 3
+    # ("- - -"), others 4 (unit repeated, e.g. "cP - - cP"). A previous
+    # version hard-required a specific token count, which only matched by
+    # coincidence for rows whose real filler count happened to match, and
+    # silently dropped every property whose row had a different count (e.g.
+    # dimensionless properties with no unit at all) from the generated XML.
+    # A lazy "any number of filler tokens" match, expanding only until it
+    # reaches a numeric token immediately followed by the norm reference
+    # (NBR/ISO/ASTM), handles every observed layout without guessing a count.
     pat = re.compile(
         r"^[ \t]*" + re.escape(nome_exato) + r"[ \t]+"
         r"(?P<valor>[<>]?\s*[\d.,]+(?:[Ee][+-]?\d+)?)"
-        r"[ \t]*(?:[A-Za-zµ/³%°]+)?[ \t]+"
-        r"\S+[ \t]+\S+[ \t]+.+?[ \t]+"
+        r"[ \t]+(?:\S+[ \t]+)*?"
         r"(?P<incerteza>[\d.,]+(?:[Ee][+-]?\d+)?)[ \t]+"
         r"(?:NBR|ISO|ASTM)",
         re.IGNORECASE | re.MULTILINE

@@ -115,8 +115,15 @@ def normalizar_texto(texto):
 
 def extrair_tag(texto):
     """Extracts the instrument TAG (text between "TAG:" and "SN:"), normalizing the
-    different hyphen/dash types to "-" and collapsing spaces."""
-    padrao = r"TAG:\s*([0-9A-Za-zÀ-ÿ\-‐‒–—―\s]+?)\s+SN:"
+    different hyphen/dash types to "-" and collapsing spaces.
+
+    The character class includes "." because some real TAGs use it as a
+    segment separator (e.g. "PDT-EMED-3129.01-003") — without it, the
+    match can never bridge past the period to reach "SN:", so the regex
+    falls through to the certificate's second (empty) "TAG:"/"SN:" label
+    row instead and the TAG comes back empty/not found.
+    """
+    padrao = r"TAG:\s*([0-9A-Za-zÀ-ÿ\-‐‒–—―.\s]+?)\s+SN:"
     m = re.search(padrao, texto)
     if not m:
         return None
