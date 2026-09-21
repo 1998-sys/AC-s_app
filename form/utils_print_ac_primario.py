@@ -247,15 +247,31 @@ def gerar_ac_primario(dados_atual: dict, dados_anterior: dict, aplicacao: str, c
     # harmless) or literally "#DIV/0!" (Meter Factor's H = "=(E-D)/D",
     # divides by the now-blank D) — a real error visible in the exported
     # PDF, not just cosmetic.
+    #
+    # Unlike Linearização's tables, these three don't hide unused rows at
+    # all — clearing the values alone leaves visibly blank rows sitting
+    # inside the table box below the real data, instead of the box closing
+    # right after the last point (reported by the user: "a última linha
+    # passa do fechamento da tabela" — the real data doesn't reach where the
+    # table visually ends). Each table's row range is covered by a merged
+    # label cell starting at its header row (e.g. "Faixa Calibrada" in
+    # B27:B37) — Excel shrinks a merge to only its visible rows on its own,
+    # so hiding the trailing rows here closes the box cleanly without any
+    # extra border handling (the template's grid is a uniform thin border
+    # throughout, with no distinct "closing" style to reapply, unlike
+    # Linearização's).
     for linha in range(TABELA_ERRO_LINHA_INI + len(pontos_atual), TABELA_ERRO_LINHA_FIM_MAX + 1):
         for col in ("C", "D", "E", "F", "G", "H"):
             ws[f"{col}{linha}"] = None
+        ws.row_dimensions[linha].hidden = True
     for linha in range(TABELA_MF_LINHA_INI + len(pontos_atual), TABELA_MF_LINHA_FIM_MAX + 1):
         for col in ("D", "E", "G", "H"):
             ws[f"{col}{linha}"] = None
+        ws.row_dimensions[linha].hidden = True
     for linha in range(TABELA_REPETIBILIDADE_LINHA_INI + len(pontos_atual), TABELA_REPETIBILIDADE_LINHA_FIM_MAX + 1):
         for col in ("D", "E"):
             ws[f"{col}{linha}"] = None
+        ws.row_dimensions[linha].hidden = True
 
     ws[CELL_HISTORICO_MF] = "SIM"
     ws[CELL_HISTORICO_REPETIBILIDADE] = "SIM"
