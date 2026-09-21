@@ -165,8 +165,17 @@ def extrair_sn(texto):
     # the first ("Calibration") leak into the SN. "Nominal" is kept as a
     # standalone exception for a layout where it appears without a trailing
     # colon at all.
+    #
+    # The label lookahead's own word separator must be "[ \t]" (same line
+    # only), not "\s" (which also matches newlines) — otherwise a genuine
+    # last word of the SN, on its own line, gets mistaken for "word 1 of a
+    # 2-word label" together with an unrelated label that starts the NEXT
+    # line right after it (e.g. "SN: 9019D2645 448 7\nTAG: SN:..." — "7" is
+    # part of the SN, "TAG:" is a separate field on the next line, but "\s"
+    # bridges the line break and reads them as one "7 TAG:" label, dropping
+    # the "7" from the captured SN).
     encontrados = re.findall(
-        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+(?:\s+[\w./-]+)?\s*:|Nominal\b)[\w./-]+)*)",
+        r"(?:SN|Num\.?\s*de\s*Série):\s*([\w./-]+(?:[ \t]+(?![\w./-]+(?:[ \t]+[\w./-]+)?[ \t]*:|Nominal\b)[\w./-]+)*)",
         texto,
         flags=re.IGNORECASE
     )
