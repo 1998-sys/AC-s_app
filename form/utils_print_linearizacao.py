@@ -330,7 +330,26 @@ def _ajustar_linhas_tabela(ws, linha_ini, linha_fim_max, n_pontos):
         ws.row_dimensions[row + TABELA2_OFFSET].hidden = not usada
         ws[f"K{row + TABELA2_OFFSET}"].number_format = ws[f"E{row}"].number_format
 
-        if not usada or row == linha_ini:
+        if not usada:
+            # Rows 22-31 of the template ship with hardcoded SAMPLE
+            # calibration values (not blank) — for a certificate with fewer
+            # than 10 points, these rows are hidden but their stale values
+            # were otherwise still being read by KF médio (L76, AVERAGE
+            # over L56:M75) and by the tolerance bounds (J79/M79, SMALL/
+            # LARGE over I56:J75) on the "Dados a Serem Configurados"
+            # table, since both formulas span the full 20-row range
+            # regardless of how many rows are actually shown — confirmed via
+            # a real Excel calculation: KF médio and the range limits came
+            # out visibly wrong (e.g. upper limit = 2500, the template's own
+            # sample flow rate, when the real last point was 350).
+            for col in (
+                CELLS["col_vazao"], CELLS["col_vol_ref"], CELLS["col_vol_med"],
+                CELLS["col_mf"], CELLS["col_erro"], CELLS["col_incerteza"],
+            ):
+                ws[f"{col}{row}"] = None
+            continue
+
+        if row == linha_ini:
             continue  # table header row: keeps the original border
 
         # The original template's row height is also inconsistent between
@@ -506,6 +525,16 @@ def gerar_falha_presumida(caminho_xlsx: str, dados_atual: dict, dados_anterior: 
     ws[FP_CERT_ANTERIOR] = dados_anterior.get("numero_certificado", "")
     for i, mf in enumerate(mf_anteriores):
         ws[f"{FP_COL_MF_ANTERIOR}{FP_LINHA_INI + i}"] = mf
+
+    # Rows 87-96 of the template ship with hardcoded SAMPLE "MF Calibração
+    # anterior" values (not blank) — same issue as the Linearização table
+    # (see _ajustar_linhas_tabela): for a certificate with fewer than 10
+    # points, the unwritten rows would keep a stale previous-MF value
+    # sitting next to this run's current MF, producing a bogus Diff MF/
+    # Status for a "phantom" point. Hidden, so it doesn't reach the printed
+    # report, but clearing it keeps the saved XLSX free of leftover data.
+    for row in range(FP_LINHA_INI + len(mf_anteriores), FP_LINHA_FIM_MAX + 1):
+        ws[f"{FP_COL_MF_ANTERIOR}{row}"] = None
 
     _normalizar_linhas_tabela_generico(
         ws, FP_MIRROR_LINHA_INI, FP_MIRROR_LINHA_FIM_MAX, len(pontos_atual),
