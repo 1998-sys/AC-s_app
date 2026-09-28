@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC PO</title>
+<style>{% include "_ac_po_style.html" %}</style>
+</head>
+<body>
+
+{% if estilo == "doc" %}
+<div class="cabecalho-doc-caixa">
+<table class="cabecalho-doc">
+  <tr>
+    <td class="logo" rowspan="3"><img src="{{ logo_principal }}" alt="logo"></td>
+    <td class="titulo" rowspan="3">{{ titulo }}</td>
+    <td class="doc-info">FO-COR-GER-CPROD-032</td>
+  </tr>
+  <tr><td class="doc-info">Revisão: 0</td></tr>
+  <tr><td class="doc-info">Página: 1/1</td></tr>
+</table>
+</div>
+{% else %}
+<div class="cabecalho-simples">
+  <img class="logo-principal" src="{{ logo_principal }}" alt="logo">
+  <div class="titulo">{{ titulo }}</div>
+  {% if logo_extra %}
+  <img class="logo-extra" src="{{ logo_extra }}" alt="logo">
+  {% endif %}
+</div>
+{% endif %}
+
+<table class="identificacao">
+  <tr>
+    <th>{{ linha5_rotulo1 }}</th>
+    <th>{{ linha5_rotulo2 }}</th>
+    <th>{{ linha5_rotulo3 }}</th>
+  </tr>
+  <tr>
+    <td>{{ linha5_valor1 }}</td>
+    <td>{{ linha5_valor2 }}</td>
+    <td>{{ linha5_valor3 }}</td>
+  </tr>
+</table>
+
+<div class="outras-info-caixa">
+<table class="outras-info">
+  <tr>
+    <td class="rotulo" rowspan="3">OUTRAS INFORMAÇÕES<br>(Descrição):</td>
+    <td class="tipos"><div class="linha-tipo">{{ marca_pt }} Transmissor de pressão estática (PT)</div></td>
+    <td class="te" rowspan="3">{{ marca_te }} Termorresistência (TE)</td>
+  </tr>
+  <tr><td class="tipos"><div class="linha-tipo">{{ marca_pdt }} Transmissor de pressão diferencial (PDT)</div></td></tr>
+  <tr><td class="tipos"><div class="linha-tipo">{{ marca_tt }} Transmissor de temperatura (TT)</div></td></tr>
+</table>
+</div>
+
+<table class="certificado-info">
+  <tr>
+    <th>Nº do Certificado</th>
+    <th>{{ rotulo_data_calibracao }}</th>
+    {% if mostrar_data_instalacao %}<th>Data da Instalação</th>{% endif %}
+    <th>Empresa Certificadora</th>
+  </tr>
+  <tr>
+    <td>{{ certificado }}</td>
+    <td>{{ data_calibracao }}</td>
+    {% if mostrar_data_instalacao %}<td></td>{% endif %}
+    <td style="text-align:center">{{ empresa_certificadora }}</td>
+  </tr>
+</table>
+
+<div class="secao-titulo">1 - ANÁLISE DO CERTIFICADO DE INSPEÇÃO</div>
+
+<table class="checklist">
+  <tr>
+    <th>DESCRIÇÃO DOS ITENS A SEREM VERIFICADOS</th>
+    <th>SIM</th>
+    <th>NÃO</th>
+    <th>NÃO APLICÁVEL</th>
+  </tr>
+  {% for item in checklist_1 %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "SIM" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NAO" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NA" else "○" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="secao-titulo">2 - ANÁLISE DA ETIQUETA DE IDENTIFICAÇÃO DA PLACA</div>
+
+<table class="checklist">
+  <tr>
+    <th>DESCRIÇÃO DOS ITENS A SEREM VERIFICADOS</th>
+    <th>SIM</th>
+    <th>NÃO</th>
+    <th>NÃO APLICÁVEL</th>
+  </tr>
+  {% for item in checklist_2 %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "SIM" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NAO" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NA" else "○" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="conclusao-titulo">3 - Conclusão da análise crítica do certificado de inspeção:</div>
+<div class="conclusao-pergunta">O certificado e a etiqueta de identificação da placa estão conformes e atendem ao procedimento?</div>
+<div class="conclusao-resposta simbolo">{{ "◉" }} Sim&nbsp;&nbsp;{{ "○" }} Não</div>
+
+<div class="observacoes-rotulo">OBSERVAÇÕES:</div>
+<div class="observacoes-box"></div>
+
+<div class="assinatura-origem">
+  <div class="data">Data: {{ data_entrega }}</div>
+  <div class="linha">Responsável pela Análise</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC PO PRIO</title>
+<style>
+{% include "_ac_secundario_style.html" %}
+/* This report has 2 checklists (38 items total) instead of 1 (19 items) —
+   the generous per-section blank space tuned for the AC Secundário family
+   would push this one to a 2nd page, so it's tightened here only. */
+.secao-pergunta .resposta { min-height: 9mm; }
+.secao-pergunta.secao-1-3 .resposta { min-height: 12mm; }
+</style>
+</head>
+<body>
+
+<div class="cabecalho-topo estilo-prio">
+  <img class="logo-principal" src="{{ logo_principal }}" alt="logo">
+  <div class="titulo">Análise crítica de calibração de placas de orifício</div>
+</div>
+<div class="divisor"></div>
+
+<table class="identificacao">
+  <tr>
+    <td class="rotulo">Unidade:</td>
+    <td class="valor">{{ local }}</td>
+    <td class="rotulo">Número de série:</td>
+    <td class="valor">{{ sn_inst }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">Localização:</td>
+    <td class="valor">{{ local }}</td>
+    <td class="rotulo">Número do Certificado:</td>
+    <td class="valor">{{ certificado }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">Data de Calibração:</td>
+    <td class="valor">{{ data_calibracao }}</td>
+    <td class="rotulo">Empresa Certificadora:</td>
+    <td class="valor">{{ empresa_certificadora }}</td>
+  </tr>
+</table>
+
+<table class="checklist">
+  <tr>
+    <th class="titulo-secao">1.1 Descrição dos itens a serem verificados</th>
+    <th class="resposta">SIM</th>
+    <th class="resposta">NÃO</th>
+    <th class="resposta">N/A</th>
+  </tr>
+  {% for item in checklist_1 %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "SIM" }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "NAO" }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "NA" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<table class="checklist">
+  <tr>
+    <th class="titulo-secao">1.2 Análise da etiqueta de identificação da placa</th>
+    <th class="resposta">SIM</th>
+    <th class="resposta">NÃO</th>
+    <th class="resposta">N/A</th>
+  </tr>
+  {% for item in checklist_2 %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "SIM" }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "NAO" }}</td>
+    <td class="resposta">{{ "x" if item.resposta == "NA" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.3 É recomendado que o relatório de análise contenha uma declaração especificando que o mesmo só deve ser reproduzido completo.  Reprodução de partes requer aprovação escrita do emitente. O relatório apresentado atende esta recomendação?</div>
+  <div class="resposta">(   x   )  Sim       (      ) Não<br>OBSERVAÇÕES:</div>
+</div>
+
+<div class="secao-pergunta secao-1-3">
+  <div class="pergunta">1.4 Existe alguma informação no documento analisado que necessite ser atualizada em algum outro dispositivo (ex.: range de calibração de transmissor de pressão diferencial)?</div>
+  <div class="resposta">(   x   )  Sim       (      ) Não<br>OBSERVAÇÕES: <span class="observacao-fixa">Houve alteração do diâmetro da placa no computador de vazão.</span></div>
+</div>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.5 De acordo com a data do último ensaio / análise que foi realizada no equipamento / produto, observando a periodicidade estabelecida para realização do mesmo; a periodicidade de realização foi cumprida?</div>
+  <div class="resposta">(   x   )  Sim       (      ) Não<br>OBSERVAÇÕES:</div>
+</div>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.6 Conclusão da análise crítica do relatório de calibração.<br>O certificado está conforme requerimento do cliente e RTM?</div>
+  <div class="resposta">(   x   )  Sim       (      ) Não*<br>*Caso a resposta seja &quot;Não&quot;, justifique:</div>
+</div>
+
+<table class="assinatura-secundario">
+  <tr>
+    <td class="bloco-nome nome-assinatura">Carolina Bastos</td>
+    <td class="bloco-data">Data:&nbsp;&nbsp;&nbsp;{{ data_entrega }}</td>
+  </tr>
+  <tr class="legenda">
+    <td>Responsável pela análise</td>
+    <td></td>
+  </tr>
+</table>
+
+</body>
+</html>

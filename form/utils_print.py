@@ -9,10 +9,18 @@
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
 
-from form.utils_print_PRIO_PO import gerar_ac_prio_po
-from form.utils_print_ORIGEM import gerar_ac_origem
-from form.full_ac_templates import gerar_ac_prio, gerar_ac_yinson, gerar_ac_yinson_atlanta
-from form.po_templates import gerar_ac_origem_PO, gerar_ac_yinson_PO, gerar_ac_yinson_atlanta_PO
+from form.utils_print_ac_secundario_html import (
+    gerar_ac_prio_pdf,
+    gerar_ac_yinson_pdf,
+    gerar_ac_yinson_atlanta_pdf,
+)
+from form.utils_print_ac_origem_html import gerar_ac_origem_pdf
+from form.utils_print_ac_po_html import (
+    gerar_ac_prio_po_pdf,
+    gerar_ac_yinson_po_pdf,
+    gerar_ac_yinson_atlanta_po_pdf,
+    gerar_ac_origem_po_pdf,
+)
 from xml_model.xml_generator import gerar_xml_calibracao
 from xml_model.xml_petro_generator import gerar_xml_certificado
 from xml_model.xml_petro_po import gerar_xml_certificado_po, extrair_valores_medidos
@@ -57,12 +65,15 @@ def obter_caminho_ac(dados, caminho_pdf_original):
     return os.path.join(pasta_saida, nome_pdf)
 
 
-def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report, dados_dim_tr=None, excel=None):
+def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, dados_xml_petro, dados_report, dados_dim_tr=None, sessao=None):
     """Main router: selects the AC generator and the XMLs based on client and instrument.
 
     Dispatches to the correct template generator (ORIGEM, YINSON, YINSON
     ATLANTA, PRIO and the PO variants) and handles XML generation and XSD
-    validation before exporting the PDF.
+    validation before exporting the PDF. All 8 AC report variants are
+    HTML/WebView2-based (see form.utils_print_ac_secundario_html,
+    form.utils_print_ac_origem_html, form.utils_print_ac_po_html) — the
+    Excel/win32com pipeline this router used until 2026-09-28 is gone.
 
     Args:
         dados: Certificate fields (client, location, instrument, etc.).
@@ -74,8 +85,8 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             plate XMLs.
         dados_dim_tr: Straight-run pipe dimensions, required only in the
             "GAS METER RUN" flow.
-        excel: Already-open Excel COM instance (reused across a batch),
-            passed through to the chosen generator.
+        sessao: Already-open `form.html_to_pdf.SessaoHtmlParaPdf` (reused
+            across a batch), passed through to every AC generator.
 
     Returns:
         The absolute path of the generated PDF, or None when the flow does
@@ -96,7 +107,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             valores_er=dados_report,
             caminho_saida=caminho_saida
         )
-        return gerar_ac_origem_PO(dados, caminho_pdf_atual, excel=excel)
+        return gerar_ac_origem_po_pdf(dados, caminho_pdf_atual, sessao=sessao)
     
     elif instrumento == "GAS METER RUN":
         print(">>> GERANDO XML TRECHO RETO (PRIO) <<<")
@@ -114,7 +125,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
         gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
         validar_e_logar(caminho_xml)
-        return gerar_ac_origem(dados_pdf, caminho_pdf_atual, dados_xml_petro, excel=excel)
+        return gerar_ac_origem_pdf(dados_pdf, caminho_pdf_atual, dados_xml_petro, sessao=sessao)
     
     if "YINSON" in cliente and instrumento == "PLACA DE ORIFICIO" and "ATLANTA" in local:
         print(">>> GERANDO AC YINSON ATLANTA PLACA <<<")
@@ -126,7 +137,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             valores_er=dados_report,
             caminho_saida=caminho_saida
         )
-        return gerar_ac_yinson_atlanta_PO(dados, caminho_pdf_atual, excel=excel)
+        return gerar_ac_yinson_atlanta_po_pdf(dados, caminho_pdf_atual, sessao=sessao)
 
     if "YINSON" in cliente and instrumento == "PLACA DE ORIFICIO":
         print(">>> GERANDO AC YINSON PLACA <<<")
@@ -138,7 +149,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             valores_er=dados_report,
             caminho_saida=caminho_saida
         )
-        return gerar_ac_yinson_PO(dados, caminho_pdf_atual, excel=excel)
+        return gerar_ac_yinson_po_pdf(dados, caminho_pdf_atual, sessao=sessao)
     
     elif "YINSON" in cliente and "atlanta" not in local.lower():
         print(">>> GERANDO AC YINSON <<<")
@@ -146,15 +157,15 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
         gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
         validar_e_logar(caminho_xml)
-        return gerar_ac_yinson(dados_pdf, caminho_pdf_atual, excel=excel)
-    
+        return gerar_ac_yinson_pdf(dados_pdf, caminho_pdf_atual, sessao=sessao)
+
     elif "YINSON" in cliente and local == "FPSO ATLANTA":
         print(">>> GERANDO AC YINSON - FPSO ATLANTA <<<")
         dados_pdf = dados
         caminho_xml = Path(caminho_pdf_atual).with_suffix(".xml")
         gerar_xml_certificado(dados_pdf, dados_xml_petro, caminho_xml)
         validar_e_logar(caminho_xml)
-        return gerar_ac_yinson_atlanta(dados_pdf, caminho_pdf_atual, excel=excel)
+        return gerar_ac_yinson_atlanta_pdf(dados_pdf, caminho_pdf_atual, sessao=sessao)
     
     elif "PRIO" in cliente and instrumento == "PLACA DE ORIFICIO":
         print('placa prio')
@@ -167,7 +178,7 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             caminho_saida=caminho_saida
         )
 
-        return gerar_ac_prio_po(dados, caminho_pdf_atual, excel=excel)
+        return gerar_ac_prio_po_pdf(dados, caminho_pdf_atual, sessao=sessao)
     
     elif "PRIO" in cliente:
         print(">>> GERANDO AC PRIO <<<")
@@ -187,6 +198,6 @@ def gerar_ac_escolha(dados, caminho_pdf_atual, dados_xml_prio, certificado_te, d
             xml_destino_petro,
         )
         validar_e_logar(xml_destino_petro)
-        return gerar_ac_prio(dados_pdf, caminho_pdf_atual, excel=excel)
+        return gerar_ac_prio_pdf(dados_pdf, caminho_pdf_atual, sessao=sessao)
 
         

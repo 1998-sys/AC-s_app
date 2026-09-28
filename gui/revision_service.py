@@ -13,7 +13,6 @@ import os
 import json
 import time
 import traceback
-import win32com.client as win32
 from pathlib import Path
 
 from xml_model.xml_generator import normalizar_certificado, tag_te, chave_par_te
@@ -405,14 +404,14 @@ class RevisionService:
 
     def _gerar_e_montar_resultado(
         self, dados_pdf, caminho_pdf, pontos_calibracao,
-        pontos_calibracao_petro, dados_report, dados_dim_tr, issues, excel=None,
+        pontos_calibracao_petro, dados_report, dados_dim_tr, issues, sessao=None,
     ):
         """Generates the AC/XML for a certificate and builds the result dict (output card), used both for a single file and for the batch.
 
         Args:
-            excel: Excel COM instance already open, reused by `gerar_lote`
-                instead of opening a new process per certificate. If None,
-                `gerar_ac_escolha` opens its own.
+            sessao: `form.html_to_pdf.SessaoHtmlParaPdf` already open,
+                reused by `gerar_lote` across the batch. If None,
+                `gerar_ac_escolha` opens its own throwaway session.
 
         Returns:
             Dict with `tag`, `sub`, `pdf_name`, `badge`, `avisos` and `files`.
@@ -427,7 +426,7 @@ class RevisionService:
         certificado_te = self.api.certificados_te_por_par.get(chave_par_te(dados_pdf.get("tag")))
         caminho_gerado = gerar_ac_escolha(
             dados_pdf, caminho_pdf, pontos_calibracao, certificado_te,
-            pontos_calibracao_petro, dados_report, dados_dim_tr=dados_dim_tr, excel=excel,
+            pontos_calibracao_petro, dados_report, dados_dim_tr=dados_dim_tr, sessao=sessao,
         )
 
         avisos = sum(1 for i in issues if not i.blocking)
@@ -555,20 +554,22 @@ class RevisionService:
     def gerar_lote(self):
         """Generates the AC/XML for each collected instrument that is ready (no divergence, or with everything resolved/ignored) and finalizes the batch. Called automatically when continuous reading finishes with no pending items, and also by confirmar_geracao_lote.
 
-        Opens a single Excel COM instance and reuses it for every certificate
-        in the batch — opening/closing Excel per certificate was the biggest
-        part of the delay perceived in the review -> output transition."""
+        Opens a single `SessaoHtmlParaPdf` (WebView2) and reuses it for every
+        certificate in the batch — opening/closing a fresh WebView2
+        environment per certificate is the biggest part of the delay this
+        avoids (same reasoning as `gui/pdf_service.py`'s Linearização/Falha
+        Presumida/AC Primário flow). All 8 AC report variants are HTML-based
+        now (see `form.utils_print.gerar_ac_escolha`), so there is no more
+        Excel COM instance to open here."""
         api = self.api
         instrumentos = api.instrumentos_lote
         api.instrumentos_lote = []
 
-        excel = None
+        sessao = None
         if instrumentos:
-            excel = win32.DispatchEx("Excel.Application")
-            excel.Visible = False
-            excel.DisplayAlerts = False
-            excel.ScreenUpdating = False
-            excel.Interactive = False
+            from form.html_to_pdf import SessaoHtmlParaPdf
+            sessao = SessaoHtmlParaPdf()
+            sessao.iniciar()
 
         try:
             for inst in instrumentos:
@@ -598,7 +599,7 @@ class RevisionService:
                         dados_pdf, inst["caminho_pdf"], inst["pontos_calibracao"],
                         inst["pontos_calibracao_petro"],
                         inst["dados_report"], inst["dados_dim_tr"], inst["issues"].values(),
-                        excel=excel,
+                        sessao=sessao,
                     )
                     api.resultados_lote.append(resultado)
                 except Exception as e:
@@ -607,11 +608,8 @@ class RevisionService:
                         inst["tag"] or "certificado", f"Erro na geração: {e}", "error", nome=nome
                     )
         finally:
-            if excel:
-                try:
-                    excel.Quit()
-                except Exception:
-                    pass
+            if sessao:
+                sessao.encerrar()
 
         payload = api._pdf_service.finalizar_lote_manualmente()
         api._js(f"App.showOutputLote({json.dumps(payload)})")

@@ -1,0 +1,104 @@
+@page { size: A4 portrait; margin: 8mm 8mm; }
+* {
+  box-sizing: border-box;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+body {
+  font-family: Calibri, Arial, "Segoe UI", sans-serif;
+  font-size: 8.5px;
+  color: #000;
+  margin: 0;
+}
+
+.cabecalho-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4mm;
+  margin-bottom: 1.5mm;
+}
+.cabecalho-topo .titulo { font-weight: bold; flex: 1; }
+.cabecalho-topo.estilo-prio .titulo { font-size: 12px; color: #008080; order: 1; }
+.cabecalho-topo.estilo-prio img.logo-principal { height: 9mm; order: 2; }
+.cabecalho-topo.estilo-yinson img.logo-principal { height: 10mm; order: 1; }
+.cabecalho-topo.estilo-yinson .titulo { font-size: 11px; color: #000; order: 2; }
+.cabecalho-topo.estilo-yinson img.logo-extra { height: 10mm; order: 3; }
+
+.divisor {
+  border-bottom: 2px solid #000;
+  margin-bottom: 2mm;
+}
+.cabecalho-topo.estilo-prio + .divisor { border-bottom-color: #008080; }
+
+table.identificacao {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2mm;
+}
+table.identificacao td {
+  border: 1px solid #000;
+  padding: 0.8mm 1.5mm;
+  vertical-align: top;
+}
+table.identificacao td.rotulo { font-weight: bold; width: 17%; }
+table.identificacao td.valor { width: 33%; }
+
+table.checklist {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5mm;
+}
+table.checklist th, table.checklist td {
+  border: 1px solid #000;
+  padding: 0.6mm 1.2mm;
+}
+table.checklist th.titulo-secao {
+  text-align: left;
+  font-weight: bold;
+}
+table.checklist th.resposta { width: 8%; text-align: center; }
+table.checklist td.resposta { text-align: center; }
+
+.secao-pergunta {
+  border: 1px solid #000;
+  border-top: none;
+  padding: 0.8mm 1.5mm;
+  margin-bottom: 1.5mm;
+}
+.secao-pergunta .pergunta { font-weight: bold; white-space: pre-line; }
+.secao-pergunta .resposta {
+  margin-top: 1mm;
+  /* Reserves roughly the same blank area the original Excel rows did
+     (~63-77pt tall, meant for a handwritten OBSERVAÇÕES note) so the
+     printed page still has room to write on, not just the text itself. */
+  min-height: 20mm;
+}
+.secao-pergunta.secao-1-3 .resposta { min-height: 24mm; }
+.secao-pergunta .observacao-fixa { font-weight: bold; }
+
+table.assinatura-secundario {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6mm;
+}
+table.assinatura-secundario td.bloco-nome {
+  width: 60%;
+  text-align: center;
+  padding-bottom: 1mm;
+  border-bottom: 1px solid #000;
+}
+table.assinatura-secundario td.nome-assinatura {
+  font-family: "Segoe Script", "Brush Script MT", cursive;
+  font-size: 15px;
+}
+table.assinatura-secundario tr.legenda td {
+  text-align: center;
+  font-size: 8px;
+  padding-top: 0.8mm;
+}
+table.assinatura-secundario td.bloco-data {
+  text-align: right;
+  vertical-align: bottom;
+  padding-bottom: 1mm;
+}

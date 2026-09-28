@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC Secundário</title>
+<style>{% include "_ac_secundario_style.html" %}</style>
+</head>
+<body>
+
+<div class="cabecalho-topo estilo-{{ estilo }}">
+  <img class="logo-principal" src="{{ logo_principal }}" alt="logo">
+  <div class="titulo">{{ titulo }}</div>
+  {% if logo_extra %}
+  <img class="logo-extra" src="{{ logo_extra }}" alt="logo">
+  {% endif %}
+</div>
+<div class="divisor"></div>
+
+<table class="identificacao">
+  <tr>
+    <td class="rotulo">{{ linha7_rotulo }}</td>
+    <td class="valor">{{ linha7_valor }}</td>
+    <td class="rotulo">TAG do instrumento:</td>
+    <td class="valor">{{ tag }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">{{ linha8_rotulo }}</td>
+    <td class="valor">{{ linha8_valor }}</td>
+    <td class="rotulo">Número do Certificado:</td>
+    <td class="valor">{{ certificado }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">Data de Calibração:</td>
+    <td class="valor">{{ data_calibracao }}</td>
+    <td class="rotulo">Empresa Certificadora:</td>
+    <td class="valor">{{ empresa_certificadora }}</td>
+  </tr>
+</table>
+
+<table class="checklist">
+  <tr>
+    <th class="titulo-secao">1.1 {{ titulo_checklist }}</th>
+    <th class="resposta">SIM</th>
+    <th class="resposta">NÃO</th>
+    <th class="resposta">N/A</th>
+  </tr>
+  {% for item in checklist %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="resposta">{{ "X" if item.resposta == "SIM" }}</td>
+    <td class="resposta">{{ "X" if item.resposta == "NAO" }}</td>
+    <td class="resposta">{{ "X" if item.resposta == "NA" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.2 {{ pergunta_1_2 }}</div>
+  <div class="resposta">{{ resposta_1_2 }}<br>OBSERVAÇÕES:</div>
+</div>
+
+<div class="secao-pergunta secao-1-3">
+  <div class="pergunta">1.3 {{ pergunta_1_3 }}</div>
+  <div class="resposta">{{ resposta_1_3 }}<br>OBSERVAÇÕES:
+    {%- if observacao_1_3 %}<br><span class="observacao-fixa">{{ observacao_1_3 }}</span>{% endif %}
+  </div>
+</div>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.4 {{ pergunta_1_4 }}</div>
+  <div class="resposta">{{ resposta_1_4 }}<br>OBSERVAÇÕES:</div>
+</div>
+
+<div class="secao-pergunta">
+  <div class="pergunta">1.5 {{ pergunta_1_5 }}</div>
+  <div class="resposta">{{ resposta_1_5 }}<br>*Caso a resposta seja &quot;Não&quot;, justifique:</div>
+</div>
+
+<table class="assinatura-secundario">
+  <tr>
+    <td class="bloco-nome nome-assinatura">{{ nome_responsavel }}</td>
+    <td class="bloco-data">Data:&nbsp;&nbsp;&nbsp;{{ data_entrega }}</td>
+  </tr>
+  <tr class="legenda">
+    <td>Responsável pela análise</td>
+    <td></td>
+  </tr>
+</table>
+
+</body>
+</html>
