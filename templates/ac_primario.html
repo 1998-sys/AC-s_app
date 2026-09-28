@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC de Medidor Primário</title>
+<style>
+{% include "_ac_primario_style.html" %}
+</style>
+</head>
+<body>
+
+  <div class="cabecalho-topo">
+    <div class="titulo">Análise crítica de calibração de medidores de vazão fiscal e transferência de custódia</div>
+    <img class="logo-prio" src="{{ logos.prio }}" alt="PRIO">
+  </div>
+  <div class="doc-principal">
+    Documento Principal: PRIO-00.02-MDF-PRO-0030 - Verificar Metrologicamente Equipamentos de Medição – Sistema de Gestão de Medição (SGM)
+  </div>
+
+  <h2 class="subtitulo">Análise Crítica dos Resultados de Calibração - {{ cabecalho.tipo_equipamento }}</h2>
+
+  <div class="secao-titulo-simples">1 IDENTIFICAÇÃO DO INSTRUMENTO</div>
+  <table class="identificacao">
+    <tr>
+      <td class="rotulo">TAG:</td><td class="valor">{{ cabecalho.tag }}</td>
+      <td class="rotulo">Tipo de Equipamento:</td><td class="valor">{{ cabecalho.tipo_equipamento }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Instrumento:</td><td class="valor">{{ cabecalho.instrumento }}</td>
+      <td class="rotulo">Certificado Anterior:</td><td class="valor">{{ cabecalho.certificado_anterior }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Fabricante:</td><td class="valor">{{ cabecalho.fabricante }}</td>
+      <td class="rotulo">Laboratório:</td><td class="valor">{{ cabecalho.laboratorio_anterior }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Modelo:</td><td class="valor">{{ cabecalho.modelo }}</td>
+      <td class="rotulo">Data Calibração:</td><td class="valor">{{ cabecalho.data_cal_anterior }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Nº Série:</td><td class="valor">{{ cabecalho.num_serie }}</td>
+      <td class="rotulo">Certificado Atual:</td><td class="valor">{{ cabecalho.certificado_atual }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Faixa de Medição:</td><td class="valor">{{ cabecalho.faixa_medicao }}</td>
+      <td class="rotulo">Laboratório:</td><td class="valor">{{ cabecalho.laboratorio_atual }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Pressão de Calibração:</td><td class="valor">{{ cabecalho.pressao_calibracao }}</td>
+      <td class="rotulo">Data Calibração:</td><td class="valor">{{ cabecalho.data_cal_atual }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">DN:</td><td class="valor">{{ cabecalho.dn }}</td>
+      <td class="rotulo">Validade Padrão:</td><td class="valor" style="white-space: pre-line;">{{ cabecalho.validade_padrao }}</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Unidade Certificado:</td><td class="valor">{{ cabecalho.unidade_certificado }}</td>
+      <td class="rotulo"></td><td class="valor"></td>
+    </tr>
+  </table>
+
+  <table class="parametros">
+    <tr><th colspan="3">Parâmetro para o cálculo de análise</th></tr>
+    <tr>
+      <td class="rotulo">Erro Máximo Admissível:</td>
+      <td class="valor">{{ criterios.erro_maximo_fmt }}</td>
+      <td class="unidade">%</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Repetibilidade:</td>
+      <td class="valor">{{ criterios.repetibilidade_fmt }}</td>
+      <td class="unidade">%</td>
+    </tr>
+    <tr>
+      <td class="rotulo">Meter Factor:</td>
+      <td class="valor">{{ criterios.validacao_mf_fmt }}</td>
+      <td class="unidade">{{ '' if criterios.validacao_mf_fmt == 'N.A.' else '%' }}</td>
+    </tr>
+  </table>
+
+  <div class="secao-titulo-simples">2 LIMITES DE UTILIZAÇÃO DOS PADRÕES PRIMARIOS E DE TRABALHO</div>
+  <div class="subsecao-titulo">2.1 - ERRO DE MEDIÇÃO:</div>
+
+  <table class="pontos-ac">
+    <thead>
+      <tr>
+        <th>Faixa Calibrada</th>
+        <th>Ponto Medição<br>SI</th>
+        <th>Erro Medição<br>Anterior (%)</th>
+        <th>Erro Medição<br>Atual (%)</th>
+        <th>Incerteza de Medição<br>Anterior (%)</th>
+        <th>Incerteza de<br>Medição Atual (%)</th>
+        <th>MÉTRICA</th>
+        <th>RESULTADO</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pontos_erro %}
+      <tr>
+        {% if loop.first %}<td class="faixa-calibrada" rowspan="{{ pontos_erro|length }}">{{ cabecalho.faixa_calibrada_completa }}</td>{% endif %}
+        <td>{{ p.vazao_fmt }}</td>
+        <td>{{ p.erro_anterior_fmt }}</td>
+        <td>{{ p.erro_atual_fmt }}</td>
+        <td>{{ p.incerteza_anterior_fmt }}</td>
+        <td>{{ p.incerteza_atual_fmt }}</td>
+        <td>{{ p.metrica_fmt }}</td>
+        <td class="{{ 'status-aprovado' if p.status == 'APROVADO' else 'status-reprovado' }}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="grafico-container">
+    <img src="{{ graficos.erro }}" alt="Análise Paramétrica — Erro de Medição">
+  </div>
+
+  <div class="rodape-pagina">
+    <span>FR-LAB-121 Rev.04</span>
+    <span>Analise Critica de certificados - Vazão</span>
+    <span>1 / 3</span>
+  </div>
+
+  <div class="quebra-pagina"></div>
+
+  <div class="subsecao-titulo">2.2 - ANÁLISE DO METER FACTOR:</div>
+  <div class="linha-badges">
+    <div class="rotulo">Possui histórico?</div>
+    <div class="valor badge-azul">SIM</div>
+    <div class="espaco"></div>
+    <div class="rotulo">SITUAÇÃO:</div>
+    <div class="valor badge-azul">{{ situacao_badge }}</div>
+  </div>
+
+  <table class="pontos-ac">
+    <thead>
+      <tr>
+        <th>Faixa Calibrada</th>
+        <th>Ponto Medição<br>SI</th>
+        <th>MF Anterior</th>
+        <th>MF Atual</th>
+        <th>Diferença</th>
+        <th>Critério</th>
+        <th colspan="2">Resultado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pontos_mf %}
+      <tr>
+        {% if loop.first %}<td class="faixa-calibrada" rowspan="{{ pontos_mf|length }}">{{ cabecalho.faixa_calibrada_completa }}</td>{% endif %}
+        <td>{{ p.vazao_fmt }}</td>
+        <td>{{ p.mf_anterior_fmt }}</td>
+        <td>{{ p.mf_atual_fmt }}</td>
+        <td>{{ p.diferenca_fmt }}</td>
+        <td>{{ p.criterio_fmt }}</td>
+        <td>{{ p.resultado_pct_fmt }}</td>
+        <td class="{{ 'status-aprovado' if p.status == 'APROVADO' else 'status-reprovado' }}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="grafico-container">
+    <img src="{{ graficos.mf }}" alt="Análise Paramétrica — Meter Factor">
+  </div>
+
+  <div class="rodape-pagina">
+    <span>FR-LAB-121 Rev.04</span>
+    <span>Analise Critica de certificados - Vazão</span>
+    <span>2 / 3</span>
+  </div>
+
+  <div class="quebra-pagina"></div>
+
+  <div class="subsecao-titulo">2.3 - ANÁLISE DA REPETIBILIDADE:</div>
+  <div class="linha-badges">
+    <div class="rotulo">Possui histórico?</div>
+    <div class="valor badge-azul">SIM</div>
+    <div class="espaco"></div>
+    <div class="rotulo">SITUAÇÃO:</div>
+    <div class="valor badge-azul">{{ situacao_badge }}</div>
+  </div>
+
+  <table class="pontos-ac">
+    <thead>
+      <tr>
+        <th>Faixa Calibrada</th>
+        <th>Ponto Medição<br>SI</th>
+        <th>Repetibilidade<br>Anterior</th>
+        <th>Repetibilidade<br>Atual</th>
+        <th>Critério</th>
+        <th>Resultado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pontos_rep %}
+      <tr>
+        {% if loop.first %}<td class="faixa-calibrada" rowspan="{{ pontos_rep|length }}">{{ cabecalho.faixa_calibrada_completa }}</td>{% endif %}
+        <td>{{ p.vazao_fmt }}</td>
+        <td>{{ p.repetibilidade_anterior_fmt }}</td>
+        <td>{{ p.repetibilidade_atual_fmt }}</td>
+        <td>{{ p.criterio_fmt }}</td>
+        <td class="{{ 'status-aprovado' if p.status == 'APROVADO' else 'status-reprovado' }}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="grafico-container">
+    <img src="{{ graficos.repetibilidade }}" alt="Análise Paramétrica — Repetibilidade">
+  </div>
+
+  <div class="observacoes-box">
+    <span class="rotulo">Observações:</span> {{ observacoes }}
+  </div>
+
+  <table class="assinatura-ac">
+    <tr>
+      <td class="linha">{{ data_analise }}<br>Data da Análise:</td>
+      <td class="linha">Responsável pela análise</td>
+    </tr>
+  </table>
+
+  <div class="rodape-pagina">
+    <span>FR-LAB-121 Rev.04</span>
+    <span>Analise Critica de certificados - Vazão</span>
+    <span>3 / 3</span>
+  </div>
+
+</body>
+</html>

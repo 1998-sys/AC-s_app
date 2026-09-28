@@ -1,0 +1,165 @@
+@page { size: A4 portrait; margin: 10mm 12mm; }
+* {
+  box-sizing: border-box;
+  /* Without this, Chromium's print engine can apply its own "ink economy"
+     adjustment to saturated background colors (confirmed via testing:
+     the red REPROVADO badge silently lost its background and rendered as
+     faint grey text, while the lighter green APROVADO badge was
+     unaffected) — forcing exact color reproduction everywhere avoids that
+     silent, color-dependent inconsistency. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+body {
+  font-family: Calibri, Arial, "Segoe UI", sans-serif;
+  font-size: 9.5px;
+  color: #000;
+  margin: 0;
+}
+.cabecalho-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #00778B;
+  padding-bottom: 1.5mm;
+  margin-bottom: 2mm;
+}
+.cabecalho-topo .titulo {
+  font-size: 9px;
+  font-weight: bold;
+  max-width: 70%;
+  color: #000;
+}
+.cabecalho-topo img.logo-prio { height: 8mm; }
+.doc-principal {
+  font-size: 6.5px;
+  color: #000;
+  margin-bottom: 3mm;
+}
+h2.subtitulo {
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  margin: 0 0 3mm 0;
+}
+.secao-titulo-simples {
+  font-weight: bold;
+  font-size: 10px;
+  margin: 2mm 0 1mm 0;
+}
+.subsecao-titulo {
+  font-weight: bold;
+  font-size: 9.5px;
+  margin: 2mm 0 1mm 0;
+}
+table.identificacao {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2mm;
+}
+table.identificacao td {
+  border: 1px solid #999;
+  padding: 1mm 1.5mm;
+}
+table.identificacao td.rotulo {
+  font-weight: bold;
+  width: 24%;
+  background: #f2f2f2;
+}
+table.identificacao td.valor {
+  background: #FFFFCC;
+  width: 26%;
+}
+table.parametros {
+  border-collapse: collapse;
+  margin-bottom: 2mm;
+}
+table.parametros th {
+  border: 1px solid #999;
+  padding: 1mm 2mm;
+  font-weight: bold;
+  background: #f2f2f2;
+}
+table.parametros td {
+  border: 1px solid #999;
+  padding: 1mm 2mm;
+}
+table.parametros td.rotulo { text-align: right; font-weight: bold; }
+table.parametros td.valor { background: #FFFFCC; text-align: center; width: 18mm; }
+table.parametros td.unidade { text-align: center; width: 10mm; }
+
+table.pontos-ac {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2mm;
+}
+table.pontos-ac th, table.pontos-ac td {
+  border: 1px solid #999;
+  padding: 0.8mm 1.5mm;
+  text-align: center;
+}
+table.pontos-ac th { background: #f2f2f2; font-weight: bold; font-size: 8px; }
+table.pontos-ac td.faixa-calibrada {
+  font-weight: bold;
+  writing-mode: horizontal-tb;
+}
+.badge-aprovado, .status-aprovado { background: #92D050; color: #000; font-weight: bold; }
+.badge-reprovado, .status-reprovado { background: #FF0000; color: #fff; font-weight: bold; }
+.badge-azul { background: #00B0F0; color: #000; font-weight: bold; }
+
+.linha-badges {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 2mm;
+  border: 1px solid #999;
+  font-size: 9px;
+}
+.linha-badges > div {
+  padding: 1mm 2mm;
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+}
+.linha-badges .rotulo { font-weight: bold; background: #f2f2f2; }
+.linha-badges .valor { font-weight: bold; }
+.linha-badges .espaco { flex: 1; }
+
+.grafico-container { text-align: center; margin-bottom: 2mm; }
+.grafico-container img { width: 100%; max-width: 175mm; }
+
+.rodape-pagina {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: #333;
+  border-top: 1px solid #999;
+  padding-top: 1mm;
+  margin-top: 3mm;
+}
+
+.observacoes-box {
+  border: 1px solid #999;
+  padding: 1.5mm;
+  margin-bottom: 4mm;
+  font-size: 9px;
+}
+.observacoes-box .rotulo { font-weight: bold; }
+
+table.assinatura-ac {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.assinatura-ac td {
+  width: 50%;
+  text-align: center;
+  padding-top: 8mm;
+}
+table.assinatura-ac .linha {
+  border-top: 1px solid #000;
+  padding-top: 1mm;
+  font-weight: bold;
+  font-size: 9px;
+}
+
+.quebra-pagina { page-break-before: always; }

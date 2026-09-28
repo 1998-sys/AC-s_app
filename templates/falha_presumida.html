@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Relatório de Falha Presumida</title>
+<style>
+{% include "_report_style.html" %}
+</style>
+</head>
+<body>
+<div class="folha">
+
+  <div class="cabecalho-topo">
+    <img class="logo-ods" src="{{ logos.ods }}" alt="ODS Metering Systems">
+    <h1>Avaliação de Falha Presumida de Medição</h1>
+    <img class="logo-mascote" src="{{ logos.mascote }}" alt="">
+  </div>
+
+  <div class="info-grid">
+    <dl>
+      <dt>Cliente:</dt><dd>{{ cabecalho.cliente }}</dd>
+      <dt>Instalação:</dt><dd>{{ cabecalho.instalacao }}</dd>
+      <dt>TAG do Sistema:</dt><dd>{{ cabecalho.tag_sistema }}</dd>
+      <dt>Aplicação:</dt><dd>{{ cabecalho.aplicacao }}</dd>
+      <dt>Sistema:</dt><dd>{{ cabecalho.sistema }}</dd>
+      <dt>Data da Calibração:</dt><dd>{{ cabecalho.data_calibracao }}</dd>
+      <dt>Tipo do Medidor:</dt><dd>{{ cabecalho.tipo_medidor }}</dd>
+    </dl>
+    <dl>
+      <dt>Nº Certificado:</dt><dd>{{ cabecalho.num_certificado }}</dd>
+      <dt>Modelo:</dt><dd>{{ cabecalho.modelo }}</dd>
+      <dt>Fabricante:</dt><dd>{{ cabecalho.fabricante }}</dd>
+      <dt>TAG:</dt><dd>{{ cabecalho.tag_sistema }}</dd>
+      <dt>Nº Série:</dt><dd>{{ cabecalho.num_serie }}</dd>
+      <dt>Diâmetro:</dt><dd>{{ cabecalho.diametro }}</dd>
+      <dt>Faixa Calibrada:</dt><dd>{{ cabecalho.faixa_calibrada }}</dd>
+    </dl>
+  </div>
+
+  <div class="secao-titulo">Valores do Certificado de Calibração</div>
+
+  <div class="kfactor-linha">
+    <span class="rotulo">K-Factor do medidor:</span>
+    {{ cabecalho.fator_k }}&nbsp;&nbsp;&nbsp;pulsos/{{ unidades.vazao.split('/')[0] }}
+  </div>
+
+  <table class="pontos" style="--pontos-fonte: {{ estilo_pontos.fonte_px }}px; --pontos-pad: {{ estilo_pontos.padding_mm }}mm;">
+    <thead>
+      <tr>
+        <th>Vazão da Calibração<br>({{ unidades.vazao }})</th>
+        <th>Frequência (Hz)</th>
+        <th>Volume de Referência<br>({{ unidades.vol_ref }})</th>
+        <th>Volume do Medidor<br>({{ unidades.vol_med }})</th>
+        <th>Meter Factor</th>
+        <th>Erro (%)</th>
+        <th>K-factor corrigido</th>
+        <th>Incerteza (%)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pontos %}
+      <tr>
+        <td>{{ p.vazao_fmt }}</td>
+        <td>{{ p.frequencia_fmt }}</td>
+        <td>{{ p.vol_ref_fmt }}</td>
+        <td>{{ p.vol_med_fmt }}</td>
+        <td>{{ p.meter_factor_fmt }}</td>
+        <td>{{ p.erro_fmt }}</td>
+        <td>{{ p.kfc_fmt }}</td>
+        <td>{{ p.incerteza_fmt }}</td>
+        <td class="{{ 'status-aprovado' if p.status == 'APROVADO' else 'status-reprovado' }}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="secao-titulo">Fórmulas</div>
+  <div class="formulas">
+    <div class="linha-formula">
+      <div>F (Hz) = (K-Factor do medidor * Vazão) / 3600</div>
+      <div>MF = Volume de Referência / Volume do Medidor</div>
+      <div>KFc = K-Factor do medidor / MF</div>
+    </div>
+    <div class="linha-legenda">
+      <div class="coluna-legenda">
+        <div>F = Frequência em Hz</div>
+        <div>K-Factor do medidor</div>
+        <div>Vazão em {{ unidades.vazao }}</div>
+        <div>3600 referente à conversão de horas para segundos</div>
+      </div>
+      <div class="coluna-legenda">
+        <div>MF = Meter Factor</div>
+        <div>Volume de Referência em {{ unidades.vol_ref }}</div>
+        <div>Volume do Medidor em {{ unidades.vol_med }}</div>
+      </div>
+      <div class="coluna-legenda">
+        <div>KFc = K-Factor Corrigido</div>
+        <div>K-Factor do medidor</div>
+        <div>MF da vazão</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="secao-titulo">Cálculo Falha Presumida</div>
+  <table class="calculo-fp" style="--pontos-fonte: {{ estilo_pontos.fonte_px }}px; --pontos-pad: {{ estilo_pontos.padding_mm }}mm;">
+    <thead>
+      <tr>
+        <th></th>
+        <th>{{ falha_presumida.certificado_anterior }}</th>
+        <th>{{ cabecalho.num_certificado }}</th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>Vazão da Calibração<br>({{ unidades.vazao }})</th>
+        <th>MF<br>Calibração anterior</th>
+        <th>MF<br>Calibração atual</th>
+        <th>Diff MF</th>
+        <th>Fator de Correção<br>(Fci)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in falha_presumida.pontos %}
+      <tr>
+        <td>{{ p.vazao_fmt }}</td>
+        <td>{{ p.mf_anterior_fmt }}</td>
+        <td>{{ p.mf_atual_fmt }}</td>
+        <td>{{ p.diff_mf_fmt }}</td>
+        <td>{{ p.fci_fmt }}</td>
+        <td class="{{ 'status-aprovado' if p.status == 'APROVADO' else 'status-reprovado' }}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="secao-titulo">Observações</div>
+  <div class="observacoes">
+    1 - Os resultados apresentados neste documento aplicam-se somente ao equipamento calibrado indicado.
+    <em>The results reported in this doccument apply only to the indicated equipment.</em>
+  </div>
+
+  <table class="assinaturas">
+    <tr>
+      <td>
+        <div class="rotulo">Elaborado por:</div>
+        <div class="linha">{{ assinaturas.elaborado_nome }}<br>{{ assinaturas.elaborado_data }}</div>
+      </td>
+      <td>
+        <div class="rotulo">Verificado por:</div>
+        <div class="linha">{{ assinaturas.verificado_nome }}<br>{{ assinaturas.verificado_data }}</div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,154 @@
+@page { size: A4 landscape; margin: 3mm; }
+* {
+  box-sizing: border-box;
+  /* See templates/_ac_primario_style.html for why this matters: Chromium's
+     print engine can silently alter saturated background colors to save
+     ink unless exact reproduction is forced. No background colors here
+     today, but keeping this consistent across all 3 reports avoids the
+     same bug resurfacing the next time one is added. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+body {
+  font-family: Calibri, Arial, "Segoe UI", sans-serif;
+  font-size: 9.5px;
+  line-height: 1.15;
+  color: #000;
+  margin: 0;
+}
+.folha {
+  border: 1.5px solid #000;
+  padding: 1.2mm 3mm;
+}
+.cabecalho-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #000;
+  padding-bottom: 0.7mm;
+  margin-bottom: 0.8mm;
+}
+.cabecalho-topo img.logo-ods { height: 9mm; }
+.cabecalho-topo img.logo-mascote { height: 11mm; }
+.cabecalho-topo h1 {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 8mm;
+  margin-bottom: 0.6mm;
+}
+.info-grid dl {
+  display: grid;
+  grid-template-columns: 34mm 1fr;
+  gap: 0.2mm 0;
+  margin: 0;
+}
+.info-grid dt { font-weight: bold; grid-column: 1; }
+.info-grid dd { margin: 0; grid-column: 2; }
+.kfactor-linha {
+  margin-bottom: 0.6mm;
+}
+.kfactor-linha .rotulo { font-weight: bold; }
+.secao-titulo {
+  border: 1px solid #000;
+  text-align: center;
+  font-weight: bold;
+  padding: 0.4mm;
+  margin: 0.7mm 0 0.4mm 0;
+}
+table.pontos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.6mm;
+}
+table.pontos th, table.pontos td {
+  border: 1px solid #000;
+  padding: var(--pontos-pad, 0.7mm) 1.5mm;
+  text-align: center;
+  font-size: var(--pontos-fonte, 9.5px);
+}
+table.pontos th { font-weight: bold; }
+.status-aprovado { color: #1a7a1a; font-weight: bold; }
+.status-reprovado { color: #b00020; font-weight: bold; }
+table.calculo-fp {
+  border-collapse: collapse;
+  margin: 0 auto 0.6mm auto;
+}
+table.calculo-fp th, table.calculo-fp td {
+  border: 1px solid #000;
+  padding: var(--pontos-pad, 0.7mm) 2mm;
+  text-align: center;
+  font-size: var(--pontos-fonte, 9.5px);
+}
+table.calculo-fp th { font-weight: bold; }
+/* The certificate-number group-header row is always exactly 1 row
+   regardless of point count, so it doesn't need to shrink with
+   --pontos-pad/--pontos-fonte like the data rows — kept small and fixed
+   instead, saving a little height at every point count. */
+table.calculo-fp thead tr:first-child th {
+  padding: 0.2mm 2mm;
+  font-size: 8px;
+}
+.formulas {
+  margin-bottom: 0.6mm;
+}
+.formulas .linha-formula {
+  display: flex;
+  gap: 12mm;
+  margin-bottom: 0.4mm;
+}
+.formulas .linha-legenda {
+  display: flex;
+  gap: 12mm;
+}
+.formulas .coluna-legenda {
+  flex: 1;
+}
+.formulas .coluna-legenda div { margin-bottom: 0.2mm; }
+table.config {
+  border-collapse: collapse;
+  margin: 0 auto 0.6mm auto;
+  width: 60mm;
+}
+table.config th, table.config td {
+  border: 1px solid #000;
+  padding: var(--pontos-pad, 0.7mm) 2mm;
+  text-align: center;
+  font-size: var(--pontos-fonte, 9.5px);
+}
+table.config th { font-weight: bold; }
+table.config td.rotulo-medio { font-weight: bold; text-align: right; }
+table.alarmes {
+  border-collapse: collapse;
+  margin: 0 auto 0.5mm auto;
+}
+table.alarmes td {
+  border: 1px solid #000;
+  padding: 0.4mm 3mm;
+  text-align: center;
+}
+table.alarmes td.rotulo { font-weight: bold; text-align: right; }
+.observacoes { margin-bottom: 0.2mm; font-size: 7.5px; }
+table.assinaturas {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1mm;
+  page-break-inside: avoid;
+}
+table.assinaturas td {
+  width: 50%;
+  text-align: center;
+  vertical-align: bottom;
+  padding-top: 1.5mm;
+}
+table.assinaturas .rotulo { font-weight: bold; text-align: left; padding-bottom: 7mm; }
+table.assinaturas .linha {
+  border-top: 1px solid #000;
+  padding-top: 1mm;
+}

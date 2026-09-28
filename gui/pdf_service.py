@@ -47,6 +47,12 @@ class PdfProcessingService:
         self._itens_relacionados_cache = {}
         self._itens_relacionados_perguntado = False
 
+        # Cache of Evaluation Reports (Placa/Trecho) found mixed into the
+        # selected files, keyed by normalized certificate number — built by
+        # _separar_ers_e_iniciar, consumed by er_automatico_lote. Reset on
+        # every iniciar_leitura, same reasoning as _itens_relacionados_cache above.
+        self._ers_lote_cache = {}
+
         # Types that generate XML directly from the PDF, without going through the
         # review screen — unlike the types dispatched via Dispatcher/ProcessorFactory.
         # Adding a new type here doesn't require editing _processar_pdf_thread.
@@ -107,27 +113,88 @@ class PdfProcessingService:
         return resultado
 
     def iniciar_leitura(self, itens):
-        """Resets the queue state and dispatches the first file's processing in the background.
+        """Resets the queue state and, in the background, separates any Evaluation
+        Reports mixed into the selection before dispatching the first certificate's
+        processing.
 
         Args:
-            itens: list of `{"caminho": str, "nome": str}` already chosen,
-                even for a single file.
+            itens: list of `{"caminho": str, "nome": str}` already chosen, even for
+                a single file — may freely mix certificates with their Evaluation
+                Reports (Placa/Trecho); see `_separar_ers_e_iniciar`.
 
         Notes:
             Batch mode activates automatically when there's more than one
-            item: the queue advances on its own after each file (success or
-            error) until all are processed — see `em_lote_ativo`/
-            `avancar_fila`, triggered via `DialogBridge.voltar_para_selecao`/
-            `RevisionService.confirmar_geracao`.
+            certificate (once any Evaluation Reports are set aside): the queue
+            advances on its own after each file (success or error) until all
+            are processed — see `em_lote_ativo`/`avancar_fila`, triggered via
+            `DialogBridge.voltar_para_selecao`/`RevisionService.confirmar_geracao`.
         """
         self._cancelado = False
-        self.api.fila_processamento = list(itens)
         self.api.indice_fila = 0
         self.api.resultados_lote = []
         self.api.eventos_lote = []
         self.api.instrumentos_lote = []
         self._itens_relacionados_cache = {}
         self._itens_relacionados_perguntado = False
+        self._ers_lote_cache = {}
+        Thread(target=self._separar_ers_e_iniciar, args=(list(itens),), daemon=True).start()
+
+    def _separar_ers_e_iniciar(self, itens):
+        """Classifies each selected file as an Evaluation Report or a certificate,
+        caching the former by normalized certificate number and keeping only the
+        latter as the reading queue, then starts reading it.
+
+        Args:
+            itens: same list received by `iniciar_leitura`.
+
+        Notes:
+            Runs on a background thread — extracting text from every file just to
+            check whether it's an Evaluation Report shouldn't block the UI, even
+            though it means a certificate later has its text extracted again by
+            `select_extract`. An Evaluation Report is recognized by its own
+            certificate number ending in "-ER" (see
+            `pdf.parser_er_common.extrair_numero_evaluation`) — the same field
+            `PlacaProcessor`/`TrechoProcessor` already extract from it — so this
+            never misclassifies a regular instrument certificate.
+        """
+        from pdf.extrator import extrair_texto
+        from pdf.parser_er_common import extrair_numero_evaluation
+        from validation.rules_po import normalizar_numero_certificado
+
+        certificados = []
+        for item in itens:
+            caminho = item["caminho"]
+            numero_er = None
+            if not caminho.lower().endswith(".xml"):
+                try:
+                    texto = extrair_texto(caminho)
+                    if texto:
+                        numero_er = extrair_numero_evaluation(texto)
+                except Exception:
+                    traceback.print_exc()
+
+            if numero_er:
+                chave = normalizar_numero_certificado(numero_er)
+                if chave:
+                    self._ers_lote_cache[chave] = caminho
+                    continue
+            certificados.append(item)
+
+        if self._cancelado:
+            return
+
+        if not certificados:
+            self.api.alert(
+                "Nenhum certificado selecionado",
+                "Todos os arquivos selecionados foram identificados como "
+                "Evaluation Report. Selecione também o(s) certificado(s) "
+                "correspondente(s).",
+                "error",
+            )
+            self.api._voltar_para_selecao()
+            return
+
+        self.api.fila_processamento = certificados
         self._processar_item_da_fila()
 
     def _processar_item_da_fila(self):
@@ -346,6 +413,30 @@ class PdfProcessingService:
         from pdf.parser_certificados import buscar_item_relacionado
         return buscar_item_relacionado(self._itens_relacionados_cache, tag)
 
+    def er_automatico_lote(self, numero_certificado):
+        """Looks up, in the cache built by `_separar_ers_e_iniciar`, the Evaluation
+        Report already matched to this certificate — used by PlacaProcessor/
+        TrechoProcessor via `BaseProcessor._solicitar_report` to skip the
+        per-certificate file dialog when the corresponding Evaluation Report was
+        selected together with the certificates.
+
+        Args:
+            numero_certificado: certificate number ("certificado" field) to match
+                against each Evaluation Report's own number.
+
+        Returns:
+            str | None: path of the matching Evaluation Report (removed from the
+            cache, since each report belongs to a single certificate), or None if
+            none of the selected files matched this certificate — the caller falls
+            back to asking for this certificate's report individually.
+        """
+        from validation.rules_po import normalizar_numero_certificado
+
+        chave = normalizar_numero_certificado(numero_certificado)
+        if not chave:
+            return None
+        return self._ers_lote_cache.pop(chave, None)
+
     def solicitar_dados_origem(self, dados_pdf, callback):
         """Asks the user for Location/AC No. via a prompt and continues the flow in `callback` with `dados_pdf` filled in.
 
@@ -505,7 +596,7 @@ class PdfProcessingService:
         self.api._voltar_para_selecao()
 
     def _processar_xml_ft(self, caminho):
-        """Validates a flow meter external calibration certificate XML, asks the user for Client/Application/System (optionally Elaborado/Verificado por too), generates the Linearization XLSX+PDF and forwards the result to the output screen (batch or single).
+        """Validates a flow meter external calibration certificate XML, asks the user for Client/Application/System (optionally Elaborado/Verificado por too), generates the Linearization PDF (HTML/WebView2 pipeline — no XLSX) and forwards the result to the output screen (batch or single).
 
         Args:
             caminho: path of the XML file (CERTIFICADO_CALIBRACAO_EXTERNA_MEDIDOR_VAZAO).
@@ -523,8 +614,10 @@ class PdfProcessingService:
         try:
             from xml_model.xml_extractor_FT import is_certificado_ft, extrair_dados_ft
             from form.utils_print_linearizacao import (
-                gerar_linearizacao, contexto_db, ler_nomes_assinatura, identificar_cliente,
+                contexto_db, ler_nomes_assinatura, identificar_cliente,
             )
+            from form.utils_print_linearizacao_html import gerar_linearizacao_pdf
+            from form.html_to_pdf import SessaoHtmlParaPdf
 
             self.api._progress(30, "extract", [])
             if not is_certificado_ft(caminho):
@@ -601,10 +694,12 @@ class PdfProcessingService:
             dados["sistema"] = valores.get("sistema", "")
             dados["cliente"] = valores.get("cliente", "")
 
-            # The template already comes with a default pair of "Elaborado
-            # por"/"Verificado por" names — it only asks if the user wants to change
-            # them for this specific report; if not, it goes with the template's
-            # default (gerar_linearizacao doesn't overwrite in that case).
+            # ler_nomes_assinatura reads the default pair of "Elaborado por"/
+            # "Verificado por" names baked into Template_Linearizacao.xlsx —
+            # it only asks if the user wants to change them for this specific
+            # report; if not, dados falls back to that same default below
+            # (the HTML pipeline has no "leave the cell untouched" behavior
+            # like the old Excel one had, so the fallback must be explicit).
             elaborado_padrao, verificado_padrao = ler_nomes_assinatura()
             if self.api.confirm(
                 "Elaborado por / Verificado por",
@@ -635,63 +730,73 @@ class PdfProcessingService:
                     return
                 dados["elaborado_por"] = valores_assinatura.get("elaborado_por", "")
                 dados["verificado_por"] = valores_assinatura.get("verificado_por", "")
+            else:
+                dados["elaborado_por"] = elaborado_padrao
+                dados["verificado_por"] = verificado_padrao
 
             if self._cancelado:
                 self.api._voltar_para_selecao()
                 return
             self.api._progress(70, "build", ["extract", "compare", "validate"])
-            caminho_xlsx = gerar_linearizacao(dados, caminho)
-            caminho_pdf = os.path.splitext(caminho_xlsx)[0] + ".pdf"
-            limpar_certificado_solto(caminho)
-            self.api._progress(100, "build", CHECKLIST_ALL)
 
-            titulo = dados.get("tag") or dados.get("numero_certificado") or "Linearização"
-            arquivos = [
-                {
-                    "kind": "XLSX",
-                    "name": os.path.basename(caminho_xlsx),
-                    "meta": f"{os.path.getsize(caminho_xlsx) // 1024} KB",
-                    "path": caminho_xlsx,
-                },
-                {
-                    "kind": "PDF",
-                    "name": os.path.basename(caminho_pdf),
-                    "meta": f"{os.path.getsize(caminho_pdf) // 1024} KB",
-                    "path": caminho_pdf,
-                },
-            ]
-            sub_extra = ""
+            # One shared WebView2 session for every report generated for this
+            # certificate (Linearização, and optionally Falha Presumida/AC de
+            # Medidor Primário below) — opening a fresh session per report
+            # multiplies a real, measured ~cold-start cost for no benefit (a
+            # bare WebView2 init+navigate+print with no report content took
+            # the same ~30s a full report did; reusing one warm session
+            # across 3 exports measured at ~2s total instead of ~90s). See
+            # form.html_to_pdf.SessaoHtmlParaPdf.
+            sessao = SessaoHtmlParaPdf()
+            sessao.iniciar()
+            try:
+                caminho_pdf = gerar_linearizacao_pdf(dados, caminho, sessao=sessao)
+                limpar_certificado_solto(caminho)
+                self.api._progress(100, "build", CHECKLIST_ALL)
 
-            caminho_pdf_falha, dados_anterior = self._processar_falha_presumida(dados, caminho_xlsx)
-            if caminho_pdf_falha:
-                arquivos.append({
-                    "kind": "PDF",
-                    "name": os.path.basename(caminho_pdf_falha),
-                    "meta": f"{os.path.getsize(caminho_pdf_falha) // 1024} KB",
-                    "path": caminho_pdf_falha,
-                })
-                sub_extra += " + Falha Presumida"
+                titulo = dados.get("tag") or dados.get("numero_certificado") or "Linearização"
+                arquivos = [
+                    {
+                        "kind": "PDF",
+                        "name": os.path.basename(caminho_pdf),
+                        "meta": f"{os.path.getsize(caminho_pdf) // 1024} KB",
+                        "path": caminho_pdf,
+                    },
+                ]
+                sub_extra = ""
 
-            # The primary meter AC also compares against the previous
-            # certificate — reuses dados_anterior instead of asking for
-            # that XML a second time. Only offered when it was actually
-            # obtained (user confirmed Falha Presumida and picked a valid
-            # file), independent of whether gerar_falha_presumida itself
-            # succeeded.
-            if dados_anterior:
-                caminho_pdf_ac = self._processar_ac_primario(dados, dados_anterior, caminho)
-                if caminho_pdf_ac:
+                caminho_pdf_falha, dados_anterior = self._processar_falha_presumida(dados, caminho, sessao)
+                if caminho_pdf_falha:
                     arquivos.append({
                         "kind": "PDF",
-                        "name": os.path.basename(caminho_pdf_ac),
-                        "meta": f"{os.path.getsize(caminho_pdf_ac) // 1024} KB",
-                        "path": caminho_pdf_ac,
+                        "name": os.path.basename(caminho_pdf_falha),
+                        "meta": f"{os.path.getsize(caminho_pdf_falha) // 1024} KB",
+                        "path": caminho_pdf_falha,
                     })
-                    sub_extra += " + AC Medidor Primário"
+                    sub_extra += " + Falha Presumida"
+
+                # The primary meter AC also compares against the previous
+                # certificate — reuses dados_anterior instead of asking for
+                # that XML a second time. Only offered when it was actually
+                # obtained (user confirmed Falha Presumida and picked a valid
+                # file), independent of whether gerar_falha_presumida_pdf itself
+                # succeeded.
+                if dados_anterior:
+                    caminho_pdf_ac = self._processar_ac_primario(dados, dados_anterior, caminho, sessao)
+                    if caminho_pdf_ac:
+                        arquivos.append({
+                            "kind": "PDF",
+                            "name": os.path.basename(caminho_pdf_ac),
+                            "meta": f"{os.path.getsize(caminho_pdf_ac) // 1024} KB",
+                            "path": caminho_pdf_ac,
+                        })
+                        sub_extra += " + AC Medidor Primário"
+            finally:
+                sessao.encerrar()
 
             resultado = {
                 "tag": titulo,
-                "badge": "XLSX",
+                "badge": "PDF",
                 "sub": f"{titulo} · Linearização{sub_extra}",
                 "avisos": 0,
                 "files": arquivos,
@@ -709,23 +814,26 @@ class PdfProcessingService:
             self.api.alert("Erro no XML", str(e), "error")
             self.api._voltar_para_selecao()
 
-    def _processar_falha_presumida(self, dados_atual, caminho_xlsx):
+    def _processar_falha_presumida(self, dados_atual, caminho_xml, sessao):
         """Asks whether to also generate the Presumed Failure report and, if so, requests the previous calibration's XML and generates it.
 
         Args:
             dados_atual: current certificate's data (same dict passed to
-                `gerar_linearizacao` for this XML, already with "aplicacao"
-                filled in from the earlier prompt).
-            caminho_xlsx: path of the workbook already generated by
-                `gerar_linearizacao` for the current certificate — both
-                sheets ("Linearização" and "Falha Presumida") live in this
-                same file, so it's reopened and updated in place.
+                `gerar_linearizacao_pdf` for this XML, already with
+                "aplicacao" filled in from the earlier prompt).
+            caminho_xml: path of the current certificate's XML — only used
+                to determine the output folder (same folder as the other
+                reports), since the HTML pipeline doesn't reopen any
+                workbook (unlike the old Excel pipeline, where both sheets
+                lived in the same file).
+            sessao: `form.html_to_pdf.SessaoHtmlParaPdf` shared with the
+                caller — passed straight through to `gerar_falha_presumida_pdf`.
 
         Returns:
             tuple: (caminho_pdf_falha, dados_anterior). `caminho_pdf_falha`
             is the path of the generated "Falha Presumida" PDF, or None if
             the user declines, cancels the file picker, the file isn't a
-            valid certificate, or `gerar_falha_presumida` itself raises —
+            valid certificate, or `gerar_falha_presumida_pdf` itself raises —
             a None here does not fail the overall flow, the Linearização
             result already generated stays valid either way. `dados_anterior`
             is the previous certificate's extracted data whenever a valid
@@ -770,8 +878,8 @@ class PdfProcessingService:
             return None, None
 
         try:
-            from form.utils_print_linearizacao import gerar_falha_presumida
-            caminho_pdf_falha = gerar_falha_presumida(caminho_xlsx, dados_atual, dados_anterior)
+            from form.utils_print_falha_presumida_html import gerar_falha_presumida_pdf
+            caminho_pdf_falha = gerar_falha_presumida_pdf(dados_atual, dados_anterior, caminho_xml, sessao=sessao)
         except Exception as e:
             traceback.print_exc()
             self.api.alert("Erro na Falha Presumida", str(e), "error")
@@ -779,7 +887,7 @@ class PdfProcessingService:
 
         return caminho_pdf_falha, dados_anterior
 
-    def _processar_ac_primario(self, dados_atual, dados_anterior, caminho_xml):
+    def _processar_ac_primario(self, dados_atual, dados_anterior, caminho_xml, sessao):
         """Asks whether to also generate the primary meter AC and, if so, asks for the Aplicação (drives its acceptance criteria) and generates it.
 
         Args:
@@ -789,6 +897,8 @@ class PdfProcessingService:
                 of asking for that XML again).
             caminho_xml: path of the current XML; used only to determine
                 the output folder (same folder as the other reports).
+            sessao: `form.html_to_pdf.SessaoHtmlParaPdf` shared with the
+                caller — passed straight through to `gerar_ac_primario_pdf`.
 
         Returns:
             str: path of the generated PDF, or None if the user declines,
@@ -819,8 +929,8 @@ class PdfProcessingService:
             return None
 
         try:
-            from form.utils_print_ac_primario import gerar_ac_primario
-            return gerar_ac_primario(dados_atual, dados_anterior, valores["aplicacao"], caminho_xml)
+            from form.utils_print_ac_primario_html import gerar_ac_primario_pdf
+            return gerar_ac_primario_pdf(dados_atual, dados_anterior, valores["aplicacao"], caminho_xml, sessao=sessao)
         except Exception as e:
             traceback.print_exc()
             self.api.alert("Erro na AC de Medidor Primário", str(e), "error")
