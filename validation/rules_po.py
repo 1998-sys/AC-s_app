@@ -11,7 +11,7 @@
 
 import re
 from validation.issue import ValidationIssue
-from data.utils_db import inserir_placa, buscar_placa_por_tag, buscar_placa_por_sn
+from data.utils_db import inserir_placa, buscar_placa_por_sn, buscar_placas_por_tag
 
 
 def normalizar_numero_certificado(valor):
@@ -30,10 +30,15 @@ _TAG_AUSENTE_PO = {"N/A", "N/C", "NI", "NA"}
 def regra_nova_placa(ctx):
     """Checks whether the certificate's orifice plate is already registered, identifying it by TAG or, in its absence, by serial number.
 
+    A TAG may legitimately have more than one registered SN (a reserve/spare plate used
+    in rotation), so the certificate's SN is compared against every SN already registered
+    for that TAG, not just one.
+
     Returns:
         ValidationIssue: non-blocking, proposing registration, if the plate does not exist;
-        blocking if the TAG exists but with an SN different from the certificate; None if
-        everything is already consistent.
+        non-blocking, proposing to register the certificate's SN as a reserve plate for the
+        same TAG, if the TAG exists but with none of its registered SNs matching the
+        certificate; None if everything is already consistent.
     """
     tag_raw = (ctx.pdf.get("tag") or "").strip().upper()
     sn      = ctx.pdf.get("sn_inst")
@@ -57,11 +62,11 @@ def regra_nova_placa(ctx):
             )
         return None
 
-    # Plate with TAG: default behavior
+    # Plate with TAG: a TAG can have more than one registered SN (reserve/spare plate)
     tag = tag_raw
-    registro = buscar_placa_por_tag(tag)
+    registros = buscar_placas_por_tag(tag)
 
-    if registro is None:
+    if not registros:
         return ValidationIssue(
             key="nova_placa",
             title="Placa não cadastrada",
@@ -74,19 +79,27 @@ def regra_nova_placa(ctx):
             blocking=False
         )
 
-    if registro["sn_instrumento"] != sn:
-        return ValidationIssue(
-            key="sn_placa_divergente",
-            title="NS da placa divergente",
-            message=(
-                f"TAG: {tag}\n\n"
-                f"NS Certificado: {sn}\n"
-                f"NS Banco: {registro['sn_instrumento']}"
-            ),
-            blocking=True
-        )
+    sns_cadastrados = [r["sn_instrumento"] for r in registros]
 
-    return None
+    if sn in sns_cadastrados:
+        return None
+
+    return ValidationIssue(
+        key="sn_placa_divergente",
+        title="NS da placa divergente",
+        message=(
+            f"TAG: {tag}\n\n"
+            f"NS Certificado: {sn}\n"
+            f"NS Banco: {', '.join(sns_cadastrados)}\n\n"
+            "Pode ser uma placa reserva. Deseja cadastrar este NS para a mesma TAG?"
+        ),
+        action=lambda: inserir_placa(tag, sn),
+        blocking=False,
+        opcoes=[
+            {"label": "Cadastrar como placa reserva", "valor": sn, "recomendado": True},
+            {"label": "Pular certificado", "valor": ", ".join(sns_cadastrados)},
+        ],
+    )
 
 
 def comparar_evaluation_certificado(ctx):

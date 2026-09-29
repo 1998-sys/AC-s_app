@@ -135,16 +135,23 @@ def buscar_placa_por_sn(sn):
     return buscar_placa_por_campo("sn_instrumento", sn)
 
 
-def buscar_placa_por_tag(tag):
-    """Look up an orifice plate by its tag.
+def buscar_placas_por_tag(tag):
+    """Look up all orifice plates registered under a tag (a tag may have more than one
+    registered serial number, e.g. a reserve/spare plate used in rotation).
 
     Args:
         tag: Plate identifier.
 
     Returns:
-        dict | None: {'tag', 'sn_instrumento'} of the plate found, or None if not found.
+        list[dict]: {'tag', 'sn_instrumento'} of every plate found for that tag (empty
+        list if none is registered).
     """
-    return buscar_placa_por_campo("tag", tag)
+    rows = _query_all("""
+        SELECT tag, sn_instrumento
+        FROM instrumentos
+        WHERE tag = ? AND tipo = 'PO'
+    """, (tag,))
+    return [{"tag": r[0], "sn_instrumento": r[1]} for r in rows]
 
 
 def atualizar_sn_placa(tag, novo_sn):

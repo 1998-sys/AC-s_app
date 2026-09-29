@@ -77,9 +77,11 @@ class BaseProcessor:
         self.app.after(0, lambda: self._solicitar_report(caminho_certificado))
 
     def _solicitar_report(self, caminho_certificado):
-        """Asks the user whether they want to select the Evaluation Report
-        and, if so, opens the file dialog and triggers processing on a
-        separate thread.
+        """Tries to match this certificate with an Evaluation Report already
+        identified among the files selected for reading (see
+        `PdfProcessingService._separar_ers_e_iniciar`) and, failing that, asks the
+        user whether they want to select the Evaluation Report individually and, if
+        so, opens the file dialog and triggers processing on a separate thread.
 
         Args:
             caminho_certificado: Path to the certificate PDF, passed along to
@@ -90,6 +92,16 @@ class BaseProcessor:
             file, the flow returns to the selection screen instead of
             proceeding.
         """
+        numero_certificado = (self.app.dados_certificado_atual or {}).get("certificado")
+        caminho_automatico = self.app.er_automatico_lote(numero_certificado)
+        if caminho_automatico:
+            Thread(
+                target=self._processar_report,
+                args=(caminho_certificado, caminho_automatico),
+                daemon=True
+            ).start()
+            return
+
         resposta = self.app.confirm(self._titulo_instrumento(), self._mensagem_confirmacao())
 
         if not resposta:

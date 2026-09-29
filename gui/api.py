@@ -146,6 +146,10 @@ class Api:
         """Delegates to `PdfProcessingService.dados_origem_automaticos`."""
         return self._pdf_service.dados_origem_automaticos(tag)
 
+    def er_automatico_lote(self, numero_certificado):
+        """Delegates to `PdfProcessingService.er_automatico_lote`."""
+        return self._pdf_service.er_automatico_lote(numero_certificado)
+
     # ---------- Screen 1 → 2: PDF/XML selection, reading and classification ----------
 
     def escolher_arquivos_pdf(self):
