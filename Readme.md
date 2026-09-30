@@ -37,20 +37,41 @@ Windows window) — no longer the old Tkinter GUI from previous versions.
   registry, keep/ignore it, or skip the certificate when no correction
   is possible (e.g., uncertainty below the CMC) — in batch, without
   locking the queue or stopping on the remaining certificates.
-- 📑 Generation of the **AC in PDF** from `.xlsx` templates (filled in
-  via openpyxl, exported to PDF via Excel COM automation — reuses a
-  single Excel instance for the whole batch).
+- 📑 Generation of the **AC in PDF** from HTML/Jinja2 templates, rendered
+  to PDF headlessly through the Windows **WebView2** runtime
+  (`form/html_to_pdf.py`) — no Excel/COM automation involved anymore.
+  A single WebView2 session is reused for every report of the same
+  certificate/batch, instead of paying a full browser cold-start per
+  file (measured ~25× faster than the previous per-report Excel COM
+  pipeline).
 - 🧾 Generation of the **XML** in the corresponding ANP/client standard.
 - 🧪 **Chromatography** reports (SGS, Origem Energia Alagoas's in-house
   lab, GT Química or GT Technology) and **uncertainty calculation
   (CI)** reports: generate the XML directly, without going through the
   review screen.
 - 🌀 **Flow meter Linearization and Presumed Failure** reports: reads
-  the meter's external calibration XML and fills the linearization
-  Excel template (K-Factor Corrected, average KF, alarm limits),
-  exporting XLSX + PDF; optionally, comparing this calibration's meter
+  the meter's external calibration XML and renders the report
+  (K-Factor Corrected per point, average KF, alarm limits) straight to
+  PDF; the K-Factor Corrected precision (significant figures) is
+  configurable per certificate, since it depends on the flow computer
+  actually programmed, not on the meter itself. A filled companion
+  `.xlsx` (same layout as the original Excel template, generated via
+  openpyxl only — no Excel automation) is produced alongside the PDF as
+  a safety net, so an engineer can open it directly to double-check or
+  tweak a parameter. Optionally, comparing this calibration's meter
   factor against the previous one (paired by closest flow point)
-  generates the Presumed Failure report in the same workbook.
+  generates the Presumed Failure report (PDF + companion sheet in the
+  same XLSX).
+- 🧮 **Primary meter AC (Critical Analysis)**: after Linearization, the
+  primary meter's own AC is always generated too (no longer an opt-in
+  step) — PRIO's report compares the current calibration against the
+  previous one point-by-point (Error/Meter Factor/Repeatability, each
+  with its own chart) and ORIGEM's is a standard compliance checklist;
+  both are complete. YINSON's report layout is also in place, with the
+  fields that are safely derivable already wired in — a handful of
+  rows tied to business rules still pending confirmation (calibration
+  periodicity, admissible uncertainty, temperature/pressure deviation
+  vs. standard) are left blank until decided.
 - 🖊️ Manual instrument registration/editing through the interface.
 - 📤📥 Bulk registry import/export via `.xlsx`.
 - 🖱️ Drag and drop files straight onto the screen (stored in a permanent
@@ -61,8 +82,10 @@ Windows window) — no longer the old Tkinter GUI from previous versions.
 ## 🏭 Supported clients and instrument types
 
 **Clients (AC/XML generation):** PRIO, YINSON, YINSON ATLANTA, ORIGEM
-ENERGIA ALAGOAS S.A. — each with its own AC template and, for orifice
-plates, its own variant (PO).
+ENERGIA ALAGOAS S.A. — each with its own AC report layout and, for
+orifice plates, its own variant (PO). Primary meter AC coverage by
+client: PRIO and ORIGEM complete; YINSON's layout is in place, pending
+a few business-rule decisions (see above).
 
 **Instrument/document types:**
 - PT / PIT, DPT, TT / TIT, TE sensors (with automatic TE ↔ TT/TIT
@@ -73,7 +96,7 @@ plates, its own variant (PO).
 - Straight run / Gas Meter Run (generates the dimensional XML; AC in
   PDF not yet implemented for this type)
 - Flow meter (external calibration XML → Linearization + Presumed
-  Failure reports)
+  Failure + primary meter AC reports)
 - Chromatography report (SGS, Origem Energia Alagoas, GT Química or
   GT Technology)
 - Uncertainty calculation (CI) report
@@ -86,7 +109,12 @@ plates, its own variant (PO).
 AC's_app/
 │── Ac_app.py                 → Entry point (opens the pywebview window)
 │── instrumentos.db           → Local database (SQLite)
-│── TemplateAC_*.xlsx         → AC templates per client/variant
+│── templates/                → Report templates: HTML/Jinja2 + CSS per
+│                                report family, client logos, and the
+│                                legacy .xlsx templates still used as a
+│                                reference and for the companion XLSX
+│                                exports (Linearização/Falha Presumida)
+│                                and the instrument import spreadsheet
 │
 ├── webui/                    → Front-end (HTML/CSS/JS) — CertiFlow screens
 ├── gui/                      → Api (JS↔Python bridge) and services (reading,
@@ -94,7 +122,9 @@ AC's_app/
 ├── pdf/                      → Data extraction from PDFs by document type
 ├── validation/                → Validation rules engine (divergences)
 ├── xml_model/                 → XML generation (ANP/petro/PO/TR/chromato/CI)
-├── form/                      → Excel template filling and export to PDF
+├── form/                      → Report rendering: HTML/Jinja2 templates to
+│                                PDF via WebView2 (html_to_pdf.py), plus the
+│                                companion XLSX writers (openpyxl only)
 ├── processors/                → Routing by instrument type (Dispatcher)
 └── data/                      → Database (SQLite) and file system access
 ```
@@ -112,9 +142,11 @@ aggregated batch) → generated files → instrument registration/editing.
 
 ## ▶️ How to run
 
-Requires **Python 3.12**, **Microsoft Excel** installed (COM automation
-is used to export the AC to PDF), and Windows's **WebView2 Runtime**
-(already included by default on up-to-date Windows 10/11).
+Requires **Python 3.12** and Windows's **WebView2 Runtime** (already
+included by default on up-to-date Windows 10/11) — it's the engine
+behind every PDF report, headless. **Microsoft Excel is no longer
+required**: the old Excel/COM automation pipeline was fully replaced by
+HTML/Jinja2 templates rendered to PDF through WebView2.
 
 ```powershell
 python -m venv venv
@@ -142,8 +174,9 @@ To generate the executable (`.exe`), the project already has an
    screen shows only the instruments with pending divergences —
    resolve each one (or skip the certificate) and click **Generate
    reports** to generate all the ones that are ready.
-4. The files (AC in PDF + XML) are saved in the same folder as the
-   original PDF.
+4. The files are saved in the same folder as the original PDF/XML — the
+   AC in PDF, the XML, and, for flow meter Linearization/Presumed
+   Failure, a companion `.xlsx` alongside each PDF.
 
 > For open-loop calibration (TE + TT/TIT), read both certificates
 > together (same batch or in sequence) — the system automatically
@@ -154,9 +187,14 @@ To generate the executable (`.exe`), the project already has an
 
 ## 🗺️ Roadmap
 
-- 🧮 **Primary meter ACs**: generate the Critical Analysis (AC) for
-  primary flow meters as well, one template per client, building on
-  the existing external-certificate flow (`pdf_primario_terc/`) — scope
-  still being detailed.
+- 🧮 **YINSON primary meter AC — remaining business rules**: the report
+  layout is done, but a few rows still need a decision before they can
+  be computed instead of left blank — calibration periodicity and
+  issuance deadline (fixed per Aplicação, or per instrument?), the
+  admissible uncertainty, and the temperature/pressure deviation vs.
+  standard limits (the XML schema does carry these values per
+  calibration point, so it's an extraction, not a data-availability,
+  gap) and the "conforme histórico" pressure tolerance (needs a
+  multi-certificate history the app doesn't track yet).
 - 📊 **ANP daily production XML analysis**: a new feature, not started
   yet — analyze/validate ANP daily production report XMLs.
