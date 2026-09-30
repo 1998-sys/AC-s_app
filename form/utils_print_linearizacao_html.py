@@ -160,7 +160,7 @@ def status_ponto(erro_pct: float, aplicacao: str) -> str:
     return "REPROVADO" if abs(erro_pct) > _limite_erro_pct(aplicacao) else "APROVADO"
 
 
-def _calcular_ponto(p: dict, fator_k: float, aplicacao: str) -> dict:
+def _calcular_ponto(p: dict, fator_k: float, aplicacao: str, digitos: int = 7) -> dict:
     """Computes the derived, display-ready fields of a single calibration point.
 
     Ports to Python what used to be live Excel formulas (Frequência, K-Factor
@@ -171,6 +171,8 @@ def _calcular_ponto(p: dict, fator_k: float, aplicacao: str) -> dict:
         p: one entry of `dados["pontos"]` (see `xml_extractor_FT.extrair_dados_ft`).
         fator_k: certificate's nominal K-Factor (`dados["fator_k"]`).
         aplicacao: certificate's "Aplicação" field.
+        digitos: number of significant figures for the K-Factor Corrigido
+            column — customizable per certificate (see `montar_contexto`).
 
     Returns:
         dict: all of `p`'s original keys plus `frequencia_hz`, `kfc` (raw
@@ -182,7 +184,7 @@ def _calcular_ponto(p: dict, fator_k: float, aplicacao: str) -> dict:
         kfc = fator_k / meter_factor
     except ZeroDivisionError:
         kfc = 0.0
-    casas_kfc = _casas_significativas(kfc)
+    casas_kfc = _casas_significativas(kfc, digitos)
 
     return {
         **p,
@@ -222,12 +224,19 @@ def montar_contexto(dados: dict, caminho_xml: str) -> dict:
     cliente = dados.get("cliente") or identificar_cliente(dados.get("cliente_xml", ""), caminho_xml)
     aplicacao = dados.get("aplicacao", "")
     fator_k = dados.get("fator_k", 0.0)
+    # Significant figures for the K-Factor Corrigido column only — it's the
+    # value actually programmed into the flow computer, so its precision
+    # depends on that specific CV, not on the meter/certificate (see
+    # `PdfProcessingService._processar_xml_ft`'s "Casas do Fator K" prompt
+    # field). The nominal K-Factor (certificate's own reported value) and
+    # KF médio keep the fixed 7-significant-figure rule regardless.
+    digitos_kfc = int(dados.get("casas_fator_k") or 7)
 
-    pontos = [_calcular_ponto(p, fator_k, aplicacao) for p in dados.get("pontos", [])]
+    pontos = [_calcular_ponto(p, fator_k, aplicacao, digitos_kfc) for p in dados.get("pontos", [])]
 
     if pontos:
         kf_medio = sum(p["kfc"] for p in pontos) / len(pontos)
-        casas_kf_medio = _casas_significativas(kf_medio)
+        casas_kf_medio = _casas_significativas(kf_medio, 7)
     else:
         kf_medio = 0.0
         casas_kf_medio = 0
@@ -251,7 +260,7 @@ def montar_contexto(dados: dict, caminho_xml: str) -> dict:
             "num_serie": dados.get("num_serie", ""),
             "diametro": dados.get("diametro", ""),
             "faixa_calibrada": dados.get("faixa_calibrada", ""),
-            "fator_k": _num_br(fator_k, _casas_significativas(fator_k)),
+            "fator_k": _num_br(fator_k, _casas_significativas(fator_k, 7)),
         },
         "unidades": {
             "vazao": dados.get("vazao_unidade") or "m³/h",
