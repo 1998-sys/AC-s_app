@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC Medidor Linear ORIGEM</title>
+<style>{% include "_ac_origem_style.html" %}</style>
+</head>
+<body>
+
+<div class="cabecalho-doc-caixa">
+<table class="cabecalho-doc">
+  <tr>
+    <td class="logo" rowspan="3"><img src="{{ logo_origem }}" alt="ORIGEM"></td>
+    <td class="titulo" rowspan="3">Registro de Análise Crítica de Certificado de Calibração de Medidor Linear</td>
+    <td class="doc-info">FO-COR-GER-CPROD-031</td>
+  </tr>
+  <tr><td class="doc-info">Revisão: 0</td></tr>
+  <tr><td class="doc-info">Página: 1/1</td></tr>
+</table>
+</div>
+
+<table class="identificacao">
+  <tr>
+    <th>TAG</th>
+    <th>Localização</th>
+    <th>Identificação</th>
+  </tr>
+  <tr>
+    <td>{{ tag }}</td>
+    <td>{{ localizacao }}</td>
+    <td>{{ identificacao }}</td>
+  </tr>
+</table>
+
+<div class="tipo-sensor-caixa">
+<table class="tipo-sensor">
+  <tr>
+    <td class="rotulo">Tipo de sensor:</td>
+    <td class="opcao">{{ marca_coriolis }} Medidor coriolis</td>
+    <td class="opcao">{{ marca_turbina }} Medidor turbina</td>
+    <td class="opcao">{{ marca_ultrassonico }} Medidor ultrassônico</td>
+  </tr>
+</table>
+</div>
+
+<table class="certificado-info">
+  <tr>
+    <th>Nº do Certificado</th>
+    <th>Data da Calibração</th>
+    <th>Empresa Certificadora</th>
+  </tr>
+  <tr>
+    <td>{{ certificado }}</td>
+    <td>{{ data_calibracao }}</td>
+    <td style="text-align:center">{{ empresa_certificadora }}</td>
+  </tr>
+</table>
+
+<div class="secao-titulo">1 - ANÁLISE DO CERTIFICADO DE CALIBRAÇÃO</div>
+
+<table class="checklist">
+  <tr>
+    <th>DESCRIÇÃO DOS ITENS A SEREM VERIFICADOS</th>
+    <th>SIM</th>
+    <th>NÃO</th>
+    <th>NÃO APLICÁVEL</th>
+  </tr>
+  {% for item in checklist %}
+  <tr>
+    <td>{{ item.texto }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "SIM" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NAO" else "○" }}</td>
+    <td class="marca simbolo">{{ "◉" if item.resposta == "NA" else "○" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="conclusao-titulo">1.1 - Conclusão da análise crítica do certificado de calibração:</div>
+<div class="conclusao-pergunta">O certificado está conforme e atende ao procedimento?</div>
+<div class="conclusao-resposta simbolo">{{ "◉" }} Sim&nbsp;&nbsp;{{ "○" }} Não</div>
+
+<div class="observacoes-rotulo">OBSERVAÇÕES:</div>
+<div class="observacoes-box">{{ observacao }}</div>
+
+<div class="assinatura-origem">
+  <div class="data">Data: {{ data_entrega }}</div>
+  <div class="linha">Responsável pela Análise</div>
+</div>
+
+</body>
+</html>

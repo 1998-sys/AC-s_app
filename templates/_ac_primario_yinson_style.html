@@ -1,0 +1,92 @@
+@page { size: A4 portrait; margin: 8mm 10mm; }
+* {
+  box-sizing: border-box;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+body {
+  font-family: Calibri, Arial, "Segoe UI", sans-serif;
+  font-size: 9px;
+  color: #000;
+  margin: 0;
+}
+
+.cabecalho-topo {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin-bottom: 1mm;
+}
+.cabecalho-topo img.logo-principal { height: 12mm; }
+.cabecalho-topo .titulo {
+  font-size: 12px;
+  font-weight: bold;
+}
+.divisor {
+  border-bottom: 3px solid #000;
+  margin-bottom: 2mm;
+}
+
+table.identificacao {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 3mm;
+}
+table.identificacao td {
+  border: 1px solid #000;
+  padding: 1mm 1.5mm;
+  vertical-align: top;
+}
+table.identificacao td.rotulo { font-weight: bold; width: 15%; }
+table.identificacao td.valor { width: 35%; }
+
+table.avaliacao {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 3mm;
+}
+table.avaliacao th, table.avaliacao td {
+  border: 1px solid #000;
+  padding: 0.8mm 1.5mm;
+}
+table.avaliacao th {
+  font-weight: bold;
+  text-align: left;
+}
+table.avaliacao th.valor-cabecalho { text-align: center; width: 15%; }
+table.avaliacao td.valor { text-align: center; font-weight: bold; }
+table.avaliacao tr.conclusao td,
+table.avaliacao tr.conclusao th { font-weight: bold; }
+
+.dados-obrigatorios-titulo {
+  font-weight: bold;
+  font-size: 10px;
+  margin-bottom: 1mm;
+}
+.dados-obrigatorios-caixa {
+  border: 1px solid #000;
+  padding: 1mm 1.5mm;
+  margin-bottom: 6mm;
+}
+.dados-obrigatorios-caixa .item { padding: 0.3mm 0; }
+
+.assinatura-yinson {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+}
+.assinatura-yinson .linha {
+  width: 60%;
+  margin: 0 auto;
+  border-top: 1px solid #000;
+  padding-top: 1mm;
+  font-weight: bold;
+  text-align: center;
+}
+.assinatura-yinson .data {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font-weight: normal;
+}

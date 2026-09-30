@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AC Medidor Primário YINSON</title>
+<style>{% include "_ac_primario_yinson_style.html" %}</style>
+</head>
+<body>
+
+<div class="cabecalho-topo">
+  <img class="logo-principal" src="{{ logo_yinson }}" alt="YINSON">
+  <div class="titulo">Análise Crítica de Calibração dos Medidores Primários</div>
+</div>
+<div class="divisor"></div>
+
+<table class="identificacao">
+  <tr>
+    <td class="rotulo">Cliente:</td>
+    <td class="valor">{{ cliente }}</td>
+    <td class="rotulo">TAG do instrumento:</td>
+    <td class="valor">{{ tag }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">Localização:</td>
+    <td class="valor">{{ localizacao }}</td>
+    <td class="rotulo">Número do Certificado:</td>
+    <td class="valor">{{ certificado }}</td>
+  </tr>
+  <tr>
+    <td class="rotulo">Data de Calibração:</td>
+    <td class="valor">{{ data_calibracao }}</td>
+    <td class="rotulo">Classificação:</td>
+    <td class="valor">{{ classificacao }}</td>
+  </tr>
+</table>
+
+<table class="avaliacao">
+  <tr>
+    <th>Descrição dos itens avaliados</th>
+    <th class="valor-cabecalho">Valor</th>
+  </tr>
+  {% for item in avaliacao %}
+  <tr{% if item.destaque %} class="conclusao"{% endif %}>
+    <th>{{ item.label }}</th>
+    <td class="valor">{{ item.valor }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="dados-obrigatorios-titulo">Dados Obrigatórios</div>
+<div class="dados-obrigatorios-caixa">
+  {% for item in dados_obrigatorios %}
+  <div class="item">{{ item }}</div>
+  {% endfor %}
+</div>
+
+<div class="assinatura-yinson">
+  <div class="linha">Responsável pela análise</div>
+  <div class="data">Data:&nbsp;&nbsp;&nbsp;{{ data_entrega }}</div>
+</div>
+
+</body>
+</html>
