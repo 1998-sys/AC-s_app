@@ -65,6 +65,7 @@ def select_extract(caminho):
     elif identificar_gt_quimica(texto):
         print('Relatório de Cromatografia (GT Química)')
         dados = extrair_campos_cromato_gt(texto)
+        dados["_lab"] = "gt_quimica"
         tipo = 'cromatografia'
 
     elif identificar_gt_technology(texto):

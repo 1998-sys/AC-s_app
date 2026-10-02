@@ -4,7 +4,7 @@
 # Created       : 09-09-2026
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
-# Remarks       : Parses GT Química chromatography reports ("Boletim de Resultado de Análise"), extracting client, certificate number and the gas properties used in the flow calculation.
+# Remarks       : Parses GT Química chromatography reports ("Boletim de Resultado de Análise"), extracting client, certificate number, full gas composition and every reported property (standard and sampling condition).
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
@@ -83,45 +83,99 @@ def _bloco(texto, padrao_inicio, padrao_fim):
     return texto[start:end]
 
 
-def _valor_incerteza(bloco, nome_exato):
-    """Finds, within `bloco`, the row "nome_exato <método ref.> <valor> <unidade ou -> <incerteza>".
+def _todas_propriedades(bloco):
+    """Finds every row "nome <método ref.> <valor> <unidade ou -> <incerteza>" in `bloco`.
 
     Both "Propriedades do Gás" tables in this report share this exact
     column layout (property name, one-letter+digit method reference —
     1A/1B/1C/1D —, value, unit or "-" for dimensionless, uncertainty), so
-    the same pattern works for either table's rows.
+    the same pattern reads every row of either table, whatever properties
+    it lists.
 
     Args:
         bloco: Text of a single properties table (see `_bloco`).
-        nome_exato: Property name, exactly as it appears in the report
-            (e.g. "Peso Molecular Médio").
 
     Returns:
-        tuple: (valor, incerteza) as raw PT-BR strings (decimal comma,
-        already in the report's own format — no conversion needed), or
-        (None, None) if the row isn't found in this block.
+        list[dict]: one item per row, each with "nome" (unit folded into
+        the name in parentheses, e.g. "Poder Calorífico Superior
+        (kJ/m³)", same convention as the SGS report), "valor" and
+        "incerteza" as raw PT-BR strings (decimal comma, already in the
+        report's own format — no conversion needed).
     """
     pat = re.compile(
-        r"^[ \t]*" + re.escape(nome_exato) + r"[ \t]+1[A-D][ \t]+"
-        r"(?P<valor>[\d.,]+)[ \t]+\S+[ \t]+"
+        r"^[ \t]*(?P<nome>[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ\s\-/]*?)[ \t]+1[A-D][ \t]+"
+        r"(?P<valor>[\d.,]+)[ \t]+(?P<unidade>\S+)[ \t]+"
         r"(?P<incerteza>[\d.,]+)[ \t]*$",
-        re.IGNORECASE | re.MULTILINE,
+        re.MULTILINE,
     )
-    m = pat.search(bloco)
-    if not m:
-        return None, None
-    return m.group("valor").strip(), m.group("incerteza").strip()
+    resultado = []
+    for m in pat.finditer(bloco):
+        nome = m.group("nome").strip()
+        unidade = m.group("unidade").strip()
+        if unidade and unidade != "-":
+            nome = f"{nome} ({unidade})"
+        resultado.append({
+            "nome": nome,
+            "valor": m.group("valor").strip(),
+            "incerteza": m.group("incerteza").strip(),
+        })
+    return resultado
 
 
-# Property names as they appear in each table, and how to rename them so
-# xml_cromato.py's keyword matching (_buscar_propriedade) recognizes them
-# without needing any change there — "Fator Z" doesn't contain
-# "compressibilidade", the keyword every other lab's report uses for the
-# same property, so it's the only one that needs renaming; the rest already
-# match as-is (e.g. "Viscosidade" already contains "VISCOSIDADE").
-_CAMPOS_PADRAO = ["Peso Molecular Médio", "Densidade Absoluta"]
-_CAMPOS_OPERACAO = ["Fator Z", "Viscosidade", "Coeficiente Isentrópico"]
+def _composicao_gt(texto):
+    """Extracts the natural gas molar composition table from a GT Química report.
+
+    Isolates the text block between the sampling-conditions footnote ("*
+    Dados coletados no ponto de amostragem", right before the table) and
+    the "Total:" row that closes it, then matches each component line
+    (label, name, method reference, molar percentage, uncertainty) — same
+    row layout the properties tables use, see `_todas_propriedades`.
+
+    Args:
+        texto: Report text extracted (already normalized to "\\n" line
+            endings).
+
+    Returns:
+        list[dict]: one item per component, each with "rotulo" (e.g.
+        "N2", "iC4", "C9+"), "nome" (e.g. "Nitrogênio"), "mol_pct" and
+        "incerteza" as raw PT-BR strings; empty list if the table isn't
+        found.
+    """
+    bloco = _bloco(
+        texto,
+        r"Dados coletados no ponto de amostragem",
+        r"Total:",
+    )
+    if not bloco:
+        return []
+
+    pat = re.compile(
+        r"^[ \t]*(?P<rotulo>[A-Za-z0-9+]+)[ \t]+(?P<nome>[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ\s\-]*?)[ \t]+1[A-D][ \t]+"
+        r"(?P<mol>[\d.,]+)[ \t]+(?P<incerteza>[\d.,]+)[ \t]*$",
+        re.MULTILINE,
+    )
+    composicao = []
+    for m in pat.finditer(bloco):
+        composicao.append({
+            "rotulo": m.group("rotulo").strip(),
+            "nome": m.group("nome").strip(),
+            "mol_pct": m.group("mol").strip(),
+            "incerteza": m.group("incerteza").strip(),
+        })
+    return composicao
+
+
+# "Fator Z" doesn't contain "compressibilidade", the keyword every other
+# lab's report uses for the same property and that xml_cromato.py's reduced
+# generator (_buscar_propriedade) searches for — so it's the only property
+# name GT Química's report needs renamed; everything else already matches
+# as extracted (e.g. "Viscosidade" already contains "VISCOSIDADE").
 _RENOMEAR = {"Fator Z": "Fator de Compressibilidade"}
+
+
+def _renomear_propriedades(lista):
+    """Applies `_RENOMEAR` to every item's "propriedade" field (in place semantics, returns a new list)."""
+    return [{**p, "propriedade": _RENOMEAR.get(p["propriedade"], p["propriedade"])} for p in lista]
 
 
 def extrair_campos_cromato_gt(texto):
@@ -131,16 +185,19 @@ def extrair_campos_cromato_gt(texto):
     Isentrópico" each appear in BOTH the "Condição Padrão" and "Condição
     Operação" tables with different values — the two tables are isolated
     first (see `_bloco`) so each property is only read from the table it
-    belongs to (padrão -> molar mass/absolute density at standard
-    condition; operação -> the "_CL"/line-condition properties).
+    belongs to (padrão -> standard-condition properties; operação -> the
+    sampling/line-condition properties). Every row of each table is
+    captured (not just the 5 used in the flow calculation), plus the full
+    gas composition, so the report's complete content is available for
+    `xml_model.xml_cromato.xml_cromatografia_completa`.
 
     Args:
         texto: Report text extracted.
 
     Returns:
-        dict: Keys "empresa", "certificado", "propriedades_pad" and
-        "propriedades_amost", in the same format returned by
-        pdf.parser_sgs.extrair_campos_cromato.
+        dict: Keys "empresa", "certificado", "composicao",
+        "propriedades_pad" and "propriedades_amost", in the same format
+        returned by pdf.parser_sgs.extrair_campos_cromato.
     """
     t = (texto or "").replace("\r\n", "\n").replace("\r", "\n")
 
@@ -155,33 +212,19 @@ def extrair_campos_cromato_gt(texto):
         r"Contaminantes:",
     )
 
-    propriedades_padrao = []
-    for nome in _CAMPOS_PADRAO:
-        valor, incerteza = _valor_incerteza(bloco_padrao, nome)
-        if valor is None:
-            continue
-        propriedades_padrao.append({
-            "propriedade": _RENOMEAR.get(nome, nome),
-            "referencia": None,
-            "valor": valor,
-            "incerteza": incerteza,
-        })
-
-    propriedades_amostragem = []
-    for nome in _CAMPOS_OPERACAO:
-        valor, incerteza = _valor_incerteza(bloco_operacao, nome)
-        if valor is None:
-            continue
-        propriedades_amostragem.append({
-            "propriedade": _RENOMEAR.get(nome, nome),
-            "referencia": None,
-            "valor": valor,
-            "incerteza": incerteza,
-        })
+    propriedades_padrao = [
+        {"propriedade": p["nome"], "referencia": None, "valor": p["valor"], "incerteza": p["incerteza"]}
+        for p in _todas_propriedades(bloco_padrao)
+    ]
+    propriedades_amostragem = [
+        {"propriedade": p["nome"], "referencia": None, "valor": p["valor"], "incerteza": p["incerteza"]}
+        for p in _todas_propriedades(bloco_operacao)
+    ]
 
     return {
         "empresa": extrair_cliente_gt(t),
         "certificado": extrair_certificado_gt(t),
-        "propriedades_pad": {"propriedades_padrao": propriedades_padrao},
-        "propriedades_amost": {"propriedades_amostragem": propriedades_amostragem},
+        "composicao": {"composicao": _composicao_gt(t)},
+        "propriedades_pad": {"propriedades_padrao": _renomear_propriedades(propriedades_padrao)},
+        "propriedades_amost": {"propriedades_amostragem": _renomear_propriedades(propriedades_amostragem)},
     }

@@ -18,7 +18,7 @@ from threading import Thread
 
 from pdf.utils_parser import select_extract
 from xml_model.xml_uc_generator import gerar_xml_uc
-from xml_model.xml_cromato import xml_cromatografia
+from xml_model.xml_cromato import xml_cromatografia, xml_cromatografia_completa
 
 from data.utils_fs import pasta_documentos
 from gui.support import CHECKLIST_ALL, PASTA_CERTIFICADOS_SOLTOS, foto_instrumento, limpar_certificado_solto
@@ -551,7 +551,14 @@ class PdfProcessingService:
 
         api._progress(75, "build", ["extract"])
 
-        xml_path = xml_cromatografia(caminho, dados_pdf)
+        # GT Química follows the full, pre-reduction schema (certificate
+        # header + full gas composition + every reported property) instead
+        # of the 5-field reduced one every other lab uses — see
+        # xml_model.xml_cromato.xml_cromatografia_completa.
+        if dados_pdf.get("_lab") == "gt_quimica":
+            xml_path = xml_cromatografia_completa(caminho, dados_pdf)
+        else:
+            xml_path = xml_cromatografia(caminho, dados_pdf)
         limpar_certificado_solto(caminho)
 
         api._progress(100, "build", ["extract", "build"])
