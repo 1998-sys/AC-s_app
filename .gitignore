@@ -1,6 +1,10 @@
 venv/
 .env/
 .venv/
+.pytest_cache/
+__pycache__/
+.coverage
+.vscode/
 
 instrumentos.db
 build/
@@ -8,3 +12,5 @@ dist/
 pdf_primario_terc/
 installer/
 tasks/
+Claude outputs/
+DESIGN/

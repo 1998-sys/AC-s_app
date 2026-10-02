@@ -1,0 +1,27 @@
+# FIXTURE SINTETICA - construida a partir do layout esperado pelo parser (pdf/parser_gt_technology.py), nao e um boletim real. Substituir por um texto real quando disponivel.
+
+gttechnology.com.br
+Dados do Cliente
+Razão Social: PETRO RIO JAGUAR PETRÓLEO S.A Interessado: Sr. Sander Morais dos Santos
+Endereço: Praia de Botafogo, 370 - 13º Andar - Botafogo - RJ - 22250-040 E-mail: smsantos@prio3.com.br
+Informações Gerais
+Data de Receb. da Amostra: 05/09/2026 Responsável pelo Ensaio: Emisson Santos (CRQ:074004982)
+Data de Realização do Ensaio: 09/09/2026 Objetivo do Ensaio: Caracterização da composição do Gás Natural
+Data de Emissão do Relatório: 30/09/2026 Condições Padrão: Temperatura: 20 °C - Pressão: 101,325 kPa
+Data de Revisão do Relatório: -
+Dados da Amostra
+Identificação da Amostra: CRO FRADE/26-30112 Natureza da Amostra: Gás Natural
+Local da Amostra: PETRORIO - FPSO Frade Data da Coleta: 05/09/2026
+Ponto de Coleta: 070-FT-1006 Hora da Coleta: 16:00:00
+Origem da Amostra: Fuel Gas Pressão (kPa)*: 3586
+Identificação do Cilindro: SAMPLE BAG 12 Temperatura (°C)*: 80,1
+Propriedades do Gás Método Ref. Valor Unidade Incerteza Exp.
+Peso Molecular Médio 1B 20,8300 kg/kmol 0,048
+Densidade Absoluta (Padrão) 1B 0,8700 kg/m³ 0,0021
+Fator Z (Operação) 1D 0,9512 - 0,00088
+Viscosidade (Operação) 1C 0,0109 mPa.s 0,0000079
+Coeficiente Isentrópico (Operação) 1D 1,2460 - 0,0033
+Observações
+Emitido por: Conferido por:
+Vinícius Bruno Rocha da Silva Manoel Ramalho Luz
+Boletim de Resultado de Análise N° CRO FRADE/26-30112

@@ -1,0 +1,34 @@
+# FIXTURE SINTETICA - construida a partir do layout esperado pelo parser (pdf/parser_sgs.py), nao e um boletim real. Substituir por um texto real quando disponivel.
+RA-2026-004521
+SGS do Brasil Ltda.
+RELATÓRIO DE ANÁLISES DE GÁS NATURAL
+Cliente: PETRO RIO JAGUAR PETRÓLEO S.A
+
+Composição do gás (% molar)
+Componentes Fração Molar (%) Incerteza Expandida (%)
+N2 Nitrogênio 0,850 0,025
+CO2 Dióxido de Carbono 1,200 0,035
+C1 Metano 85,300 0,150
+C2 Etano 7,500 0,060
+C3 Propano 3,100 0,040
+iC4 Isobutano 0,450 0,015
+nC4 n-Butano 0,600 0,015
+iC5 Isopentano 0,200 0,010
+nC5 n-Pentano 0,180 0,010
+C6 Hexanos 0,350 0,012
+C9+ Nonanos e Superiores 0,020 0,005
+H2S Sulfeto de Hidrogênio 0,250 0,020
+Total: 100,000
+Propriedades do Gás - Condição Padrão (1) Referência
+Propriedade Norma Valor Incerteza
+Fator de Compressibilidade ISO 12213 0,9980 0,0010
+Massa Específica ISO 6976 0,8030 0,0020
+Densidade Relativa 0,6530 0,0015
+Poder Calorífico Superior ISO 6976 44500 90
+Propriedades do Gás - Condições de Amostragem
+Fator de Compressibilidade (2) ISO 12213 0,9550 0,0012
+Densidade Relativa (2) 0,6600 0,0016
+Poder Calorífico Superior (2) ISO 6976 43980 88
+Temperatura de Amostragem (2) 25,0 0,5
+OBSERVAÇÕES
+Nada a declarar.

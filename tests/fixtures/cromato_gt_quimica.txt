@@ -1,0 +1,60 @@
+
+gtquimica.com.br
+Dados do Cliente
+Razão Social: PETRO RIO JAGUAR PETRÓLEO S.A Interessado: Sr. Sander Morais dos Santos
+Endereço: Praia de Botafogo, 370 - 13º Andar - Botafogo - RJ - 22250-040 E-mail: smsantos@prio3.com.br
+Informações Gerais
+Data de Receb. da Amostra: 05/09/2026 Responsável pelo Ensaio: Emisson Santos (CRQ:074004982)
+Data de Realização do Ensaio: 09/09/2026 Objetivo do Ensaio: Caracterização da composição do Gás Natural
+Data de Emissão do Relatório: 30/09/2026 Condições Padrão: Temperatura: 20 °C - Pressão: 101,325 kPa
+Data de Revisão do Relatório: -
+Dados da Amostra
+Identificação da Amostra: CRO FRADE/26-29908 Natureza da Amostra: Gás Natural
+Local da Amostra: PETRORIO - FPSO Frade Data da Coleta: 05/09/2026
+Ponto de Coleta: 070-FT-1006 Hora da Coleta: 16:00:00
+Origem da Amostra: Fuel Gas Pressão (kPa)*: 3586
+Identificação do Cilindro: SAMPLE BAG 9 Temperatura (°C)*: 80,1
+Pressão do Ensaio (kPa): Amostrador:
+Temp. de Aquecimento (°C): * Dados coletados no ponto de amostragem
+Método ref. Concentração
+Molar (%)
+Incerteza Exp
+(%)
+N2 Nitrogênio 1A 0,865 0,039
+C1 Metano 1A 80,471 0,18
+CO2 Dióxido de Carbono 1A 1,177 0,043
+C2 Etano 1A 9,232 0,061
+C3 Propano 1A 5,698 0,044
+iC4 Isobutano 1A 0,706 0,0052
+nC4 n-Butano 1A 1,140 0,0052
+iC5 Isopentano 1A 0,237 0,0014
+nC5 n-Pentano 1A 0,257 0,0014
+C6 Hexanos 1A 0,134 0,0011
+C7 Heptanos 1A 0,055 0,00083
+C8 Octanos 1A 0,025 0,00083
+C9+ Nonanos 1A 0,003 0,00085
+H2S Sulfeto de Hidrogênio 1A 0,000 0
+Total: 100,000
+Propriedades do Gás (Condição Padrão) Método Ref. Valor Unidade Incerteza Exp.
+Densidade Relativa do Gás Real 1B 0,7129 - 0,0016
+Densidade Relativa do Gás Ideal 1B 0,7109 - 0,0016
+Peso Molecular Médio 1B 20,5907 kg/kmol 0,045
+Poder Calorífico Superior 1B 44543 kJ/m³ 89
+Poder Calorífico Inferior 1B 40389 kJ/m³ 81
+Fator Z 1D 0,9968 - 0,000099
+Coeficiente Isentrópico 1D 1,2548 - 0,0036
+Viscosidade 1C 0,0106 mPa.s 0,000007
+Densidade Absoluta 1B 0,8587 kg/m³ 0,0019
+Propriedades do Gás (Condição Operação) Método Ref. Valor Unidade Incerteza Exp.
+Fator Z 1D 0,9447 - 0,00094
+Coeficiente Isentrópico 1D 1,2383 - 0,0036
+Viscosidade 1C 0,0111 mPa.s 0,0000077
+Densidade Absoluta 1B 26,6108 kg/m³ 0,2
+Contaminantes: Método ref. Concentração Molar (%) Incerteza Exp (%)
+N2 Nitrogênio 1A 0,257 0,039
+O2 Oxigênio 1A 0,072 0,0065
+N2 + O2 Ar Total 1A 0,329 0,046
+Observações
+Emitido por: Conferido por:
+Vinícius Bruno Rocha da Silva Manoel Ramalho Luz
+Boletim de Resultado de Análise N° CRO FRADE/26-29908
