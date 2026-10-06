@@ -9,14 +9,16 @@
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
 
+import getpass
 import os
 import json
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 from xml_model.xml_generator import normalizar_certificado, tag_te, chave_par_te
-from data.utils_db import buscar_instrumento_por_tag, buscar_por_sn_instrumento
+from data.utils_db import buscar_instrumento_por_tag, buscar_por_sn_instrumento, registrar_calibracao
 from xml_model.xml_extractor_PO import extrair_valores_medidos
 from form.utils_print import gerar_ac_escolha, obter_caminho_ac
 from validation.engine import ValidationEngine
@@ -429,6 +431,8 @@ class RevisionService:
             pontos_calibracao_petro, dados_report, dados_dim_tr=dados_dim_tr, sessao=sessao,
         )
 
+        self._registrar_calibracao_automatica(dados_pdf)
+
         avisos = sum(1 for i in issues if not i.blocking)
         badge = (dados_pdf.get("tag") or "").split("-")[0] if dados_pdf.get("tag") else ""
         arquivos = self._listar_arquivos_gerados(caminho_gerado, caminho_pdf)
@@ -442,6 +446,47 @@ class RevisionService:
             "avisos": avisos,
             "files": arquivos,
         }
+
+    def _registrar_calibracao_automatica(self, dados_pdf):
+        """Records this certificate's calibration data in 'calibracoes', for BI/history purposes.
+
+        Notes:
+            Best-effort and silent: a failure here must never block AC/XML
+            generation, which has already succeeded by the time this runs.
+            No-op if the tag has no active instrument registered in the
+            database yet (registering a brand new instrument remains a
+            separate, explicit user action, resolved earlier in the review
+            via the "novo instrumento"/"nova placa" divergences).
+        """
+        try:
+            tag = dados_pdf.get("tag")
+            if not tag:
+                return
+            numero_certificado = normalizar_certificado(dados_pdf.get("certificado"))
+            if not numero_certificado:
+                return
+
+            modificado_por = getpass.getuser()
+            modificado_em = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+            if dados_pdf.get("instrumento") == "Placa de Orificio":
+                registrar_calibracao(
+                    tag, numero_certificado,
+                    data_calibracao=dados_pdf.get("data_calibracao"),
+                    modificado_por=modificado_por, modificado_em=modificado_em,
+                )
+            else:
+                registrar_calibracao(
+                    tag, numero_certificado,
+                    sn_sensor=dados_pdf.get("sn_sensor"),
+                    min_range=dados_pdf.get("min_range"),
+                    max_range=dados_pdf.get("max_range"),
+                    data_calibracao=dados_pdf.get("data"),
+                    proxima_calibracao=dados_pdf.get("proxima_cal"),
+                    modificado_por=modificado_por, modificado_em=modificado_em,
+                )
+        except Exception:
+            traceback.print_exc()
 
     # ---------- Phase 6: aggregated batch review ----------
 

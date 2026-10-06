@@ -4,90 +4,105 @@
 # Created       : 10-12-2025
 # Programmer(s) : Matheus Bandeira
 # ----------------------------------------------------------------
-# Remarks       : Manages the SQLite database connection and creates/migrates the 'instrumentos' table schema.
+# Remarks       : Manages the Postgres (Supabase) database connection and creates/migrates
+#                 the 'instrumentos'/'calibracoes' schema.
 # ----------------------------------------------------------------
 # Copyright (c) ODS Metering Systems
 # ----------------------------------------------------------------
 
-import sqlite3
 import os
-from pathlib import Path
+import psycopg2
+from dotenv import load_dotenv
 
-_app_dir = Path(os.getenv('APPDATA')) / 'ACs Generator'
-_app_dir.mkdir(parents=True, exist_ok=True)
-db_path = str(_app_dir / 'instrumentos.db')
+load_dotenv()
+
 
 def conectar():
-    """Open and return a connection to the SQLite database located at db_path.
+    """Open and return a connection to the Postgres database via SUPABASE_DB_URL.
 
     Returns:
-        sqlite3.Connection: Active connection to the database.
+        psycopg2.extensions.connection: Active connection to the database.
     """
-    return sqlite3.connect(db_path)
+    return psycopg2.connect(os.environ["SUPABASE_DB_URL"])
+
 
 def criar_tabela():
-    """Create the 'instrumentos' table if it does not exist yet, with the base columns (id, tag, sn_instrumento, sn_sensor, min_range, max_range, tipo).
+    """Create the 'instrumentos'/'calibracoes' tables, index and vw_calibracao_atual view if they don't exist yet.
 
     Notes:
-        Columns added in later versions of the schema (sistema, aplicacao, etc.)
-        are not part of this CREATE TABLE — they are added by migrar().
+        'instrumentos' holds the physical identity of each unit per tag (a tag may
+        have more than one row, e.g. installed unit + reserve unit, each with its
+        own sn_instrumento and its own em_uso flag). 'calibracoes' is an append-only
+        history table, one row per processed certificate.
     """
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS instrumentos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tag TEXT NOT NULL,
-            sn_instrumento TEXT NOT NULL,
-            sn_sensor TEXT,
-            min_range REAL,
-            max_range REAL,
-            tipo TEXT NOT NULL DEFAULT 'SEC'
+            id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            tag             TEXT NOT NULL,
+            sn_instrumento  TEXT NOT NULL,
+            tipo            TEXT NOT NULL DEFAULT 'SEC',
+            sistema         TEXT,
+            aplicacao       TEXT,
+            ativo           TEXT,
+            em_uso          BOOLEAN NOT NULL DEFAULT TRUE,
+            modificado_por  TEXT,
+            modificado_em   TIMESTAMPTZ,
+            UNIQUE (tag, sn_instrumento)
         )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS calibracoes (
+            id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            instrumento_id      BIGINT NOT NULL REFERENCES instrumentos(id),
+            sn_sensor           TEXT,
+            min_range           NUMERIC,
+            max_range           NUMERIC,
+            numero_certificado  TEXT,
+            laboratorio         TEXT,
+            data_calibracao     DATE,
+            proxima_calibracao  DATE,
+            observacoes         TEXT,
+            modificado_por      TEXT,
+            modificado_em       TIMESTAMPTZ
+        )
+    ''')
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_calibracoes_instrumento_data
+        ON calibracoes (instrumento_id, data_calibracao DESC)
+    ''')
+    cursor.execute('''
+        CREATE OR REPLACE VIEW vw_calibracao_atual AS
+        SELECT DISTINCT ON (instrumento_id) *
+        FROM calibracoes
+        ORDER BY instrumento_id, data_calibracao DESC NULLS LAST, id DESC
     ''')
     conn.commit()
     conn.close()
 
 
 def migrar():
-    """Apply incremental migrations to the existing database, adding new columns and normalizing legacy 'tipo' values.
+    """Placeholder for future incremental schema migrations.
 
     Notes:
-        Each ADD COLUMN block is idempotent: it only runs if the column does not
-        exist yet, allowing migrar() to be safely called on every application startup.
+        Kept for API parity with Ac_app.py's startup sequence, which calls
+        criar_tabela() then migrar(). There is nothing to migrate yet, since the
+        schema is already created in full by criar_tabela(); this function only
+        re-asserts the index and view (both safe to run repeatedly) so it stays
+        idempotent and harmless to call on every application startup.
     """
     conn = conectar()
     cursor = conn.cursor()
-    colunas = [row[1] for row in cursor.execute("PRAGMA table_info(instrumentos)")]
-
-    if "tipo" not in colunas:
-        cursor.execute(
-            "ALTER TABLE instrumentos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'SEC'"
-        )
-    if "sistema" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN sistema TEXT")
-    if "aplicacao" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN aplicacao TEXT")
-    if "ativo" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN ativo TEXT")
-    if "data_calibracao" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN data_calibracao TEXT")
-    if "proxima_calibracao" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN proxima_calibracao TEXT")
-    if "numero_certificado" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN numero_certificado TEXT")
-    if "laboratorio" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN laboratorio TEXT")
-    if "observacoes" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN observacoes TEXT")
-    if "modificado_por" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN modificado_por TEXT")
-    if "modificado_em" not in colunas:
-        cursor.execute("ALTER TABLE instrumentos ADD COLUMN modificado_em TEXT")
-
-    # Normalize legacy values to the current abbreviations
-    cursor.execute("UPDATE instrumentos SET tipo = 'SEC' WHERE tipo = 'secundario'")
-    cursor.execute("UPDATE instrumentos SET tipo = 'PO'  WHERE tipo = 'placa_orificio'")
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_calibracoes_instrumento_data
+        ON calibracoes (instrumento_id, data_calibracao DESC)
+    ''')
+    cursor.execute('''
+        CREATE OR REPLACE VIEW vw_calibracao_atual AS
+        SELECT DISTINCT ON (instrumento_id) *
+        FROM calibracoes
+        ORDER BY instrumento_id, data_calibracao DESC NULLS LAST, id DESC
+    ''')
     conn.commit()
     conn.close()
-
